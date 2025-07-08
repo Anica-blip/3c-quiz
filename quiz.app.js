@@ -80,7 +80,7 @@ function render() {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="cover-btn-outer">
-        <br><br><br>
+        <div style="height:3em;"></div>
         <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
       </div>
     `;
