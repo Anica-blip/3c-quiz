@@ -20,6 +20,7 @@ const pageSequence = [
   { type: "thankyou", bg: "static/6.png" },
 ];
 
+// Adjust these as needed
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
 
@@ -56,8 +57,7 @@ function render() {
       render();
       return;
     } else if (current.type === "thankyou") {
-      state.page = 0;
-      render();
+      // No button on thank you page
       return;
     }
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
@@ -74,18 +74,40 @@ function render() {
   ) {
     nextLabel = "Finish";
   }
-  if (current.type === "thankyou") nextLabel = "Restart";
 
   // --- COVER PAGE ---
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="cover-btn-outer">
-        <div style="height: 3em;"></div>
+        <br><br><br>
         <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
       </div>
     `;
     $("#nextBtn").onclick = nextAction;
+    return;
+  }
+
+  // --- THANK YOU PAGE (NO BUTTON) ---
+  if (current.type === "thankyou") {
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="page-content">
+        <div class="content-inner">
+          <h2>${current.type.toUpperCase()}</h2>
+          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      </div>
+    `;
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        render();
+      };
+    }
     return;
   }
 
