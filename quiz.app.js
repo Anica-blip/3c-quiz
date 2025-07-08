@@ -20,8 +20,8 @@ const pageSequence = [
   { type: "thankyou", bg: "static/6.png" },
 ];
 
-let NUM_QUESTIONS = 8; // set to actual number of question pages you have
-let SHOW_RESULT = "A"; // demo: which result page to show
+let NUM_QUESTIONS = 8;
+let SHOW_RESULT = "A";
 
 let state = {
   page: 0,
@@ -76,25 +76,20 @@ function render() {
   }
   if (current.type === "thankyou") nextLabel = "Restart";
 
-  // Render current page
-  // Special handling for the cover page button spacing
+  // --- COVER PAGE ---
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="cover-content">
-        <div class="cover-inner-text">
-          <br><br><br>
-        </div>
-        <div class="cover-btn-container">
-          <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
-        </div>
+      <div class="cover-btn-outer">
+        <div style="height: 3em;"></div>
+        <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
       </div>
     `;
     $("#nextBtn").onclick = nextAction;
     return;
   }
 
-  // All other pages
+  // --- ALL OTHER PAGES ---
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
