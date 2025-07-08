@@ -43,7 +43,6 @@ html, body {
 .cover-btn-in-img {
   position: absolute;
   left: 50%;
-  /* Place the button about 80% down the image PLUS 3.5em (about 3-4 line spaces) further */
   top: calc(80% + 3.5em);
   transform: translate(-50%, -50%);
   z-index: 2;
@@ -89,75 +88,6 @@ html, body {
   background-position: center center;
   z-index: 0;
   background-color: #12093b;
-}
-
-.question-vertical {
-  position: absolute;
-  left: 0; right: 0;
-  /* Move question down by 2 lines (approx 2em) */
-  top: calc(14vh + 2em);
-  width: 100vw;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-}
-.question-text {
-  font-size: 1.25em;
-  font-weight: bold;
-  margin-bottom: 2.1em;
-  text-align: center;
-  max-width: 90vw;
-  pointer-events: auto;
-  text-shadow: 0 4px 16px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.27);
-}
-.answers-form {
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: auto;
-}
-.answers {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.1em;
-  width: 100vw;
-}
-
-.answer-btn {
-  background: rgba(22,22,22,0.16);
-  color: #fff;
-  border: 2px solid rgba(255,255,255,0.25);
-  border-radius: 1.1em;
-  padding: 1.1em 3.2em;
-  font-size: 1.12em;
-  font-weight: 600;
-  margin: 0.2em 0;
-  cursor: pointer;
-  transition: 
-    background 0.23s, 
-    color 0.20s, 
-    border-color 0.2s, 
-    transform 0.13s;
-  box-shadow: 0 2px 9px 0 rgba(17, 8, 32, 0.07);
-  outline: none;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.22);
-}
-.answer-btn.selected,
-.answer-btn:focus {
-  background: rgba(56, 168, 255, 0.18);
-  color: #fff;
-  border-color: #2196f3;
-  transform: scale(1.04);
-}
-.answer-btn:active {
-  background: rgba(56, 168, 255, 0.32);
-}
-.answer-btn:not(.selected):hover {
-  border-color: #61a5fa;
 }
 
 .result-vertical {
@@ -267,12 +197,7 @@ html, body {
     bottom: 1.2em;
   }
   .cover-btn-in-img {
-    /* keep in-image on mobile, shifted further down */
     top: calc(80% + 3.5em);
-  }
-  .question-vertical {
-    /* Move question down by 3 lines on mobile as requested */
-    top: calc(7.5vh + 3em);
   }
   .result-vertical {
     top: 14vh;
@@ -284,13 +209,4 @@ html, body {
     font-size: 1em;
   }
   .back-arrow-btn { font-size: 1.7em; left: 10px; }
-  .question-text {
-    font-size: 1em;
-    padding-top: 0;
-  }
-  .answer-btn {
-    font-size: 0.97em;
-    padding: 0.7em 0.9em;
-  }
-  .cover-btn-outer { bottom: 5vh; }
 }
