@@ -28,6 +28,25 @@ let state = {
   page: 0,
 };
 
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
+    </div>
+  `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
+  }
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
+  }
+}
+
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
@@ -36,9 +55,19 @@ function render() {
     return;
   }
 
-  let showNext = true;
   let showBack = state.page > 0;
   let nextLabel = "Next";
+  if (current.type === "cover") nextLabel = "Start";
+  if (current.type === "pre-results") nextLabel = "Get Results";
+  if (
+    current.type === "resultA" ||
+    current.type === "resultB" ||
+    current.type === "resultC" ||
+    current.type === "resultD"
+  ) {
+    nextLabel = "Finish";
+  }
+
   let nextAction = () => {
     if (current.type === "pre-results") {
       if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
@@ -64,45 +93,28 @@ function render() {
     render();
   };
 
-  if (current.type === "cover") nextLabel = "Start";
-  if (current.type === "pre-results") nextLabel = "Get Results";
-  if (
-    current.type === "resultA" ||
-    current.type === "resultB" ||
-    current.type === "resultC" ||
-    current.type === "resultD"
-  ) {
-    nextLabel = "Finish";
-  }
-
-   // COVER PAGE (card style, button inside image)
-   if (pageIdx === 0) {
-    const p = QUIZ_CONFIG.introPages[0];
+  // --- COVER PAGE (card style, button inside image, NO QUIZ_CONFIG used) ---
+  if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
         <div class="cover-image-container">
-          <img class="cover-img" src="${p.img}" alt="cover"/>
-          ${p.btn ? `<button class="main-btn cover-btn-in-img" id="nextBtn">${p.btn.label}</button>` : ""}
+          <img class="cover-img" src="${current.bg}" alt="cover"/>
+          <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
         </div>
       </div>
     `;
-    if (p.btn) $("#nextBtn").onclick = () => {
-      state.page++;
-      render();
-    };
+    $("#nextBtn").onclick = nextAction;
     return;
   }
 
-  // INFO PAGE: full background, button at bottom, back button bottom left
-  if (pageIdx === 1) {
-    const p = QUIZ_CONFIG.introPages[1];
+  // --- INFO PAGE: full background, button at bottom, back button bottom left ---
+  if (current.type === "intro") {
     renderFullscreenBgPage({
-      bg: p.bg,
-      button: p.btn ? { label: p.btn.label, id: "mainBtn", onClick: () => {
+      bg: current.bg,
+      button: { label: "Continue", id: "mainBtn", onClick: () => {
         state.page++;
-        state.quizStarted = true;
         render();
-      }} : null,
+      }},
       showBack: true
     });
     return;
