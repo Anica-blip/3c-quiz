@@ -75,13 +75,12 @@ function render() {
     nextLabel = "Finish";
   }
 
-  // --- COVER PAGE (button placed 3 line spacings lower) ---
+  // --- COVER PAGE (button placed 3 line spacings lower with CSS margin) ---
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="cover-btn-outer">
-        <br><br><br>
-        <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
+      <div class="cover-btn-outer" style="display: flex; flex-direction: column; align-items: center;">
+        <button class="main-btn cover-btn" id="nextBtn" style="margin-top:3em;">${nextLabel}</button>
       </div>
     `;
     $("#nextBtn").onclick = nextAction;
