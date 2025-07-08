@@ -188,8 +188,49 @@ html, body {
   z-index: 3;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 0.5em;
 }
 
+/* New: Cover page button centered at bottom with spacing above */
+.cover-btn-outer {
+  position: absolute;
+  left: 0; right: 0; bottom: 10vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 10;
+}
+.cover-btn-outer > div {
+  height: 3em;
+}
+.cover-btn {
+  margin: 0 auto;
+  display: block;
+}
+
+/* New: Back arrow button for all pages except cover */
+.back-arrow-btn {
+  background: none;
+  border: none;
+  font-size: 2.2em;
+  color: #fff;
+  position: absolute;
+  left: 24px;
+  bottom: 0;
+  cursor: pointer;
+  z-index: 22;
+  padding: 0 0.2em;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.back-arrow-btn:hover, .back-arrow-btn:focus {
+  opacity: 1;
+  color: #fff;
+}
+
+/* For legacy bottom back button, keep for backward compatibility */
 .back-btn.bottom {
   position: absolute;
   left: 1.8em;
@@ -213,6 +254,7 @@ html, body {
   opacity: 1;
 }
 
+/* Responsive adjustments for mobile */
 @media (max-width: 600px) {
   .cover-img {
     max-width: 98vw;
@@ -241,6 +283,7 @@ html, body {
     padding: 0.38em 0.9em;
     font-size: 1em;
   }
+  .back-arrow-btn { font-size: 1.7em; left: 10px; }
   .question-text {
     font-size: 1em;
     padding-top: 0;
@@ -249,4 +292,5 @@ html, body {
     font-size: 0.97em;
     padding: 0.7em 0.9em;
   }
+  .cover-btn-outer { bottom: 5vh; }
 }
