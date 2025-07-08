@@ -20,7 +20,6 @@ const pageSequence = [
   { type: "thankyou", bg: "static/6.png" },
 ];
 
-// Adjust these as needed
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
 
@@ -57,7 +56,6 @@ function render() {
       render();
       return;
     } else if (current.type === "thankyou") {
-      // No button on thank you page
       return;
     }
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
@@ -75,18 +73,17 @@ function render() {
     nextLabel = "Finish";
   }
 
-  // --- COVER PAGE (button placed 3 line spacings lower with CSS margin) ---
+  // --- COVER PAGE (restored to main/original style) ---
   if (current.type === "cover") {
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-    <div class="cover-btn-outer" style="display: flex; flex-direction: column; align-items: center;">
-      <div style="height: 60px;"></div>
-      <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
-    </div>
-  `;
-  $("#nextBtn").onclick = nextAction;
-  return;
-}
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="fullscreen-bottom">
+        <button class="main-btn" id="nextBtn">${nextLabel}</button>
+      </div>
+    `;
+    $("#nextBtn").onclick = nextAction;
+    return;
+  }
 
   // --- THANK YOU PAGE (NO BUTTON) ---
   if (current.type === "thankyou") {
