@@ -73,17 +73,38 @@ function render() {
     nextLabel = "Finish";
   }
 
-  // --- COVER PAGE (restored to main/original style) ---
-  if (current.type === "cover") {
-    app.innerHTML = `
-      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="fullscreen-bottom">
-        <button class="main-btn" id="nextBtn">${nextLabel}</button>
+ // COVER PAGE (card style, button inside image)
+if (pageIdx === 0) {
+  const p = QUIZ_CONFIG.introPages[0];
+  app.innerHTML = `
+    <div class="cover-outer">
+      <div class="cover-image-container">
+        <img class="cover-img" src="${p.img}" alt="cover"/>
+        ${p.btn ? `<button class="main-btn cover-btn-in-img" id="nextBtn">${p.btn.label}</button>` : ""}
       </div>
-    `;
-    $("#nextBtn").onclick = nextAction;
-    return;
-  }
+    </div>
+  `;
+  if (p.btn) $("#nextBtn").onclick = () => {
+    state.page++;
+    render();
+  };
+  return;
+}
+
+// INFO PAGE: full background, button at bottom, back button bottom left
+if (pageIdx === 1) {
+  const p = QUIZ_CONFIG.introPages[1];
+  renderFullscreenBgPage({
+    bg: p.bg,
+    button: p.btn ? { label: p.btn.label, id: "mainBtn", onClick: () => {
+      state.page++;
+      state.quizStarted = true;
+      render();
+    }} : null,
+    showBack: true
+  });
+  return;
+}
 
   // --- THANK YOU PAGE (NO BUTTON) ---
   if (current.type === "thankyou") {
