@@ -1,211 +1,131 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
+// Sequence of page backgrounds, in order.
+// You can adjust the length of questionPages if you have fewer questions for a given quiz.
+const pageSequence = [
+  { type: "cover", bg: "static/1.png" },
+  { type: "intro", bg: "static/2.png" },
+  { type: "question", bg: "static/3a.png" },
+  { type: "question", bg: "static/3b.png" },
+  { type: "question", bg: "static/3c.png" },
+  { type: "question", bg: "static/3d.png" },
+  { type: "question", bg: "static/3e.png" },
+  { type: "question", bg: "static/3f.png" },
+  { type: "question", bg: "static/3g.png" },
+  { type: "question", bg: "static/3h.png" },
+  { type: "pre-results", bg: "static/4.png" },
+  { type: "resultA", bg: "static/5a.png" },
+  { type: "resultB", bg: "static/5b.png" },
+  { type: "resultC", bg: "static/5c.png" },
+  { type: "resultD", bg: "static/5d.png" },
+  { type: "thankyou", bg: "static/6.png" },
+];
+
+// For demonstration, define number of questions and which result to show (A/B/C/D)
+let NUM_QUESTIONS = 8; // use 3a-3h
+let SHOW_RESULT = "A"; // can be "A", "B", "C", or "D"
+
 let state = {
   page: 0,
-  answers: [],
-  quizStarted: false,
-  showGetResults: false,
-  showResult: false,
-  completed: false,
-  resultKey: null
 };
 
 function render() {
   app.innerHTML = "";
-  let pageIdx = state.page;
-  const totalIntro = QUIZ_CONFIG.introPages.length;
-  const totalQ = QUIZ_CONFIG.questions.length;
+  const current = pageSequence[state.page];
 
-  // COVER PAGE (card style, button inside image)
-  if (pageIdx === 0) {
-    const p = QUIZ_CONFIG.introPages[0];
-    app.innerHTML = `
-      <div class="cover-outer">
-        <div class="cover-image-container">
-          <img class="cover-img" src="${p.img}" alt="cover"/>
-          ${p.btn ? `<button class="main-btn cover-btn-in-img" id="nextBtn">${p.btn.label}</button>` : ""}
-        </div>
-      </div>
-    `;
-    if (p.btn) $("#nextBtn").onclick = () => {
-      state.page++;
+  // If page data is missing, just show a blank fallback
+  if (!current) {
+    app.innerHTML = `<div class="fullscreen-bg" style="background-color:#111"></div>`;
+    return;
+  }
+
+  // Set up navigation logic
+  let showNext = true;
+  let showBack = state.page > 0;
+  let nextLabel = "Next";
+  let nextAction = () => {
+    // Handle jumping to correct result
+    if (current.type === "pre-results") {
+      // Jump to chosen result page
+      if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
+      else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
+      else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
+      else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
       render();
-    };
-    return;
-  }
-
-  // INFO PAGE: full background, button at bottom, back button bottom left
-  if (pageIdx === 1) {
-    const p = QUIZ_CONFIG.introPages[1];
-    renderFullscreenBgPage({
-      bg: p.bg,
-      button: p.btn ? { label: p.btn.label, id: "mainBtn", onClick: () => {
-        state.page++;
-        state.quizStarted = true;
-        render();
-      }} : null,
-      showBack: true
-    });
-    return;
-  }
-
-  // QUESTION PAGES
-  if (state.quizStarted && pageIdx - totalIntro < totalQ) {
-    const qIdx = pageIdx - totalIntro;
-    const q = QUIZ_CONFIG.questions[qIdx];
-    renderQuestionPage(q, qIdx);
-    return;
-  }
-
-  // GET RESULTS PAGE
-  if (state.quizStarted && state.showGetResults) {
-    const getRes = QUIZ_CONFIG.getResults;
-    renderFullscreenBgPage({
-      bg: getRes.bg,
-      button: getRes.btn ? {
-        label: getRes.btn.label,
-        id: "getResultsBtn",
-        onClick: () => {
-          state.showGetResults = false;
-          state.showResult = true;
-          render();
-        }
-      } : null,
-      showBack: true
-    });
-    return;
-  }
-
-  // RESULT PAGE
-  if (state.quizStarted && state.showResult && !state.completed) {
-    if (!state.resultKey) {
-      const tally = {};
-      state.answers.forEach(ans => {
-        tally[ans] = (tally[ans] || 0) + 1;
-      });
-      let top = Object.keys(tally).reduce(
-        (a, b) => (tally[a] >= tally[b] ? a : b)
-      );
-      state.resultKey = top;
-    }
-    const res = QUIZ_CONFIG.resultPages[state.resultKey] || {};
-    renderResultPage(res);
-    return;
-  }
-
-  // THANK YOU PAGE
-  if (state.completed) {
-    const t = QUIZ_CONFIG.thankYou;
-    renderFullscreenBgPage({ bg: t.bg, button: null, showBack: true });
-  }
-}
-
-function renderFullscreenBgPage({ bg, button, showBack }) {
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    ${showBack ? `<button class="back-btn bottom" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-    ${button ? `<div class="fullscreen-bottom"><button class="main-btn" id="${button.id}">${button.label}</button></div>` : ""}
-  `;
-  if (button) $("#" + button.id).onclick = button.onClick;
-  if (showBack) setupBackBtn();
-}
-
-function renderQuestionPage(q, qIdx) {
-  let selected = state.answers[qIdx] !== undefined
-    ? q.answers.findIndex(a => a.result === state.answers[qIdx])
-    : null;
-
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${q.bg}');"></div>
-    <div class="question-vertical">
-      <div class="question-text">${q.question || ""}</div>
-      <form id="questionForm" autocomplete="off" class="answers-form">
-        <div class="answers">
-          ${q.answers.map((a, i) =>
-            `<button type="button" class="answer-btn${selected === i ? " selected" : ""}" data-idx="${i}">${a.text}</button>`
-          ).join("")}
-        </div>
-      </form>
-    </div>
-    <div class="fullscreen-bottom"><button class="main-btn" id="nextQuestionBtn" type="button" ${selected === null ? "disabled" : ""}>Next</button></div>
-    <button class="back-btn bottom" id="backBtn" title="Go Back">&#8592;</button>
-  `;
-
-  let currentSelected = selected;
-  const answerBtns = document.querySelectorAll('.answer-btn');
-  const nextBtn = $("#nextQuestionBtn");
-
-  answerBtns.forEach((btn, i) => {
-    btn.onclick = () => {
-      answerBtns.forEach(b => b.classList.remove("selected"));
-      btn.classList.add("selected");
-      currentSelected = i;
-      nextBtn.disabled = false;
-    };
-  });
-
-  nextBtn.onclick = () => {
-    if (currentSelected !== null) {
-      state.answers[qIdx] = q.answers[currentSelected].result;
-      if (qIdx === QUIZ_CONFIG.questions.length - 1) {
-        state.showGetResults = true;
-        state.page++;
-      } else {
-        state.page++;
-      }
+      return;
+    } else if (
+      current.type === "resultA" ||
+      current.type === "resultB" ||
+      current.type === "resultC" ||
+      current.type === "resultD"
+    ) {
+      // After result, go to thank you page
+      state.page = pageSequence.findIndex(p => p.type === "thankyou");
       render();
+      return;
+    } else if (current.type === "thankyou") {
+      // Optionally restart or do nothing
+      state.page = 0;
+      render();
+      return;
     }
-  };
-
-  setupBackBtn();
-}
-
-function renderResultPage(res) {
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${res.bg}');"></div>
-    <div class="result-vertical">
-      <div class="result-text">${res.resultText || ""}</div>
-    </div>
-    <div class="fullscreen-bottom"><button class="main-btn" id="finishBtn">${res.btn.label}</button></div>
-    <button class="back-btn bottom" id="backBtn" title="Go Back">&#8592;</button>
-  `;
-  $("#finishBtn").onclick = () => {
-    state.completed = true;
-    state.page++;
+    // Otherwise, go to next page
+    state.page = Math.min(state.page + 1, pageSequence.length - 1);
     render();
   };
-  setupBackBtn();
-}
 
-function setupBackBtn() {
-  const btn = $("#backBtn");
-  if (!btn) return;
-  btn.onclick = () => {
-    const totalIntro = QUIZ_CONFIG.introPages.length;
-    if (state.page > 0) {
+  // Labels and actions for special cases
+  if (current.type === "cover") nextLabel = "Start";
+  if (current.type === "pre-results") nextLabel = "Get Results";
+  if (
+    current.type === "resultA" ||
+    current.type === "resultB" ||
+    current.type === "resultC" ||
+    current.type === "resultD"
+  ) {
+    nextLabel = "Finish";
+  }
+  if (current.type === "thankyou") nextLabel = "Restart";
+
+  // Render current page
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+    <div class="page-content">
+      <!-- Placeholder for text, to be filled by admin/editor app in future -->
+      <div class="content-inner">
+        <h2>${current.type.toUpperCase()}</h2>
+        <p>Insert text/content here for: <strong>${current.type}</strong> (from admin app later)</p>
+      </div>
+    </div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="main-btn" id="backBtn">Back</button>` : ""}
+      ${showNext ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+    </div>
+  `;
+
+  if (showNext) $("#nextBtn").onclick = nextAction;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      // Handle back navigation logic
       if (
-        state.quizStarted &&
-        state.page <= totalIntro + QUIZ_CONFIG.questions.length &&
-        state.page > totalIntro
+        current.type === "thankyou" ||
+        current.type === "resultA" ||
+        current.type === "resultB" ||
+        current.type === "resultC" ||
+        current.type === "resultD"
       ) {
-        state.answers.pop();
+        // Go back to pre-results
+        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+      } else if (current.type === "pre-results") {
+        // Go back to last question
+        state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+      } else {
+        state.page = Math.max(state.page - 1, 0);
       }
-      if (state.showResult && !state.completed) {
-        state.showResult = false;
-        state.resultKey = null;
-      }
-      if (state.completed) {
-        state.completed = false;
-        state.showResult = true;
-      }
-      if (state.showGetResults) {
-        state.showGetResults = false;
-      }
-      state.page--;
       render();
-    }
-  };
+    };
+  }
 }
 
 render();
