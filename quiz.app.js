@@ -77,15 +77,16 @@ function render() {
 
   // --- COVER PAGE (button placed 3 line spacings lower with CSS margin) ---
   if (current.type === "cover") {
-    app.innerHTML = `
-      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="cover-btn-outer" style="display: flex; flex-direction: column; align-items: center;">
-        <button class="main-btn cover-btn" id="nextBtn" style="margin-top:3em;">${nextLabel}</button>
-      </div>
-    `;
-    $("#nextBtn").onclick = nextAction;
-    return;
-  }
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+    <div class="cover-btn-outer" style="display: flex; flex-direction: column; align-items: center;">
+      <div style="height: 60px;"></div>
+      <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
+    </div>
+  `;
+  $("#nextBtn").onclick = nextAction;
+  return;
+}
 
   // --- THANK YOU PAGE (NO BUTTON) ---
   if (current.type === "thankyou") {
