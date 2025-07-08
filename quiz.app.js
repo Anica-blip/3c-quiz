@@ -75,16 +75,22 @@ function render() {
     nextLabel = "Finish";
   }
 
-  // --- COVER PAGE ---
-  if (current.type === "cover") {
+  // COVER PAGE (card style, button inside image, 3 line spacings down)
+  if (pageIdx === 0) {
+    const p = QUIZ_CONFIG.introPages[0];
     app.innerHTML = `
-      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="cover-btn-outer">
-        <br><br><br>
-        <button class="main-btn cover-btn" id="nextBtn">${nextLabel}</button>
+      <div class="cover-outer">
+        <div class="cover-image-container">
+          <img class="cover-img" src="${p.img}" alt="cover"/>
+          <div style="height:3em"></div>
+          ${p.btn ? `<button class="main-btn cover-btn-in-img" id="nextBtn">${p.btn.label}</button>` : ""}
+        </div>
       </div>
     `;
-    $("#nextBtn").onclick = nextAction;
+    if (p.btn) $("#nextBtn").onclick = () => {
+      state.page++;
+      render();
+    };
     return;
   }
 
