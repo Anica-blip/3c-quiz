@@ -23,6 +23,7 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
+
 let state = {
   page: 0,
 };
@@ -41,7 +42,7 @@ async function fetchQuizConfig() {
   }
 }
 
-// Normalize pages for missing type/bg/blocks
+// Normalize pages for missing type/bg
 function normalizeQuizPages(config) {
   if (!config || !Array.isArray(config.pages) || config.pages.length === 0) return [...defaultPageSequence];
   return config.pages.map((page, idx) => {
@@ -54,7 +55,6 @@ function normalizeQuizPages(config) {
       else newPage.type = "question";
     }
     if (!newPage.bg) newPage.bg = defaultPageSequence[idx] ? defaultPageSequence[idx].bg : "static/1.png";
-    if (!newPage.blocks) newPage.blocks = [];
     return newPage;
   });
 }
@@ -62,36 +62,18 @@ function normalizeQuizPages(config) {
 // Replace pageSequence if quiz is loaded after Start
 async function handleStartButton() {
   const config = await fetchQuizConfig();
-  pageSequence = normalizeQuizPages(config);
-  NUM_QUESTIONS = config && config.numQuestions ? config.numQuestions : NUM_QUESTIONS;
-  SHOW_RESULT = config && config.showResult ? config.showResult : SHOW_RESULT;
+  if (config) {
+    pageSequence = normalizeQuizPages(config);
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+  }
   state.page = 1;
   render();
 }
 
-// Helper: Render blocks (title, description, answers, etc) from JSON
-function renderBlocks(blocks) {
-  if (!Array.isArray(blocks)) return "";
-  return blocks.map(block => {
-    let html = "";
-    if (block.title) html += `<h2>${block.title}</h2>`;
-    if (block.description) html += `<p>${block.description}</p>`;
-    if (block.text) html += `<p>${block.text}</p>`;
-    if (block.answers && Array.isArray(block.answers)) {
-      html += `<ul class="answers-list">` + block.answers.map(a => `<li>${a}</li>`).join("") + `</ul>`;
-    }
-    return html;
-  }).join("");
-}
-
-function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
+function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    <div class="page-content">
-      <div class="content-inner">
-        ${renderBlocks(blocks)}
-      </div>
-    </div>
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -147,6 +129,7 @@ function render() {
       render();
       return;
     } else if (current.type === "thankyou") {
+      // No button on thank you page
       return;
     }
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
@@ -159,12 +142,11 @@ function render() {
       <div class="cover-outer">
         <div class="cover-image-container">
           <img class="cover-img" src="${current.bg}" alt="cover"/>
-          <div class="cover-blocks">${renderBlocks(current.blocks)}</div>
           <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
         </div>
       </div>
     `;
-    $("#nextBtn").onclick = handleStartButton;
+    $("#nextBtn").onclick = handleStartButton; // <-- ONLY CHANGE MADE!
     return;
   }
 
@@ -176,8 +158,7 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true,
-      blocks: current.blocks
+      showBack: true
     });
     return;
   }
@@ -188,7 +169,8 @@ function render() {
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
         <div class="content-inner">
-          ${renderBlocks(current.blocks)}
+          <h2>${current.type.toUpperCase()}</h2>
+          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -209,7 +191,8 @@ function render() {
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        ${renderBlocks(current.blocks)}
+        <h2>${current.type.toUpperCase()}</h2>
+        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
       </div>
     </div>
     <div class="fullscreen-bottom">
