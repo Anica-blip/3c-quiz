@@ -1,7 +1,26 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const pageSequence = [
+// --- Helper: get quizUrl from ?quizUrl=... ---
+function getQuizUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("quizUrl");
+}
+
+// --- Helper: Fetch JSON from the quizUrl ---
+async function fetchQuizConfig(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Quiz file not found");
+    return await res.json();
+  } catch (e) {
+    console.error("Failed to load quiz JSON:", e);
+    return null;
+  }
+}
+
+// --- Default page sequence (for fallback) ---
+const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
   { type: "question", bg: "static/3a.png" },
@@ -20,13 +39,41 @@ const pageSequence = [
   { type: "thankyou", bg: "static/6.png" },
 ];
 
-// Adjust these as needed
+// --- App State ---
+let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
+let quizConfig = null;
 
 let state = {
   page: 0,
 };
+
+// --- Load quiz if quizUrl exists ---
+(async () => {
+  const quizUrl = getQuizUrl();
+  if (quizUrl) {
+    const config = await fetchQuizConfig(quizUrl);
+    if (config) {
+      // You can define your quiz JSON structure as needed.
+      // Example expected structure:
+      // {
+      //   pages: [
+      //     { type: "cover", bg: "url", ... },
+      //     ...
+      //   ],
+      //   numQuestions: 8,
+      //   showResult: "A",
+      //   ...other config
+      // }
+      quizConfig = config;
+      pageSequence = config.pages || defaultPageSequence;
+      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+      SHOW_RESULT = config.showResult || SHOW_RESULT;
+    }
+  }
+  render();
+})();
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
@@ -179,4 +226,5 @@ function render() {
   }
 }
 
-render();
+// Note: original code called render() immediately;
+// The new code runs only after quiz JSON is loaded, or falls back to default.
