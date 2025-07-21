@@ -216,3 +216,4 @@ function render() {
   }
 }
 
+render();
