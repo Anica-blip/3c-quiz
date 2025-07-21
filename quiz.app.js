@@ -28,7 +28,7 @@ let state = {
   page: 0,
 };
 
-// Helper to fetch quiz JSON from the repo
+// Helper to fetch quiz JSON from the repo (always loads quiz.01.json on Start)
 async function fetchQuizConfig() {
   try {
     const url = "https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json";
@@ -55,6 +55,7 @@ function normalizeQuizPages(config) {
       else newPage.type = "question";
     }
     if (!newPage.bg) newPage.bg = defaultPageSequence[idx] ? defaultPageSequence[idx].bg : "static/1.png";
+    if (!Array.isArray(newPage.blocks)) newPage.blocks = [];
     return newPage;
   });
 }
@@ -71,9 +72,28 @@ async function handleStartButton() {
   render();
 }
 
-function renderFullscreenBgPage({ bg, button, showBack }) {
+// >>>>> NEW FUNCTION: Render blocks (title, desc, etc) dynamically <<<<<
+function renderBlocks(blocks) {
+  if (!blocks || !Array.isArray(blocks)) return "";
+  return blocks.map(block => {
+    if (block.type === "title") {
+      return `<h2 class="block-title" style="color:${block.color||'#222'};font-size:${block.size||18}px;">${block.text || block.label || ''}</h2>`;
+    }
+    if (block.type === "desc") {
+      return `<p class="block-desc">${block.text || ''}</p>`;
+    }
+    // Add more block types as needed!
+    return "";
+  }).join("");
+}
+
+// Helper to render full screen background pages
+function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-blocks">
+      ${renderBlocks(blocks)}
+    </div>
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -142,11 +162,14 @@ function render() {
       <div class="cover-outer">
         <div class="cover-image-container">
           <img class="cover-img" src="${current.bg}" alt="cover"/>
+          <div class="cover-blocks">
+            ${renderBlocks(current.blocks)}
+          </div>
           <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
         </div>
       </div>
     `;
-    $("#nextBtn").onclick = handleStartButton;
+    $("#nextBtn").onclick = handleStartButton; // <-- ONLY CHANGE MADE!
     return;
   }
 
@@ -158,7 +181,8 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true
+      showBack: true,
+      blocks: current.blocks
     });
     return;
   }
@@ -169,8 +193,7 @@ function render() {
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
         <div class="content-inner">
-          <h2>${current.type.toUpperCase()}</h2>
-          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+          ${renderBlocks(current.blocks)}
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -186,13 +209,12 @@ function render() {
     return;
   }
 
-  // ALL OTHER PAGES
+  // ALL OTHER PAGES (question, result, pre-results, etc)
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        <h2>${current.type.toUpperCase()}</h2>
-        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+        ${renderBlocks(current.blocks)}
       </div>
     </div>
     <div class="fullscreen-bottom">
