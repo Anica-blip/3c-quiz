@@ -1,7 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const pageSequence = [
+const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
   { type: "question", bg: "static/3a.png" },
@@ -20,13 +20,50 @@ const pageSequence = [
   { type: "thankyou", bg: "static/6.png" },
 ];
 
-// Adjust these as needed
+let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
 
 let state = {
   page: 0,
 };
+
+// Helper to get quizUrl from URL
+function getQuizUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("quizUrl");
+}
+
+// Helper to fetch quiz JSON if needed
+async function fetchQuizConfig(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Quiz file not found");
+    return await res.json();
+  } catch (e) {
+    console.error("Failed to load quiz JSON:", e);
+    return null;
+  }
+}
+
+// Only replace pageSequence if quiz is loaded after Start
+async function handleStartButton() {
+  const quizUrl = getQuizUrl();
+  if (quizUrl) {
+    const config = await fetchQuizConfig(quizUrl);
+    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+      pageSequence = config.pages;
+      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+      SHOW_RESULT = config.showResult || SHOW_RESULT;
+      state.page = 1; // Move to intro page after cover
+      render();
+      return;
+    }
+  }
+  // If no quiz loaded, just go to next page
+  state.page++;
+  render();
+}
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
@@ -93,7 +130,7 @@ function render() {
     render();
   };
 
-  // --- COVER PAGE (card style, button inside image, NO QUIZ_CONFIG used) ---
+  // COVER PAGE (card style, button inside image, NO QUIZ_CONFIG used until Start is clicked)
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
@@ -103,11 +140,11 @@ function render() {
         </div>
       </div>
     `;
-    $("#nextBtn").onclick = nextAction;
+    $("#nextBtn").onclick = handleStartButton;
     return;
   }
 
-  // --- INFO PAGE: full background, button at bottom, back button bottom left ---
+  // INTRO PAGE
   if (current.type === "intro") {
     renderFullscreenBgPage({
       bg: current.bg,
@@ -120,7 +157,7 @@ function render() {
     return;
   }
 
-  // --- THANK YOU PAGE (NO BUTTON) ---
+  // THANK YOU PAGE (NO BUTTON)
   if (current.type === "thankyou") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
@@ -143,7 +180,7 @@ function render() {
     return;
   }
 
-  // --- ALL OTHER PAGES ---
+  // ALL OTHER PAGES
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
