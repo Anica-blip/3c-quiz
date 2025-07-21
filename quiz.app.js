@@ -1,107 +1,56 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-// --- Helper: get quizUrl from ?quizUrl=... ---
-function getQuizUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("quizUrl");
-}
-
-// --- Helper: Fetch JSON from the quizUrl ---
-async function fetchQuizConfig(url) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Quiz file not found");
-    return await res.json();
-  } catch (e) {
-    console.error("Failed to load quiz JSON:", e);
-    return null;
-  }
-}
-
-// --- Default page sequence (for fallback) ---
-const defaultPageSequence = [
-  { type: "cover", bg: "static/1.png", blocks: [] },
-  { type: "intro", bg: "static/2.png", blocks: [] },
-  { type: "question", bg: "static/3a.png", blocks: [] },
-  { type: "question", bg: "static/3b.png", blocks: [] },
-  { type: "question", bg: "static/3c.png", blocks: [] },
-  { type: "question", bg: "static/3d.png", blocks: [] },
-  { type: "question", bg: "static/3e.png", blocks: [] },
-  { type: "question", bg: "static/3f.png", blocks: [] },
-  { type: "question", bg: "static/3g.png", blocks: [] },
-  { type: "question", bg: "static/3h.png", blocks: [] },
-  { type: "pre-results", bg: "static/4.png", blocks: [] },
-  { type: "resultA", bg: "static/5a.png", blocks: [] },
-  { type: "resultB", bg: "static/5b.png", blocks: [] },
-  { type: "resultC", bg: "static/5c.png", blocks: [] },
-  { type: "resultD", bg: "static/5d.png", blocks: [] },
-  { type: "thankyou", bg: "static/6.png", blocks: [] },
+const pageSequence = [
+  { type: "cover", bg: "static/1.png" },
+  { type: "intro", bg: "static/2.png" },
+  { type: "question", bg: "static/3a.png" },
+  { type: "question", bg: "static/3b.png" },
+  { type: "question", bg: "static/3c.png" },
+  { type: "question", bg: "static/3d.png" },
+  { type: "question", bg: "static/3e.png" },
+  { type: "question", bg: "static/3f.png" },
+  { type: "question", bg: "static/3g.png" },
+  { type: "question", bg: "static/3h.png" },
+  { type: "pre-results", bg: "static/4.png" },
+  { type: "resultA", bg: "static/5a.png" },
+  { type: "resultB", bg: "static/5b.png" },
+  { type: "resultC", bg: "static/5c.png" },
+  { type: "resultD", bg: "static/5d.png" },
+  { type: "thankyou", bg: "static/6.png" },
 ];
 
-// --- App State ---
-let pageSequence = [...defaultPageSequence];
+// Adjust these as needed
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-let quizConfig = null;
 
 let state = {
   page: 0,
 };
 
-// --- Load quiz if quizUrl exists ---
-(async () => {
-  const quizUrl = getQuizUrl();
-  if (quizUrl) {
-    const config = await fetchQuizConfig(quizUrl);
-    if (config && Array.isArray(config.pages)) {
-      quizConfig = config;
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-    }
-  }
-  render();
-})();
-
-// --- Render a single block (text etc) from JSON ---
-function renderBlock(block) {
-  // Basic block: text positioned absolutely
-  // You can expand this to handle more types (images, buttons, etc.)
-  const {
-    type = "text",
-    label = "",
-    text = "",
-    x = 0, y = 0, w = 200, h = 50,
-    size = 18,
-    color = "#222",
-    align = "left", // you can add more block properties!
-  } = block;
-
-  // Convert block properties to CSS
-  return `
-    <div class="quiz-block" style="
-      position: absolute;
-      left: ${x}px; top: ${y}px;
-      width: ${w}px; height: ${h}px;
-      font-size: ${size}px;
-      color: ${color};
-      text-align: ${align};
-      overflow: hidden;
-      white-space: pre-line;
-      pointer-events: none;
-    ">
-      ${text}
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
     </div>
   `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
+  }
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
+  }
 }
 
-// --- Main renderer ---
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
   if (!current) {
-    // Show blank bg if no page
     app.innerHTML = `<div class="fullscreen-bg" style="background-color:#111"></div>`;
     return;
   }
@@ -137,28 +86,79 @@ function render() {
       render();
       return;
     } else if (current.type === "thankyou") {
+      // No button on thank you page
       return;
     }
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
     render();
   };
 
-  // --- RENDER PAGE WITH BLOCKS ---
-  // Use the page's bg image, and render all blocks absolutely
+  // --- COVER PAGE (card style, button inside image, NO QUIZ_CONFIG used) ---
+  if (current.type === "cover") {
+    app.innerHTML = `
+      <div class="cover-outer">
+        <div class="cover-image-container">
+          <img class="cover-img" src="${current.bg}" alt="cover"/>
+          <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
+        </div>
+      </div>
+    `;
+    $("#nextBtn").onclick = nextAction;
+    return;
+  }
+
+  // --- INFO PAGE: full background, button at bottom, back button bottom left ---
+  if (current.type === "intro") {
+    renderFullscreenBgPage({
+      bg: current.bg,
+      button: { label: "Continue", id: "mainBtn", onClick: () => {
+        state.page++;
+        render();
+      }},
+      showBack: true
+    });
+    return;
+  }
+
+  // --- THANK YOU PAGE (NO BUTTON) ---
+  if (current.type === "thankyou") {
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="page-content">
+        <div class="content-inner">
+          <h2>${current.type.toUpperCase()}</h2>
+          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      </div>
+    `;
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        render();
+      };
+    }
+    return;
+  }
+
+  // --- ALL OTHER PAGES ---
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-    <div class="quiz-blocks-container" style="position:relative; width:100vw; height:100vh;">
-      ${Array.isArray(current.blocks) ? current.blocks.map(renderBlock).join("") : ""}
+    <div class="page-content">
+      <div class="content-inner">
+        <h2>${current.type.toUpperCase()}</h2>
+        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+      </div>
     </div>
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+      <button class="main-btn" id="nextBtn">${nextLabel}</button>
     </div>
   `;
 
-  if (current.type !== "thankyou") {
-    $("#nextBtn").onclick = nextAction;
-  }
+  $("#nextBtn").onclick = nextAction;
   if (showBack) {
     $("#backBtn").onclick = () => {
       if (
@@ -179,4 +179,4 @@ function render() {
   }
 }
 
-// You may want to add CSS for .quiz-block in your style.css for more control!
+render();
