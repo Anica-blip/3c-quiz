@@ -28,15 +28,10 @@ let state = {
   page: 0,
 };
 
-// Helper to get quizUrl from URL
-function getQuizUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("quizUrl");
-}
-
-// Helper to fetch quiz JSON if needed
-async function fetchQuizConfig(url) {
+// Helper to fetch quiz JSON from the repo (always loads quiz.01.json on Start)
+async function fetchQuizConfig() {
   try {
+    const url = "https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json";
     const res = await fetch(url);
     if (!res.ok) throw new Error("Quiz file not found");
     const config = await res.json();
@@ -47,10 +42,9 @@ async function fetchQuizConfig(url) {
   }
 }
 
-// Compatibility layer for admin/editor quiz files
+// Normalize pages for missing type/bg
 function normalizeQuizPages(config) {
-  if (!config || !Array.isArray(config.pages)) return [];
-  // If type is missing, infer from position and blocks
+  if (!config || !Array.isArray(config.pages) || config.pages.length === 0) return [...defaultPageSequence];
   return config.pages.map((page, idx) => {
     const newPage = { ...page };
     if (!newPage.type) {
@@ -60,26 +54,17 @@ function normalizeQuizPages(config) {
       else if (idx === config.pages.length - 1) newPage.type = "thankyou";
       else newPage.type = "question";
     }
-    if (!newPage.bg && config.bg) newPage.bg = config.bg;
+    if (!newPage.bg) newPage.bg = defaultPageSequence[idx] ? defaultPageSequence[idx].bg : "static/1.png";
     return newPage;
   });
 }
 
-// Only replace pageSequence if quiz is loaded after Start
+// Replace pageSequence if quiz is loaded after Start
 async function handleStartButton() {
-  const quizUrl = getQuizUrl();
-  let config = null;
-  if (quizUrl) {
-    config = await fetchQuizConfig(quizUrl);
-  }
-  if (!config || !Array.isArray(config.pages) || config.pages.length === 0) {
-    // Load your default quiz.01.json as fallback
-    config = await fetchQuizConfig("https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json");
-  }
-  // Normalize the loaded config for compatibility
+  const config = await fetchQuizConfig();
   pageSequence = normalizeQuizPages(config);
-  NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-  SHOW_RESULT = config.showResult || SHOW_RESULT;
+  NUM_QUESTIONS = config && config.numQuestions ? config.numQuestions : NUM_QUESTIONS;
+  SHOW_RESULT = config && config.showResult ? config.showResult : SHOW_RESULT;
   state.page = 1;
   render();
 }
@@ -149,7 +134,7 @@ function render() {
     render();
   };
 
-  // COVER PAGE (card style, button inside image, NO QUIZ_CONFIG used until Start is clicked)
+  // COVER PAGE
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
@@ -176,7 +161,7 @@ function render() {
     return;
   }
 
-  // THANK YOU PAGE (NO BUTTON)
+  // THANK YOU PAGE
   if (current.type === "thankyou") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
