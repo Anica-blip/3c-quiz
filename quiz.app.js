@@ -65,9 +65,43 @@ async function handleStartButton() {
   render();
 }
 
-function renderFullscreenBgPage({ bg, button, showBack }) {
+// Render blocks from JSON if present
+function renderBlocks(blocks) {
+  if (!Array.isArray(blocks) || blocks.length === 0) return "";
+  return `
+    <div class="quiz-blocks-container" style="position:relative;width:100vw;height:100vh;">
+      ${blocks.map(block => {
+        const {
+          text = "",
+          x = 0, y = 0, w = 200, h = 50,
+          size = 18,
+          color = "#222",
+          align = "left"
+        } = block;
+        return `
+          <div class="quiz-block" style="
+            position:absolute;
+            left:${x}px;top:${y}px;
+            width:${w}px;height:${h}px;
+            font-size:${size}px;
+            color:${color};
+            text-align:${align};
+            overflow:hidden;
+            white-space:pre-line;
+            pointer-events:none;
+          ">
+            ${text}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    ${renderBlocks(blocks)}
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -152,7 +186,8 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true
+      showBack: true,
+      blocks: current.blocks
     });
     return;
   }
@@ -161,6 +196,7 @@ function render() {
   if (current.type === "thankyou") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      ${renderBlocks(current.blocks)}
       <div class="page-content">
         <div class="content-inner">
           <h2>${current.type.toUpperCase()}</h2>
@@ -183,6 +219,7 @@ function render() {
   // ALL OTHER PAGES
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+    ${renderBlocks(current.blocks)}
     <div class="page-content">
       <div class="content-inner">
         <h2>${current.type.toUpperCase()}</h2>
