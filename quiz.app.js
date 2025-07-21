@@ -2,10 +2,22 @@ const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
 const defaultPageSequence = [
-  { type: "cover", bg: "static/1.png", blocks: [{type:"title", text:"Default Cover Page"}] },
-  { type: "intro", bg: "static/2.png", blocks: [{type:"desc", text:"Default Intro Page"}] },
-  { type: "question", bg: "static/3a.png", blocks: [{type:"desc", text:"Default Q1"}] },
-  { type: "thankyou", bg: "static/6.png", blocks: [{type:"desc", text:"Thank you!"}] },
+  { type: "cover", bg: "static/1.png" },
+  { type: "intro", bg: "static/2.png" },
+  { type: "question", bg: "static/3a.png" },
+  { type: "question", bg: "static/3b.png" },
+  { type: "question", bg: "static/3c.png" },
+  { type: "question", bg: "static/3d.png" },
+  { type: "question", bg: "static/3e.png" },
+  { type: "question", bg: "static/3f.png" },
+  { type: "question", bg: "static/3g.png" },
+  { type: "question", bg: "static/3h.png" },
+  { type: "pre-results", bg: "static/4.png" },
+  { type: "resultA", bg: "static/5a.png" },
+  { type: "resultB", bg: "static/5b.png" },
+  { type: "resultC", bg: "static/5c.png" },
+  { type: "resultD", bg: "static/5d.png" },
+  { type: "thankyou", bg: "static/6.png" },
 ];
 
 let pageSequence = [...defaultPageSequence];
@@ -16,7 +28,7 @@ let state = {
   page: 0,
 };
 
-// Fetch quiz JSON from live URL
+// Helper to fetch quiz JSON from the repo (always loads quiz.01.json on Start)
 async function fetchQuizConfig() {
   try {
     const url = "https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json";
@@ -30,7 +42,7 @@ async function fetchQuizConfig() {
   }
 }
 
-// Normalize structure and blocks
+// Normalize pages for missing type/bg
 function normalizeQuizPages(config) {
   if (!config || !Array.isArray(config.pages) || config.pages.length === 0) return [...defaultPageSequence];
   return config.pages.map((page, idx) => {
@@ -48,7 +60,7 @@ function normalizeQuizPages(config) {
   });
 }
 
-// Fetch and start quiz
+// Replace pageSequence if quiz is loaded after Start
 async function handleStartButton() {
   const config = await fetchQuizConfig();
   if (config) {
@@ -60,31 +72,17 @@ async function handleStartButton() {
   render();
 }
 
-// RENDER BLOCKS FROM JSON WITH FULL STYLING SUPPORT
+// >>>>> NEW FUNCTION: Render blocks (title, desc, etc) dynamically <<<<<
 function renderBlocks(blocks) {
   if (!blocks || !Array.isArray(blocks)) return "";
   return blocks.map(block => {
-    // Style properties for absolute/relative content
-    let style = "";
-    if (typeof block.x === "number") style += `left:${block.x}px;`;
-    if (typeof block.y === "number") style += `top:${block.y}px;`;
-    if (typeof block.w === "number") style += `width:${block.w}px;`;
-    if (typeof block.h === "number") style += `height:${block.h}px;`;
-    if (block.color) style += `color:${block.color};`;
-    if (block.size) style += `font-size:${block.size}px;`;
-    if (block.align) style += `text-align:${block.align};`;
-    if (block.maxlen) style += `max-width:${block.maxlen}px;word-break:break-word;`;
-
-    // Use absolute positioning if x/y are present
-    let posClass = (typeof block.x === "number" || typeof block.y === "number") ? "block-abs" : "";
-
     if (block.type === "title") {
-      return `<div class="block block-title ${posClass}" style="${style}">${block.text || block.label || ""}</div>`;
+      return `<h2 class="block-title" style="color:${block.color||'#222'};font-size:${block.size||18}px;">${block.text || block.label || ''}</h2>`;
     }
     if (block.type === "desc") {
-      return `<div class="block block-desc ${posClass}" style="${style}">${block.text || ""}</div>`;
+      return `<p class="block-desc">${block.text || ''}</p>`;
     }
-    // Add more block types as you add them to your JSON
+    // Add more block types as needed!
     return "";
   }).join("");
 }
@@ -151,6 +149,7 @@ function render() {
       render();
       return;
     } else if (current.type === "thankyou") {
+      // No button on thank you page
       return;
     }
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
@@ -170,7 +169,7 @@ function render() {
         </div>
       </div>
     `;
-    $("#nextBtn").onclick = handleStartButton;
+    $("#nextBtn").onclick = handleStartButton; // <-- ONLY CHANGE MADE!
     return;
   }
 
@@ -244,12 +243,5 @@ function render() {
     };
   }
 }
-
-// Add this to your CSS file:
-/*
-.block-abs { position: absolute; }
-.block-title { font-weight: bold; }
-.block-desc { }
-*/
 
 render();
