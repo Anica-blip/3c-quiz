@@ -28,16 +28,12 @@ let state = {
   page: 0,
 };
 
-// Helper to get quizUrl from URL
-function getQuizUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("quizUrl");
-}
-
-// Helper to fetch quiz JSON if needed
-async function fetchQuizConfig(url) {
+// Helper to fetch quiz JSON from quiz.01.json in the repo
+async function fetchQuizConfig() {
   try {
-    const res = await fetch(url);
+    const res = await fetch(
+      "https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json"
+    );
     if (!res.ok) throw new Error("Quiz file not found");
     const config = await res.json();
     return config;
@@ -47,10 +43,9 @@ async function fetchQuizConfig(url) {
   }
 }
 
-// Compatibility layer for admin/editor quiz files
+// Compatibility layer: ensure every page has a .type
 function normalizeQuizPages(config) {
   if (!config || !Array.isArray(config.pages)) return [];
-  // If type is missing, infer from position and blocks
   return config.pages.map((page, idx) => {
     const newPage = { ...page };
     if (!newPage.type) {
@@ -65,23 +60,19 @@ function normalizeQuizPages(config) {
   });
 }
 
-// Only replace pageSequence if quiz is loaded after Start
+// On Start button: always load quiz.01.json from repo
 async function handleStartButton() {
-  const quizUrl = getQuizUrl();
-  let config = null;
-  if (quizUrl) {
-    config = await fetchQuizConfig(quizUrl);
+  const config = await fetchQuizConfig();
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    pageSequence = normalizeQuizPages(config);
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 1;
+    render();
+  } else {
+    app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
+    <div style="color:red;text-align:center;padding:2em;">Quiz file loaded but format is invalid.</div>`;
   }
-  if (!config || !Array.isArray(config.pages) || config.pages.length === 0) {
-    // Load your default quiz.01.json as fallback
-    config = await fetchQuizConfig("https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json");
-  }
-  // Normalize the loaded config for compatibility
-  pageSequence = normalizeQuizPages(config);
-  NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-  SHOW_RESULT = config.showResult || SHOW_RESULT;
-  state.page = 1;
-  render();
 }
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
@@ -155,84 +146,4 @@ function render() {
       <div class="cover-outer">
         <div class="cover-image-container">
           <img class="cover-img" src="${current.bg}" alt="cover"/>
-          <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
-        </div>
-      </div>
-    `;
-    $("#nextBtn").onclick = handleStartButton;
-    return;
-  }
-
-  // INTRO PAGE
-  if (current.type === "intro") {
-    renderFullscreenBgPage({
-      bg: current.bg,
-      button: { label: "Continue", id: "mainBtn", onClick: () => {
-        state.page++;
-        render();
-      }},
-      showBack: true
-    });
-    return;
-  }
-
-  // THANK YOU PAGE (NO BUTTON)
-  if (current.type === "thankyou") {
-    app.innerHTML = `
-      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="page-content">
-        <div class="content-inner">
-          <h2>${current.type.toUpperCase()}</h2>
-          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
-        </div>
-      </div>
-      <div class="fullscreen-bottom">
-        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      </div>
-    `;
-    if (showBack) {
-      $("#backBtn").onclick = () => {
-        state.page = pageSequence.findIndex(p => p.type === "pre-results");
-        render();
-      };
-    }
-    return;
-  }
-
-  // ALL OTHER PAGES
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-    <div class="page-content">
-      <div class="content-inner">
-        <h2>${current.type.toUpperCase()}</h2>
-        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
-      </div>
-    </div>
-    <div class="fullscreen-bottom">
-      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      <button class="main-btn" id="nextBtn">${nextLabel}</button>
-    </div>
-  `;
-
-  $("#nextBtn").onclick = nextAction;
-  if (showBack) {
-    $("#backBtn").onclick = () => {
-      if (
-        current.type === "thankyou" ||
-        current.type === "resultA" ||
-        current.type === "resultB" ||
-        current.type === "resultC" ||
-        current.type === "resultD"
-      ) {
-        state.page = pageSequence.findIndex(p => p.type === "pre-results");
-      } else if (current.type === "pre-results") {
-        state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
-      } else {
-        state.page = Math.max(state.page - 1, 0);
-      }
-      render();
-    };
-  }
-}
-
-render();
+          <button class
