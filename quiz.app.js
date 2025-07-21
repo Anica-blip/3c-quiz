@@ -28,13 +28,6 @@ let state = {
   page: 0,
 };
 
-// Helper to get quizUrl from URL
-function getQuizUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("quizUrl");
-}
-
-// Helper to fetch quiz JSON if needed
 async function fetchQuizConfig(url) {
   try {
     const res = await fetch(url);
@@ -46,21 +39,17 @@ async function fetchQuizConfig(url) {
   }
 }
 
-// Only replace pageSequence if quiz is loaded after Start
 async function handleStartButton() {
-  const quizUrl = getQuizUrl();
-  if (quizUrl) {
-    const config = await fetchQuizConfig(quizUrl);
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 1; // Move to intro page after cover
-      render();
-      return;
-    }
+  const quizUrl = "https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json";
+  const config = await fetchQuizConfig(quizUrl);
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    pageSequence = config.pages;
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 1;
+    render();
+    return;
   }
-  // If no quiz loaded, just go to next page
   state.page++;
   render();
 }
@@ -123,14 +112,12 @@ function render() {
       render();
       return;
     } else if (current.type === "thankyou") {
-      // No button on thank you page
       return;
     }
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
     render();
   };
 
-  // COVER PAGE (card style, button inside image, NO QUIZ_CONFIG used until Start is clicked)
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
@@ -144,7 +131,6 @@ function render() {
     return;
   }
 
-  // INTRO PAGE
   if (current.type === "intro") {
     renderFullscreenBgPage({
       bg: current.bg,
@@ -157,7 +143,6 @@ function render() {
     return;
   }
 
-  // THANK YOU PAGE (NO BUTTON)
   if (current.type === "thankyou") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
@@ -180,7 +165,6 @@ function render() {
     return;
   }
 
-  // ALL OTHER PAGES
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
