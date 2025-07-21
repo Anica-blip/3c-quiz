@@ -49,42 +49,44 @@ async function fetchQuizConfig(url) {
 // Only replace pageSequence if quiz is loaded after Start
 async function handleStartButton() {
   const quizUrl = getQuizUrl();
+  let config = null;
+  // Always load your quiz.01.json if no quizUrl or if fetch fails
   if (quizUrl) {
     try {
-      const config = await fetchQuizConfig(quizUrl);
-      if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-        pageSequence = config.pages;
-        NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-        SHOW_RESULT = config.showResult || SHOW_RESULT;
-        state.page = 1; // Move to intro page after cover
-        render();
-        return;
-      } else {
-        // Show error if JSON is empty or wrong
-        app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
-        <div style="color:red;text-align:center;padding:2em;">Quiz file loaded but format is invalid.</div>
-        <button class="main-btn cover-btn-in-img" id="nextBtn">Try Default Quiz</button>`;
-        document.getElementById("nextBtn").onclick = () => {
-          state.page++;
-          render();
-        };
-        return;
-      }
+      config = await fetchQuizConfig(quizUrl);
     } catch (e) {
-      // Show error if fetch fails
-      app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
-      <div style="color:red;text-align:center;padding:2em;">Failed to load quiz file.<br>${e.message}</div>
-      <button class="main-btn cover-btn-in-img" id="nextBtn">Try Default Quiz</button>`;
-      document.getElementById("nextBtn").onclick = () => {
-        state.page++;
-        render();
-      };
-      return;
+      // If quizUrl is invalid/fails, fallback below
     }
   }
-  // If no quiz loaded, just go to next page
-  state.page++;
-  render();
+  if (!config || !Array.isArray(config.pages) || config.pages.length === 0) {
+    // Load your quiz.01.json as the default
+    config = await fetchQuizConfig("https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json");
+  }
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    pageSequence = config.pages;
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 1; // Move to intro page after cover
+    render();
+    return;
+  } else {
+    app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
+    <div style="color:red;text-align:center;padding:2em;">Failed to load quiz file.</div>
+    <button class="main-btn cover-btn-in-img" id="nextBtn">Try Default Quiz</button>`;
+    document.getElementById("nextBtn").onclick = async () => {
+      // Always load your quiz.01.json on button click
+      const config = await fetchQuizConfig("https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json");
+      if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+        pageSequence = config.pages;
+        state.page = 1;
+        render();
+      } else {
+        app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
+        <div style="color:red;text-align:center;padding:2em;">Quiz file loaded but format is invalid.</div>`;
+      }
+    };
+    return;
+  }
 }
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
