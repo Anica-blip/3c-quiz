@@ -50,13 +50,35 @@ async function fetchQuizConfig(url) {
 async function handleStartButton() {
   const quizUrl = getQuizUrl();
   if (quizUrl) {
-    const config = await fetchQuizConfig(quizUrl);
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 1; // Move to intro page after cover
-      render();
+    try {
+      const config = await fetchQuizConfig(quizUrl);
+      if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+        pageSequence = config.pages;
+        NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+        SHOW_RESULT = config.showResult || SHOW_RESULT;
+        state.page = 1; // Move to intro page after cover
+        render();
+        return;
+      } else {
+        // Show error if JSON is empty or wrong
+        app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
+        <div style="color:red;text-align:center;padding:2em;">Quiz file loaded but format is invalid.</div>
+        <button class="main-btn cover-btn-in-img" id="nextBtn">Try Default Quiz</button>`;
+        document.getElementById("nextBtn").onclick = () => {
+          state.page++;
+          render();
+        };
+        return;
+      }
+    } catch (e) {
+      // Show error if fetch fails
+      app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
+      <div style="color:red;text-align:center;padding:2em;">Failed to load quiz file.<br>${e.message}</div>
+      <button class="main-btn cover-btn-in-img" id="nextBtn">Try Default Quiz</button>`;
+      document.getElementById("nextBtn").onclick = () => {
+        state.page++;
+        render();
+      };
       return;
     }
   }
@@ -65,43 +87,9 @@ async function handleStartButton() {
   render();
 }
 
-// Render blocks from JSON if present
-function renderBlocks(blocks) {
-  if (!Array.isArray(blocks) || blocks.length === 0) return "";
-  return `
-    <div class="quiz-blocks-container" style="position:relative;width:100vw;height:100vh;">
-      ${blocks.map(block => {
-        const {
-          text = "",
-          x = 0, y = 0, w = 200, h = 50,
-          size = 18,
-          color = "#222",
-          align = "left"
-        } = block;
-        return `
-          <div class="quiz-block" style="
-            position:absolute;
-            left:${x}px;top:${y}px;
-            width:${w}px;height:${h}px;
-            font-size:${size}px;
-            color:${color};
-            text-align:${align};
-            overflow:hidden;
-            white-space:pre-line;
-            pointer-events:none;
-          ">
-            ${text}
-          </div>
-        `;
-      }).join("")}
-    </div>
-  `;
-}
-
-function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
+function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    ${renderBlocks(blocks)}
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -186,8 +174,7 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true,
-      blocks: current.blocks
+      showBack: true
     });
     return;
   }
@@ -196,7 +183,6 @@ function render() {
   if (current.type === "thankyou") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      ${renderBlocks(current.blocks)}
       <div class="page-content">
         <div class="content-inner">
           <h2>${current.type.toUpperCase()}</h2>
@@ -219,7 +205,6 @@ function render() {
   // ALL OTHER PAGES
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-    ${renderBlocks(current.blocks)}
     <div class="page-content">
       <div class="content-inner">
         <h2>${current.type.toUpperCase()}</h2>
