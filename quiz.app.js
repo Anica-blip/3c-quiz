@@ -28,7 +28,13 @@ let state = {
   page: 0,
 };
 
-// Helper to fetch quiz JSON from your quiz.01.json file
+// Helper to get quizUrl from URL
+function getQuizUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("quizUrl");
+}
+
+// Helper to fetch quiz JSON if needed
 async function fetchQuizConfig(url) {
   try {
     const res = await fetch(url);
@@ -41,23 +47,43 @@ async function fetchQuizConfig(url) {
   }
 }
 
-// Replace ONLY the handling of the Start button
-async function handleStartButton() {
-  // Always load your quiz.01.json when Start is clicked
-  const config = await fetchQuizConfig("https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json");
-  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    pageSequence = config.pages;
-    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-    SHOW_RESULT = config.showResult || SHOW_RESULT;
-    state.page = 1; // Move to first page of quiz
-    render();
-  } else {
-    app.innerHTML = `<div class="fullscreen-bg" style="background-image:url('static/1.png');"></div>
-    <div style="color:red;text-align:center;padding:2em;">Quiz file loaded but format is invalid.</div>`;
-  }
+// Compatibility layer for admin/editor quiz files
+function normalizeQuizPages(config) {
+  if (!config || !Array.isArray(config.pages)) return [];
+  // If type is missing, infer from position and blocks
+  return config.pages.map((page, idx) => {
+    const newPage = { ...page };
+    if (!newPage.type) {
+      if (idx === 0) newPage.type = "cover";
+      else if (idx === 1) newPage.type = "intro";
+      else if (idx === config.pages.length - 2) newPage.type = "pre-results";
+      else if (idx === config.pages.length - 1) newPage.type = "thankyou";
+      else newPage.type = "question";
+    }
+    if (!newPage.bg && config.bg) newPage.bg = config.bg;
+    return newPage;
+  });
 }
 
-// Keep ALL original rendering and navigation code
+// Only replace pageSequence if quiz is loaded after Start
+async function handleStartButton() {
+  const quizUrl = getQuizUrl();
+  let config = null;
+  if (quizUrl) {
+    config = await fetchQuizConfig(quizUrl);
+  }
+  if (!config || !Array.isArray(config.pages) || config.pages.length === 0) {
+    // Load your default quiz.01.json as fallback
+    config = await fetchQuizConfig("https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json");
+  }
+  // Normalize the loaded config for compatibility
+  pageSequence = normalizeQuizPages(config);
+  NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+  SHOW_RESULT = config.showResult || SHOW_RESULT;
+  state.page = 1;
+  render();
+}
+
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
