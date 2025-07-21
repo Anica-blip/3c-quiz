@@ -28,7 +28,7 @@ let state = {
   page: 0,
 };
 
-// Helper to fetch quiz JSON from the repo (always loads quiz.01.json on Start)
+// Helper to fetch quiz JSON from the repo
 async function fetchQuizConfig() {
   try {
     const url = "https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json";
@@ -146,7 +146,7 @@ function render() {
         </div>
       </div>
     `;
-    $("#nextBtn").onclick = handleStartButton; // <-- ONLY CHANGE MADE!
+    $("#nextBtn").onclick = handleStartButton;
     return;
   }
 
