@@ -23,7 +23,6 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-
 let state = {
   page: 0,
 };
@@ -42,7 +41,7 @@ async function fetchQuizConfig() {
   }
 }
 
-// Normalize pages for missing type/bg
+// Normalize pages for missing type/bg/blocks
 function normalizeQuizPages(config) {
   if (!config || !Array.isArray(config.pages) || config.pages.length === 0) return [...defaultPageSequence];
   return config.pages.map((page, idx) => {
@@ -55,6 +54,7 @@ function normalizeQuizPages(config) {
       else newPage.type = "question";
     }
     if (!newPage.bg) newPage.bg = defaultPageSequence[idx] ? defaultPageSequence[idx].bg : "static/1.png";
+    if (!newPage.blocks) newPage.blocks = [];
     return newPage;
   });
 }
@@ -69,9 +69,29 @@ async function handleStartButton() {
   render();
 }
 
-function renderFullscreenBgPage({ bg, button, showBack }) {
+// Helper: Render blocks (title, description, answers, etc) from JSON
+function renderBlocks(blocks) {
+  if (!Array.isArray(blocks)) return "";
+  return blocks.map(block => {
+    let html = "";
+    if (block.title) html += `<h2>${block.title}</h2>`;
+    if (block.description) html += `<p>${block.description}</p>`;
+    if (block.text) html += `<p>${block.text}</p>`;
+    if (block.answers && Array.isArray(block.answers)) {
+      html += `<ul class="answers-list">` + block.answers.map(a => `<li>${a}</li>`).join("") + `</ul>`;
+    }
+    return html;
+  }).join("");
+}
+
+function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        ${renderBlocks(blocks)}
+      </div>
+    </div>
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -127,7 +147,6 @@ function render() {
       render();
       return;
     } else if (current.type === "thankyou") {
-      // No button on thank you page
       return;
     }
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
@@ -140,6 +159,7 @@ function render() {
       <div class="cover-outer">
         <div class="cover-image-container">
           <img class="cover-img" src="${current.bg}" alt="cover"/>
+          <div class="cover-blocks">${renderBlocks(current.blocks)}</div>
           <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
         </div>
       </div>
@@ -156,7 +176,8 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true
+      showBack: true,
+      blocks: current.blocks
     });
     return;
   }
@@ -167,8 +188,7 @@ function render() {
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
         <div class="content-inner">
-          <h2>${current.type.toUpperCase()}</h2>
-          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+          ${renderBlocks(current.blocks)}
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -189,8 +209,7 @@ function render() {
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        <h2>${current.type.toUpperCase()}</h2>
-        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+        ${renderBlocks(current.blocks)}
       </div>
     </div>
     <div class="fullscreen-bottom">
