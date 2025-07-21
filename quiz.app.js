@@ -28,72 +28,46 @@ let state = {
   page: 0,
 };
 
-// Helper to fetch quiz JSON from the repo (always loads quiz.01.json on Start)
-async function fetchQuizConfig() {
+// Helper to get quizUrl from URL
+function getQuizUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("quizUrl");
+}
+
+// Helper to fetch quiz JSON if needed
+async function fetchQuizConfig(url) {
   try {
-    const url = "https://anica-blip.github.io/3c-quiz/quiz-json/quiz.01.json";
     const res = await fetch(url);
     if (!res.ok) throw new Error("Quiz file not found");
-    const config = await res.json();
-    return config;
+    return await res.json();
   } catch (e) {
     console.error("Failed to load quiz JSON:", e);
     return null;
   }
 }
 
-// Normalize pages for missing type/bg
-function normalizeQuizPages(config) {
-  if (!config || !Array.isArray(config.pages) || config.pages.length === 0) return [...defaultPageSequence];
-  return config.pages.map((page, idx) => {
-    const newPage = { ...page };
-    if (!newPage.type) {
-      if (idx === 0) newPage.type = "cover";
-      else if (idx === 1) newPage.type = "intro";
-      else if (idx === config.pages.length - 2) newPage.type = "pre-results";
-      else if (idx === config.pages.length - 1) newPage.type = "thankyou";
-      else newPage.type = "question";
-    }
-    if (!newPage.bg) newPage.bg = defaultPageSequence[idx] ? defaultPageSequence[idx].bg : "static/1.png";
-    if (!Array.isArray(newPage.blocks)) newPage.blocks = [];
-    return newPage;
-  });
-}
-
-// Replace pageSequence if quiz is loaded after Start
+// Only replace pageSequence if quiz is loaded after Start
 async function handleStartButton() {
-  const config = await fetchQuizConfig();
-  if (config) {
-    pageSequence = normalizeQuizPages(config);
-    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-    SHOW_RESULT = config.showResult || SHOW_RESULT;
+  const quizUrl = getQuizUrl();
+  if (quizUrl) {
+    const config = await fetchQuizConfig(quizUrl);
+    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+      pageSequence = config.pages;
+      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+      SHOW_RESULT = config.showResult || SHOW_RESULT;
+      state.page = 1; // Move to intro page after cover
+      render();
+      return;
+    }
   }
-  state.page = 1;
+  // If no quiz loaded, just go to next page
+  state.page++;
   render();
 }
 
-// >>>>> NEW FUNCTION: Render blocks (title, desc, etc) dynamically <<<<<
-function renderBlocks(blocks) {
-  if (!blocks || !Array.isArray(blocks)) return "";
-  return blocks.map(block => {
-    if (block.type === "title") {
-      return `<h2 class="block-title" style="color:${block.color||'#222'};font-size:${block.size||18}px;">${block.text || block.label || ''}</h2>`;
-    }
-    if (block.type === "desc") {
-      return `<p class="block-desc">${block.text || ''}</p>`;
-    }
-    // Add more block types as needed!
-    return "";
-  }).join("");
-}
-
-// Helper to render full screen background pages
-function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
+function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    <div class="fullscreen-blocks">
-      ${renderBlocks(blocks)}
-    </div>
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -156,20 +130,17 @@ function render() {
     render();
   };
 
-  // COVER PAGE
+  // COVER PAGE (card style, button inside image, NO QUIZ_CONFIG used until Start is clicked)
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
         <div class="cover-image-container">
           <img class="cover-img" src="${current.bg}" alt="cover"/>
-          <div class="cover-blocks">
-            ${renderBlocks(current.blocks)}
-          </div>
           <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
         </div>
       </div>
     `;
-    $("#nextBtn").onclick = handleStartButton; // <-- ONLY CHANGE MADE!
+    $("#nextBtn").onclick = handleStartButton;
     return;
   }
 
@@ -181,19 +152,19 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true,
-      blocks: current.blocks
+      showBack: true
     });
     return;
   }
 
-  // THANK YOU PAGE
+  // THANK YOU PAGE (NO BUTTON)
   if (current.type === "thankyou") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
         <div class="content-inner">
-          ${renderBlocks(current.blocks)}
+          <h2>${current.type.toUpperCase()}</h2>
+          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -209,12 +180,13 @@ function render() {
     return;
   }
 
-  // ALL OTHER PAGES (question, result, pre-results, etc)
+  // ALL OTHER PAGES
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        ${renderBlocks(current.blocks)}
+        <h2>${current.type.toUpperCase()}</h2>
+        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
       </div>
     </div>
     <div class="fullscreen-bottom">
