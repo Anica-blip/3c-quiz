@@ -135,29 +135,26 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// --- THIS IS THE ONLY PART CHANGED: ---
-// Only assign type if missing, and do so safely
+// Always start at first page, but if pages are missing 'type', try to auto-detect and set type field based on position/heuristics
 function autoFixPages(pages) {
-  return pages.map((p, idx) => {
+  // If all pages are missing type, guess by position and bg filename
+  const fixedPages = pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
-    // Heuristics:
-    if (
-      (Array.isArray(p.answers) && p.answers.length > 0) ||
-      (Array.isArray(p.blocks) && p.blocks.some(b => b.type === "answer"))
-    ) {
-      return { ...p, type: "question" };
-    }
-    if (idx === 0) return { ...p, type: "cover" };
-    if (idx === pages.length - 1) return { ...p, type: "thankyou" };
-    if (p.bg && p.bg.includes("4")) return { ...p, type: "pre-results" };
-    if (p.bg && p.bg.includes("5a")) return { ...p, type: "resultA" };
-    if (p.bg && p.bg.includes("5b")) return { ...p, type: "resultB" };
-    if (p.bg && p.bg.includes("5c")) return { ...p, type: "resultC" };
-    if (p.bg && p.bg.includes("5d")) return { ...p, type: "resultD" };
-    return { ...p, type: "intro" };
+    let t = "";
+    // Heuristic: first page = intro, last = thankyou, others by bg
+    if (idx === 0) t = "intro";
+    else if (idx === pages.length - 1) t = "thankyou";
+    else if (p.bg && p.bg.includes("3")) t = "question";
+    else if (p.bg && p.bg.includes("4")) t = "pre-results";
+    else if (p.bg && p.bg.includes("5a")) t = "resultA";
+    else if (p.bg && p.bg.includes("5b")) t = "resultB";
+    else if (p.bg && p.bg.includes("5c")) t = "resultC";
+    else if (p.bg && p.bg.includes("5d")) t = "resultD";
+    else t = "question"; // fallback
+    return { ...p, type: t };
   });
+  return fixedPages;
 }
-// --- END OF CHANGE ---
 
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
@@ -174,7 +171,7 @@ async function handleStartButton() {
     config.pages = autoFixPages(config.pages);
     console.log("Loaded (and fixed) pages from Supabase:", config.pages);
     pageSequence = config.pages;
-    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
     state.page = 0;
     render();
