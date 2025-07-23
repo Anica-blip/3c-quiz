@@ -55,6 +55,17 @@ function getQuizUrl() {
   return params.get("quizUrl");
 }
 
+async function fetchQuizConfig(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Quiz file not found");
+    return await res.json();
+  } catch (e) {
+    console.error("Failed to load quiz JSON:", e);
+    return null;
+  }
+}
+
 async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
   try {
     await initSupabase();
@@ -82,23 +93,57 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
   }
 }
 
-// ---- THE ONLY CHANGE: handleStartButton ----
-async function handleStartButton() {
-  const quizUrl = getQuizUrl();
-  // Only fetch by quiz_url or quiz_slug!
-  const config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
-  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    pageSequence = config.pages;
-    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-    SHOW_RESULT = config.showResult || SHOW_RESULT;
-    state.page = 1;
-    render();
-    return;
+async function fetchLatestQuizFromSupabase() {
+  try {
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase");
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      pages = JSON.parse(pages);
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
+    };
+  } catch (e) {
+    console.error("Failed to fetch latest quiz from Supabase:", e);
+    return null;
   }
-  // If nothing loaded, stay on cover and do nothing else.
 }
 
-// ---------------- THE REST OF YOUR CODE IS UNCHANGED ----------------
+// ---- ONLY THIS FUNCTION IS CHANGED (for clarity and debug) ----
+async function handleStartButton() {
+  const quizUrl = getQuizUrl();
+  if (!quizUrl) {
+    alert("Missing quizUrl parameter in URL!");
+    return;
+  }
+  try {
+    const config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+      pageSequence = config.pages;
+      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+      SHOW_RESULT = config.showResult || SHOW_RESULT;
+      state.page = 1;
+      render();
+    } else {
+      alert("Quiz could not be loaded or has no pages. Check Supabase data for this quizUrl: " + quizUrl);
+    }
+  } catch (e) {
+    alert("Failed to load quiz from Supabase: " + e);
+    throw e;
+  }
+}
+// ----------------------------------------------------------------
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
