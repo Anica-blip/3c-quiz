@@ -90,11 +90,7 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
         throw new Error("Quiz 'pages' column is not valid JSON.");
       }
     }
-    return {
-      pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A",
-    };
+    return { pages };
   } catch (e) {
     console.error("Failed to fetch quiz by url/slug from Supabase:", e);
     return null;
@@ -124,11 +120,7 @@ async function fetchLatestQuizFromSupabase() {
         throw new Error("Quiz 'pages' column is not valid JSON.");
       }
     }
-    return {
-      pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A",
-    };
+    return { pages };
   } catch (e) {
     console.error("Failed to fetch latest quiz from Supabase:", e);
     return null;
@@ -165,11 +157,13 @@ async function handleStartButton() {
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
     config.pages = autoFixPages(config.pages);
-    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
+    // After fixing, count questions again!
+    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+    SHOW_RESULT = "A"; // or pull from data if you store it
     pageSequence = config.pages;
-    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-    SHOW_RESULT = config.showResult || SHOW_RESULT;
     state.page = 0;
+    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
+    console.log("Number of questions:", NUM_QUESTIONS);
     render();
   } else {
     renderErrorScreen();
@@ -346,7 +340,15 @@ function render() {
       ) {
         state.page = pageSequence.findIndex(p => p.type === "pre-results");
       } else if (current.type === "pre-results") {
-        state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+        // Go to last question
+        let lastQ = -1;
+        for (let i = pageSequence.length - 1; i >= 0; i--) {
+          if (pageSequence[i].type === "question") {
+            lastQ = i; break;
+          }
+        }
+        if (lastQ !== -1) state.page = lastQ;
+        else state.page = Math.max(state.page - 1, 0);
       } else {
         state.page = Math.max(state.page - 1, 0);
       }
