@@ -78,11 +78,19 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
       .limit(1)
       .maybeSingle();
 
+    // ---- LOG THE RAW SUPABASE RESPONSE ----
+    console.log('Supabase raw response (by url/slug):', { data, error });
+
     if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
 
     let pages = data.pages;
     if (typeof pages === "string") {
-      pages = JSON.parse(pages);
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
     }
     return {
       pages,
@@ -105,11 +113,19 @@ async function fetchLatestQuizFromSupabase() {
       .limit(1)
       .maybeSingle();
 
+    // ---- LOG THE RAW SUPABASE RESPONSE ----
+    console.log('Supabase raw response (latest):', { data, error });
+
     if (error || !data) throw error || new Error("No quiz found in Supabase");
 
     let pages = data.pages;
     if (typeof pages === "string") {
-      pages = JSON.parse(pages);
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
     }
     return {
       pages,
@@ -123,13 +139,16 @@ async function fetchLatestQuizFromSupabase() {
 }
 
 // --- Only this function is changed to always load a quiz (fallback to latest if quizUrl param is missing) ---
+// --- Now also logs config object to the console ---
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
   if (quizUrl) {
     config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+    console.log('Supabase config (by url/slug):', config);
   } else {
     config = await fetchLatestQuizFromSupabase();
+    console.log('Supabase config (latest):', config);
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
     pageSequence = config.pages;
@@ -139,6 +158,7 @@ async function handleStartButton() {
     render();
   } else {
     alert("Quiz could not be loaded or has no pages. Check Supabase data.");
+    console.log('Config object:', config);
   }
 }
 // ----------------------------------------------------------------------------------
