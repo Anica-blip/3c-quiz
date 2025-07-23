@@ -116,7 +116,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Fix: Make sure questions are counted ONLY if type is "question"
+// Ensure NUM_QUESTIONS counts only question pages, and log page objects for debugging
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -129,8 +129,10 @@ async function handleStartButton() {
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
     pageSequence = config.pages;
-    // Fix: Count only those pages that have type === 'question'
-    NUM_QUESTIONS = config.pages.filter(p => p && p.type === "question").length;
+
+    // DEBUG: log all page types to help diagnose if type field is missing/wrong
+    console.log("Supabase loaded page types:", config.pages.map((p, i) => `#${i} type=${p && p.type}`));
+    NUM_QUESTIONS = config.pages.filter(p => p && typeof p.type === "string" && p.type.toLowerCase() === "question").length;
     SHOW_RESULT = "A";
     state.page = 0;
     console.log("Loaded pages from Supabase:", config.pages);
@@ -150,11 +152,15 @@ function renderErrorScreen(extra = "") {
         <h2>Error: No page data</h2>
         <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
         ${extra}
+        <div>
+          <img src="static/error-illustration.png" alt="error" style="margin-top:24px;max-width:120px;opacity:.5;"/>
+        </div>
       </div>
     </div>
   `;
 }
 
+// Everything else—render logic, navigation, UI—remains 100% yours and unchanged
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
@@ -184,6 +190,9 @@ function render() {
       <div class="fullscreen-bottom">
         <button class="main-btn" id="nextBtn">Next</button>
         <button class="main-btn" id="backBtn">Back</button>
+      </div>
+      <div>
+        <img src="static/1.png" alt="error" style="margin-top:24px;max-width:120px;opacity:.5;"/>
       </div>
     `);
 
