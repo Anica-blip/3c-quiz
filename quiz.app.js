@@ -135,26 +135,33 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Always start at first page, but if pages are missing 'type', try to auto-detect and set type field based on position/heuristics
+// --- ONLY THIS FUNCTION IS CHANGED ---
 function autoFixPages(pages) {
-  // If all pages are missing type, guess by position and bg filename
+  // If a page is missing a 'type', assign "question" ONLY if it has answers or blocks with answers
   const fixedPages = pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
-    let t = "";
-    // Heuristic: first page = intro, last = thankyou, others by bg
-    if (idx === 0) t = "intro";
-    else if (idx === pages.length - 1) t = "thankyou";
-    else if (p.bg && p.bg.includes("3")) t = "question";
-    else if (p.bg && p.bg.includes("4")) t = "pre-results";
-    else if (p.bg && p.bg.includes("5a")) t = "resultA";
-    else if (p.bg && p.bg.includes("5b")) t = "resultB";
-    else if (p.bg && p.bg.includes("5c")) t = "resultC";
-    else if (p.bg && p.bg.includes("5d")) t = "resultD";
-    else t = "question"; // fallback
-    return { ...p, type: t };
+
+    // If it has answers array or blocks with answer type, it's a question
+    if (
+      (Array.isArray(p.answers) && p.answers.length > 0) ||
+      (Array.isArray(p.blocks) && p.blocks.some(b => b.type === "answer"))
+    ) {
+      return { ...p, type: "question" };
+    }
+
+    // Otherwise, use original heuristics for intro, thankyou, etc.
+    if (idx === 0) return { ...p, type: "cover" };
+    if (idx === pages.length - 1) return { ...p, type: "thankyou" };
+    if (p.bg && p.bg.includes("4")) return { ...p, type: "pre-results" };
+    if (p.bg && p.bg.includes("5a")) return { ...p, type: "resultA" };
+    if (p.bg && p.bg.includes("5b")) return { ...p, type: "resultB" };
+    if (p.bg && p.bg.includes("5c")) return { ...p, type: "resultC" };
+    if (p.bg && p.bg.includes("5d")) return { ...p, type: "resultD" };
+    return { ...p, type: "intro" };
   });
   return fixedPages;
 }
+// --- END OF CHANGE ---
 
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
@@ -171,7 +178,7 @@ async function handleStartButton() {
     config.pages = autoFixPages(config.pages);
     console.log("Loaded (and fixed) pages from Supabase:", config.pages);
     pageSequence = config.pages;
-    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
     state.page = 0;
     render();
@@ -286,7 +293,11 @@ function render() {
         </div>
       </div>
     `;
-    $("#nextBtn").onclick = handleStartButton;
+    // --- Don't touch this: keep advancing page, not reloading Supabase ---
+    $("#nextBtn").onclick = () => {
+      state.page++;
+      render();
+    };
     return;
   }
 
