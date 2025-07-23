@@ -138,7 +138,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Start on the first page of the quiz data from Supabase
+// Always start at first page, but fallback to error screen if pages are empty or malformed
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -154,11 +154,28 @@ async function handleStartButton() {
     NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
     state.page = 0;
+    // Defensive: If page 0 doesn't exist or is malformed, go to error screen
+    if (!pageSequence[state.page] || typeof pageSequence[state.page].type !== "string") {
+      renderErrorScreen();
+      return;
+    }
     render();
   } else {
-    alert("Quiz could not be loaded or has no pages. Check Supabase data.");
+    renderErrorScreen();
     console.log('Config object:', config);
   }
+}
+
+function renderErrorScreen() {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-color:#111"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        <h2>Error: No page data</h2>
+        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
+      </div>
+    </div>
+  `;
 }
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
@@ -186,15 +203,7 @@ function render() {
 
   // If current is undefined or malformed, show error, don't crash
   if (!current || typeof current.type !== "string") {
-    app.innerHTML = `
-      <div class="fullscreen-bg" style="background-color:#111"></div>
-      <div class="page-content">
-        <div class="content-inner">
-          <h2>Error: No page data</h2>
-          <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
-        </div>
-      </div>
-    `;
+    renderErrorScreen();
     return;
   }
 
