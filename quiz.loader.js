@@ -6,8 +6,8 @@ async function fetchAndApplyQuizConfig() {
     const data = await res.json();
 
     // --- TRANSFORM LOGIC ---
-    // Example: mapping your quiz.01.json to QUIZ_CONFIG structure
-    // (you must adjust this mapping to match your json format)
+    // Map your quiz.01.json to QUIZ_CONFIG structure
+
     const mapToQUIZ_CONFIG = (data) => {
       // 1. Intro pages
       const introPages = [
@@ -32,11 +32,11 @@ async function fetchAndApplyQuizConfig() {
             .filter(b => b.type === "answer")
             .map(a => ({ text: a.text, result: a.result }))
         }));
-      // 3. Results
+      // 3. Results (A, B, C, D)
       const resultPages = {};
-      ["A", "B", "C"].forEach(letter => {
+      ["A", "B", "C", "D"].forEach(letter => {
         resultPages[letter] = {
-          bg: (data.pages.find(p => p.type === "result" + letter) || {}).bg || "static/4.png",
+          bg: (data.pages.find(p => p.type === "result" + letter) || {}).bg || `static/5${letter.toLowerCase()}.png`,
           resultText: "",
           btn: { label: "Finish", action: "thankYou" }
         };
