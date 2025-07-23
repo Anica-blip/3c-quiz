@@ -9,7 +9,8 @@ function loadSupabaseClient() {
   if (window.supabase) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    // FIX: Use UMD build (NOT +esm) for browser compatibility
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js';
     s.onload = resolve;
     s.onerror = reject;
     document.head.appendChild(s);
@@ -78,7 +79,7 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
       .limit(1)
       .maybeSingle();
 
-    // ---- LOG THE RAW SUPABASE RESPONSE ----
+    // Log the raw Supabase response for debugging
     console.log('Supabase raw response (by url/slug):', { data, error });
 
     if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
@@ -113,7 +114,7 @@ async function fetchLatestQuizFromSupabase() {
       .limit(1)
       .maybeSingle();
 
-    // ---- LOG THE RAW SUPABASE RESPONSE ----
+    // Log the raw Supabase response for debugging
     console.log('Supabase raw response (latest):', { data, error });
 
     if (error || !data) throw error || new Error("No quiz found in Supabase");
