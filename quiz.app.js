@@ -138,7 +138,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// FIX: always start at the first page (index 0) and remove the check that caused the error message
+// Start on the first page of the quiz data from Supabase
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -184,8 +184,8 @@ function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  // Defensive: if current is undefined, show error, don't crash
-  if (!current || typeof current.type === "undefined") {
+  // If current is undefined or malformed, show error, don't crash
+  if (!current || typeof current.type !== "string") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-color:#111"></div>
       <div class="page-content">
@@ -265,7 +265,7 @@ function render() {
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
         <div class="content-inner">
-          <h2>${current.type && typeof current.type === "string" ? current.type.toUpperCase() : ""}</h2>
+          <h2>${current.type.toUpperCase()}</h2>
           <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
         </div>
       </div>
@@ -286,7 +286,7 @@ function render() {
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        <h2>${current.type && typeof current.type === "string" ? current.type.toUpperCase() : ""}</h2>
+        <h2>${current.type.toUpperCase()}</h2>
         <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
       </div>
     </div>
