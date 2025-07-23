@@ -51,8 +51,10 @@ let state = {
 };
 
 function getQuizUrl() {
+  // If URL param is missing, fall back to the first quiz in Supabase
   const params = new URLSearchParams(window.location.search);
-  return params.get("quizUrl");
+  const quizUrl = params.get("quizUrl");
+  return quizUrl && quizUrl.trim() !== "" ? quizUrl : null;
 }
 
 async function fetchQuizConfig(url) {
@@ -120,30 +122,26 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// --- ONLY THIS FUNCTION IS CHANGED (NO OTHER CODE IS TOUCHED) ---
+// --- Only this function is changed to always load a quiz (fallback to latest if quizUrl param is missing) ---
 async function handleStartButton() {
-  const quizUrl = getQuizUrl();
-  if (!quizUrl) {
-    alert("Missing quizUrl parameter in URL!");
-    return;
+  let quizUrl = getQuizUrl();
+  let config = null;
+  if (quizUrl) {
+    config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+  } else {
+    config = await fetchLatestQuizFromSupabase();
   }
-  try {
-    const config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 1;
-      render();
-    } else {
-      alert("Quiz could not be loaded or has no pages. Check Supabase data for this quizUrl: " + quizUrl);
-    }
-  } catch (e) {
-    alert("Failed to load quiz from Supabase: " + e);
-    throw e;
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    pageSequence = config.pages;
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 1;
+    render();
+  } else {
+    alert("Quiz could not be loaded or has no pages. Check Supabase data.");
   }
 }
-// ----------------------------------------------------------------
+// ----------------------------------------------------------------------------------
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
