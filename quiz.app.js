@@ -50,6 +50,33 @@ let state = {
   page: 0,
 };
 
+// --- Helper to normalize keys (fix for Supabase pages with no "type") ---
+function normalizePages(pages) {
+  // Try to infer page types if missing, using heuristics or fallback on order
+  if (!Array.isArray(pages)) return [];
+  return pages.map((p, i) => {
+    if (typeof p !== "object" || !p) return p;
+    // If type exists, return as is
+    if (typeof p.type === "string" && p.type.length > 0) return p;
+    // Try to infer type by position or known keys
+    // Heuristic: first page is cover, second is intro/info, last is thankyou, etc
+    if (i === 0) return { ...p, type: "cover" };
+    if (i === 1) return { ...p, type: "intro" };
+    if (i === pages.length - 1) return { ...p, type: "thankyou" };
+    if (p.question || (p.blocks && p.blocks.some(b => b.type === "title"))) return { ...p, type: "question" };
+    // If background matches resultA, resultB, resultC, resultD, or pre-results
+    if (typeof p.bg === "string") {
+      if (p.bg.includes("5a")) return { ...p, type: "resultA" };
+      if (p.bg.includes("5b")) return { ...p, type: "resultB" };
+      if (p.bg.includes("5c")) return { ...p, type: "resultC" };
+      if (p.bg.includes("5d")) return { ...p, type: "resultD" };
+      if (p.bg.includes("4")) return { ...p, type: "pre-results" };
+    }
+    // Fallback: treat as generic question
+    return { ...p, type: "question" };
+  });
+}
+
 function getQuizUrl() {
   const params = new URLSearchParams(window.location.search);
   const quizUrl = params.get("quizUrl");
@@ -116,7 +143,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Ensure NUM_QUESTIONS counts only question pages, and log page objects for debugging
+// --- Fix: Ensure NUM_QUESTIONS counts only question pages, and normalize page types
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -128,14 +155,15 @@ async function handleStartButton() {
     console.log('Supabase config (latest):', config);
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    pageSequence = config.pages;
+    // --- Fix: Normalize page types if missing ---
+    pageSequence = normalizePages(config.pages);
 
     // DEBUG: log all page types to help diagnose if type field is missing/wrong
-    console.log("Supabase loaded page types:", config.pages.map((p, i) => `#${i} type=${p && p.type}`));
-    NUM_QUESTIONS = config.pages.filter(p => p && typeof p.type === "string" && p.type.toLowerCase() === "question").length;
+    console.log("Supabase loaded page types:", pageSequence.map((p, i) => `#${i} type=${p && p.type}`));
+    NUM_QUESTIONS = pageSequence.filter(p => p && typeof p.type === "string" && p.type.toLowerCase() === "question").length;
     SHOW_RESULT = "A";
     state.page = 0;
-    console.log("Loaded pages from Supabase:", config.pages);
+    console.log("Loaded pages from Supabase:", pageSequence);
     console.log("Number of questions:", NUM_QUESTIONS);
     render();
   } else {
@@ -160,7 +188,6 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// Everything else—render logic, navigation, UI—remains 100% yours and unchanged
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
