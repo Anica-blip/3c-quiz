@@ -138,8 +138,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// --- Only this function is changed to always load a quiz (fallback to latest if quizUrl param is missing) ---
-// --- Now also logs config object to the console ---
+// --- Only this block is changed as requested ---
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -154,7 +153,7 @@ async function handleStartButton() {
     pageSequence = config.pages;
     NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
-    state.page = 1;
+    state.page = 0; // <-- FIXED as requested: always start at the first page
     render();
   } else {
     alert("Quiz could not be loaded or has no pages. Check Supabase data.");
@@ -163,7 +162,25 @@ async function handleStartButton() {
 }
 // ----------------------------------------------------------------------------------
 
-// THE ONLY CHANGE: new render function with guard for missing current
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
+    </div>
+  `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
+  }
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
+  }
+}
+
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
@@ -297,25 +314,6 @@ function render() {
       }
       render();
     };
-  }
-}
-
-function renderFullscreenBgPage({ bg, button, showBack }) {
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    <div class="fullscreen-bottom">
-      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
-    </div>
-  `;
-  if (showBack) {
-    $("#backBtn").onclick = () => {
-      state.page = Math.max(0, state.page - 1);
-      render();
-    };
-  }
-  if (button) {
-    $(`#${button.id}`).onclick = button.onClick;
   }
 }
 
