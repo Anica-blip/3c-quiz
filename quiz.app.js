@@ -157,7 +157,6 @@ async function handleStartButton() {
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
     config.pages = autoFixPages(config.pages);
-    // After fixing, count questions again!
     NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
     SHOW_RESULT = "A"; // or pull from data if you store it
     pageSequence = config.pages;
