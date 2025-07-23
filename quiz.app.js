@@ -138,7 +138,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// FIXED: always start at the first page (index 0)
+// FIX: guard against missing/undefined pages and out-of-bounds state.page
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -153,7 +153,13 @@ async function handleStartButton() {
     pageSequence = config.pages;
     NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
-    state.page = 0; // <-- FIXED HERE
+    state.page = 0;
+    // Defensive: If page 0 doesn't exist, reset to 0 and show error
+    if (!pageSequence[state.page] || typeof pageSequence[state.page].type === "undefined") {
+      alert("Quiz data invalid: first page is missing or malformed.");
+      app.innerHTML = `<div style="padding:2em;color:red">Quiz data invalid: first page is missing or malformed.</div>`;
+      return;
+    }
     render();
   } else {
     alert("Quiz could not be loaded or has no pages. Check Supabase data.");
@@ -184,13 +190,14 @@ function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  if (!current) {
+  // Defensive: if current is undefined, show error, don't crash
+  if (!current || typeof current.type === "undefined") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-color:#111"></div>
       <div class="page-content">
         <div class="content-inner">
           <h2>Error: No page data</h2>
-          <p>The quiz could not be loaded or is empty. Please check your Supabase data.</p>
+          <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
         </div>
       </div>
     `;
@@ -264,7 +271,7 @@ function render() {
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
         <div class="content-inner">
-          <h2>${current.type.toUpperCase()}</h2>
+          <h2>${current.type && typeof current.type === "string" ? current.type.toUpperCase() : ""}</h2>
           <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
         </div>
       </div>
@@ -285,7 +292,7 @@ function render() {
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        <h2>${current.type.toUpperCase()}</h2>
+        <h2>${current.type && typeof current.type === "string" ? current.type.toUpperCase() : ""}</h2>
         <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
       </div>
     </div>
