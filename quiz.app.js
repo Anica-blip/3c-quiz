@@ -1,6 +1,30 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
+// --- SUPABASE INITIALIZATION (using your values) ---
+const SUPABASE_URL = "https://cgxjqsbrditbteqhdyus.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneGpxc2JyZGl0YnRlcWhkeXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMTY1ODEsImV4cCI6MjA2NjY5MjU4MX0.xUDy5ic-r52kmRtocdcW8Np9-lczjMZ6YKPXc03rIG4";
+
+// Quick & simple loader if not already included
+function loadSupabaseClient() {
+  if (window.supabase) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+let supabase;
+async function initSupabase() {
+  await loadSupabaseClient();
+  if (!window.supabase) throw new Error('Supabase JS failed to load');
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+// -------------------------------------------------------
+
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -46,11 +70,52 @@ async function fetchQuizConfig(url) {
   }
 }
 
+// Fetch quiz from Supabase if no quizUrl in query
+async function fetchQuizFromSupabase() {
+  try {
+    await initSupabase();
+    // Get the latest quiz (table is assumed to be 'quizzes', adjust if needed)
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase");
+
+    // Expecting 'pages' is stored as JSON string in the DB
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      pages = JSON.parse(pages);
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A", // Or derive from your quiz data if you store it
+    };
+  } catch (e) {
+    console.error("Failed to fetch quiz from Supabase:", e);
+    return null;
+  }
+}
+
 // Only replace pageSequence if quiz is loaded after Start
 async function handleStartButton() {
   const quizUrl = getQuizUrl();
   if (quizUrl) {
     const config = await fetchQuizConfig(quizUrl);
+    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+      pageSequence = config.pages;
+      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+      SHOW_RESULT = config.showResult || SHOW_RESULT;
+      state.page = 1; // Move to intro page after cover
+      render();
+      return;
+    }
+  } else {
+    // No quizUrl, so fetch from Supabase
+    const config = await fetchQuizFromSupabase();
     if (config && Array.isArray(config.pages) && config.pages.length > 0) {
       pageSequence = config.pages;
       NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
