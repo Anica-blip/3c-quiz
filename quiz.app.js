@@ -138,7 +138,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// --- Only this block is changed as requested ---
+// FIXED: start at page 0, not 1
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -153,14 +153,13 @@ async function handleStartButton() {
     pageSequence = config.pages;
     NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
-    state.page = 0; // <-- FIXED as requested: always start at the first page
+    state.page = 0; // <-- FIXED HERE
     render();
   } else {
     alert("Quiz could not be loaded or has no pages. Check Supabase data.");
     console.log('Config object:', config);
   }
 }
-// ----------------------------------------------------------------------------------
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
