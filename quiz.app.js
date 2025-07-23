@@ -120,7 +120,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// ---- ONLY THIS FUNCTION IS CHANGED (for clarity and debug) ----
+// --- ONLY THIS FUNCTION IS CHANGED (NO OTHER CODE IS TOUCHED) ---
 async function handleStartButton() {
   const quizUrl = getQuizUrl();
   if (!quizUrl) {
