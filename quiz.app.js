@@ -51,7 +51,6 @@ let state = {
 };
 
 function getQuizUrl() {
-  // If URL param is missing, fall back to the first quiz in Supabase
   const params = new URLSearchParams(window.location.search);
   const quizUrl = params.get("quizUrl");
   return quizUrl && quizUrl.trim() !== "" ? quizUrl : null;
@@ -78,7 +77,6 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
       .limit(1)
       .maybeSingle();
 
-    // Log the raw Supabase response for debugging
     console.log('Supabase raw response (by url/slug):', { data, error });
 
     if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
@@ -95,7 +93,7 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
     return {
       pages,
       numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A", // or use data.showResult if you store it
+      showResult: "A",
     };
   } catch (e) {
     console.error("Failed to fetch quiz by url/slug from Supabase:", e);
@@ -113,7 +111,6 @@ async function fetchLatestQuizFromSupabase() {
       .limit(1)
       .maybeSingle();
 
-    // Log the raw Supabase response for debugging
     console.log('Supabase raw response (latest):', { data, error });
 
     if (error || !data) throw error || new Error("No quiz found in Supabase");
@@ -150,15 +147,19 @@ async function handleStartButton() {
     console.log('Supabase config (latest):', config);
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    // Log all pages to help debug
+    console.log("Loaded pages from Supabase:", config.pages);
+    // Check for missing or invalid type fields and log them
+    config.pages.forEach((p, idx) => {
+      if (!p || typeof p.type !== "string") {
+        console.error(`Page at index ${idx} is missing 'type' or it is not a string:`, p);
+      }
+    });
+
     pageSequence = config.pages;
     NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
     state.page = 0;
-    // Defensive: If page 0 doesn't exist or is malformed, go to error screen
-    if (!pageSequence[state.page] || typeof pageSequence[state.page].type !== "string") {
-      renderErrorScreen();
-      return;
-    }
     render();
   } else {
     renderErrorScreen();
@@ -166,13 +167,14 @@ async function handleStartButton() {
   }
 }
 
-function renderErrorScreen() {
+function renderErrorScreen(extra = "") {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-color:#111"></div>
     <div class="page-content">
       <div class="content-inner">
         <h2>Error: No page data</h2>
         <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
+        ${extra}
       </div>
     </div>
   `;
@@ -201,9 +203,27 @@ function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  // If current is undefined or malformed, show error, don't crash
+  // If current is undefined or malformed, show error, don't crash, but allow navigation
   if (!current || typeof current.type !== "string") {
-    renderErrorScreen();
+    let pageNum = state.page + 1;
+    renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
+      <div class="fullscreen-bottom">
+        <button class="main-btn" id="nextBtn">Next</button>
+        <button class="main-btn" id="backBtn">Back</button>
+      </div>
+    `);
+
+    // Let user try to skip forward or back
+    const next = () => {
+      state.page = Math.min(state.page + 1, pageSequence.length - 1);
+      render();
+    };
+    const back = () => {
+      state.page = Math.max(state.page - 1, 0);
+      render();
+    };
+    document.getElementById("nextBtn").onclick = next;
+    document.getElementById("backBtn").onclick = back;
     return;
   }
 
