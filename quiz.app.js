@@ -138,7 +138,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// FIXED: start at page 0, not 1
+// FIXED: always start at the first page (index 0)
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
