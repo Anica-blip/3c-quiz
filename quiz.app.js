@@ -135,7 +135,27 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Always start at first page, but fallback to error screen if pages are empty or malformed
+// Always start at first page, but if pages are missing 'type', try to auto-detect and set type field based on position/heuristics
+function autoFixPages(pages) {
+  // If all pages are missing type, guess by position and bg filename
+  const fixedPages = pages.map((p, idx) => {
+    if (typeof p.type === "string" && p.type.length > 0) return p;
+    let t = "";
+    // Heuristic: first page = intro, last = thankyou, others by bg
+    if (idx === 0) t = "intro";
+    else if (idx === pages.length - 1) t = "thankyou";
+    else if (p.bg && p.bg.includes("3")) t = "question";
+    else if (p.bg && p.bg.includes("4")) t = "pre-results";
+    else if (p.bg && p.bg.includes("5a")) t = "resultA";
+    else if (p.bg && p.bg.includes("5b")) t = "resultB";
+    else if (p.bg && p.bg.includes("5c")) t = "resultC";
+    else if (p.bg && p.bg.includes("5d")) t = "resultD";
+    else t = "question"; // fallback
+    return { ...p, type: t };
+  });
+  return fixedPages;
+}
+
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -147,15 +167,9 @@ async function handleStartButton() {
     console.log('Supabase config (latest):', config);
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    // Log all pages to help debug
-    console.log("Loaded pages from Supabase:", config.pages);
-    // Check for missing or invalid type fields and log them
-    config.pages.forEach((p, idx) => {
-      if (!p || typeof p.type !== "string") {
-        console.error(`Page at index ${idx} is missing 'type' or it is not a string:`, p);
-      }
-    });
-
+    // Auto-fix missing type fields
+    config.pages = autoFixPages(config.pages);
+    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
     pageSequence = config.pages;
     NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
@@ -203,7 +217,6 @@ function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  // If current is undefined or malformed, show error, don't crash, but allow navigation
   if (!current || typeof current.type !== "string") {
     let pageNum = state.page + 1;
     renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
