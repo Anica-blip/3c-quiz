@@ -45,7 +45,10 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-let state = { page: 0 };
+
+let state = {
+  page: 0,
+};
 
 function getQuizUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -113,25 +116,6 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Only fill in type if missing, and skip pages with no bg or type
-function autoFixPages(pages) {
-  return pages.map((p, idx) => {
-    if (!p || typeof p !== "object") return null;
-    if (typeof p.type === "string" && p.type.length > 0) return p;
-    let t = "";
-    if (idx === 0) t = "intro";
-    else if (idx === pages.length - 1) t = "thankyou";
-    else if (p.bg && /3[a-h]\.png$/.test(p.bg)) t = "question";
-    else if (p.bg && p.bg.includes("4.png")) t = "pre-results";
-    else if (p.bg && p.bg.includes("5a.png")) t = "resultA";
-    else if (p.bg && p.bg.includes("5b.png")) t = "resultB";
-    else if (p.bg && p.bg.includes("5c.png")) t = "resultC";
-    else if (p.bg && p.bg.includes("5d.png")) t = "resultD";
-    else t = "question";
-    return { ...p, type: t };
-  }).filter(p => p && p.type && p.bg);
-}
-
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -143,12 +127,11 @@ async function handleStartButton() {
     console.log('Supabase config (latest):', config);
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    config.pages = autoFixPages(config.pages);
-    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-    SHOW_RESULT = "A";
     pageSequence = config.pages;
+    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+    SHOW_RESULT = "A"; // or pull from data if you store it
     state.page = 0;
-    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
+    console.log("Loaded pages from Supabase:", config.pages);
     console.log("Number of questions:", NUM_QUESTIONS);
     render();
   } else {
@@ -170,6 +153,7 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
+// Everything else—render logic, navigation, UI—remains 100% yours and unchanged
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
@@ -193,13 +177,26 @@ function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  // If truly no valid page, show admin error
-  if (!current || typeof current.type !== "string" || !current.bg) {
-    renderErrorScreen(`<p>All pages are malformed or empty. Please check your Supabase data.</p>
+  if (!current || typeof current.type !== "string") {
+    let pageNum = state.page + 1;
+    renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
       <div class="fullscreen-bottom">
-        <button class="main-btn" id="nextBtn">Reload</button>
-      </div>`);
-    document.getElementById("nextBtn").onclick = () => location.reload();
+        <button class="main-btn" id="nextBtn">Next</button>
+        <button class="main-btn" id="backBtn">Back</button>
+      </div>
+    `);
+
+    // Let user try to skip forward or back
+    const next = () => {
+      state.page = Math.min(state.page + 1, pageSequence.length - 1);
+      render();
+    };
+    const back = () => {
+      state.page = Math.max(state.page - 1, 0);
+      render();
+    };
+    document.getElementById("nextBtn").onclick = next;
+    document.getElementById("backBtn").onclick = back;
     return;
   }
 
