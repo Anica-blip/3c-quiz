@@ -56,17 +56,6 @@ function getQuizUrl() {
   return quizUrl && quizUrl.trim() !== "" ? quizUrl : null;
 }
 
-async function fetchQuizConfig(url) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Quiz file not found");
-    return await res.json();
-  } catch (e) {
-    console.error("Failed to load quiz JSON:", e);
-    return null;
-  }
-}
-
 async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
   try {
     await initSupabase();
@@ -127,8 +116,8 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Fix missing type fields based on position and bg filename
 function autoFixPages(pages) {
+  // Only fix type if missing, otherwise keep the user's data
   return pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
     let t = "";
@@ -158,7 +147,7 @@ async function handleStartButton() {
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
     config.pages = autoFixPages(config.pages);
     NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-    SHOW_RESULT = "A"; // or pull from data if you store it
+    SHOW_RESULT = "A";
     pageSequence = config.pages;
     state.page = 0;
     console.log("Loaded (and fixed) pages from Supabase:", config.pages);
@@ -339,7 +328,6 @@ function render() {
       ) {
         state.page = pageSequence.findIndex(p => p.type === "pre-results");
       } else if (current.type === "pre-results") {
-        // Go to last question
         let lastQ = -1;
         for (let i = pageSequence.length - 1; i >= 0; i--) {
           if (pageSequence[i].type === "question") {
