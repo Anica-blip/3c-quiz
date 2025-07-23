@@ -37,17 +37,22 @@ const QUIZ_CONFIG = {
   },
   resultPages: {
     "A": {
-      bg: "static/4.png", // result page uses 4.png, no extra text
+      bg: "static/5a.png", // FIXED: result page uses 5a.png
       resultText: "", // no text, just button
       btn: { label: "Finish", action: "thankYou" }
     },
     "B": {
-      bg: "static/4.png",
+      bg: "static/5b.png", // FIXED: result page uses 5b.png
       resultText: "",
       btn: { label: "Finish", action: "thankYou" }
     },
     "C": {
-      bg: "static/4.png",
+      bg: "static/5c.png", // FIXED: result page uses 5c.png
+      resultText: "",
+      btn: { label: "Finish", action: "thankYou" }
+    },
+    "D": {
+      bg: "static/5d.png", // FIXED: result page uses 5d.png
       resultText: "",
       btn: { label: "Finish", action: "thankYou" }
     }
