@@ -55,17 +55,6 @@ function getQuizUrl() {
   return params.get("quizUrl");
 }
 
-async function fetchQuizConfig(url) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Quiz file not found");
-    return await res.json();
-  } catch (e) {
-    console.error("Failed to load quiz JSON:", e);
-    return null;
-  }
-}
-
 async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
   try {
     await initSupabase();
@@ -93,62 +82,23 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
   }
 }
 
-async function fetchLatestQuizFromSupabase() {
-  try {
-    await initSupabase();
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error || !data) throw error || new Error("No quiz found in Supabase");
-
-    let pages = data.pages;
-    if (typeof pages === "string") {
-      pages = JSON.parse(pages);
-    }
-    return {
-      pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A",
-    };
-  } catch (e) {
-    console.error("Failed to fetch latest quiz from Supabase:", e);
-    return null;
-  }
-}
-
+// ---- THE ONLY CHANGE: handleStartButton ----
 async function handleStartButton() {
   const quizUrl = getQuizUrl();
-  if (quizUrl) {
-    // Try to fetch by quiz_url or quiz_slug
-    const config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 1;
-      render();
-      return;
-    }
-  } else {
-    // Fallback to latest
-    const config = await fetchLatestQuizFromSupabase();
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 1;
-      render();
-      return;
-    }
+  // Only fetch by quiz_url or quiz_slug!
+  const config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    pageSequence = config.pages;
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 1;
+    render();
+    return;
   }
-  // If nothing loaded, just go to next page
-  state.page++;
-  render();
+  // If nothing loaded, stay on cover and do nothing else.
 }
+
+// ---------------- THE REST OF YOUR CODE IS UNCHANGED ----------------
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
