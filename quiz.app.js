@@ -23,10 +23,32 @@ async function initSupabase() {
   supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-let pageSequence = [];
-let NUM_QUESTIONS = 0;
+const defaultPageSequence = [
+  { type: "cover", bg: "static/1.png" },
+  { type: "intro", bg: "static/2.png" },
+  { type: "question", bg: "static/3a.png" },
+  { type: "question", bg: "static/3b.png" },
+  { type: "question", bg: "static/3c.png" },
+  { type: "question", bg: "static/3d.png" },
+  { type: "question", bg: "static/3e.png" },
+  { type: "question", bg: "static/3f.png" },
+  { type: "question", bg: "static/3g.png" },
+  { type: "question", bg: "static/3h.png" },
+  { type: "pre-results", bg: "static/4.png" },
+  { type: "resultA", bg: "static/5a.png" },
+  { type: "resultB", bg: "static/5b.png" },
+  { type: "resultC", bg: "static/5c.png" },
+  { type: "resultD", bg: "static/5d.png" },
+  { type: "thankyou", bg: "static/6.png" },
+];
+
+let pageSequence = [...defaultPageSequence];
+let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-let state = { page: 0 };
+
+let state = {
+  page: 0,
+};
 
 function getQuizUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -35,53 +57,67 @@ function getQuizUrl() {
 }
 
 async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
-  await initSupabase();
-  const { data, error } = await supabase
-    .from('quizzes')
-    .select('*')
-    .or(`quiz_url.eq.${quizUrlOrSlug},quiz_slug.eq.${quizUrlOrSlug}`)
-    .limit(1)
-    .maybeSingle();
+  try {
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .or(`quiz_url.eq.${quizUrlOrSlug},quiz_slug.eq.${quizUrlOrSlug}`)
+      .limit(1)
+      .maybeSingle();
 
-  console.log('Supabase raw response (by url/slug):', { data, error });
-  if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
-  let pages = data.pages;
-  if (typeof pages === "string") {
-    try {
-      pages = JSON.parse(pages);
-    } catch (e) {
-      console.error("Could not parse pages JSON string from Supabase:", pages);
-      throw new Error("Quiz 'pages' column is not valid JSON.");
+    console.log('Supabase raw response (by url/slug):', { data, error });
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
     }
+    return { pages };
+  } catch (e) {
+    console.error("Failed to fetch quiz by url/slug from Supabase:", e);
+    return null;
   }
-  return { pages };
 }
 
 async function fetchLatestQuizFromSupabase() {
-  await initSupabase();
-  const { data, error } = await supabase
-    .from('quizzes')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  try {
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  console.log('Supabase raw response (latest):', { data, error });
-  if (error || !data) throw error || new Error("No quiz found in Supabase");
-  let pages = data.pages;
-  if (typeof pages === "string") {
-    try {
-      pages = JSON.parse(pages);
-    } catch (e) {
-      console.error("Could not parse pages JSON string from Supabase:", pages);
-      throw new Error("Quiz 'pages' column is not valid JSON.");
+    console.log('Supabase raw response (latest):', { data, error });
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase");
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
     }
+    return { pages };
+  } catch (e) {
+    console.error("Failed to fetch latest quiz from Supabase:", e);
+    return null;
   }
-  return { pages };
 }
 
-// Fix missing type fields based on position and bg filename
 function autoFixPages(pages) {
+  // Only fix type if missing, otherwise keep the user's data
   return pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
     let t = "";
@@ -101,30 +137,25 @@ function autoFixPages(pages) {
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
-  try {
-    if (quizUrl) {
-      config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
-      console.log('Supabase config (by url/slug):', config);
-    } else {
-      config = await fetchLatestQuizFromSupabase();
-      console.log('Supabase config (latest):', config);
-    }
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      config.pages = autoFixPages(config.pages);
-      NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-      SHOW_RESULT = "A";
-      pageSequence = config.pages;
-      state.page = 0;
-      console.log("Loaded (and fixed) pages from Supabase:", config.pages);
-      console.log("Number of questions:", NUM_QUESTIONS);
-      render();
-    } else {
-      renderErrorScreen();
-      console.log('Config object:', config);
-    }
-  } catch (e) {
-    renderErrorScreen(e.message || "Error loading quiz.");
-    console.log(e);
+  if (quizUrl) {
+    config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+    console.log('Supabase config (by url/slug):', config);
+  } else {
+    config = await fetchLatestQuizFromSupabase();
+    console.log('Supabase config (latest):', config);
+  }
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    config.pages = autoFixPages(config.pages);
+    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+    SHOW_RESULT = "A";
+    pageSequence = config.pages;
+    state.page = 0;
+    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
+    console.log("Number of questions:", NUM_QUESTIONS);
+    render();
+  } else {
+    renderErrorScreen();
+    console.log('Config object:', config);
   }
 }
 
