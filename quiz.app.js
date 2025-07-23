@@ -116,6 +116,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
+// Fix: Make sure questions are counted ONLY if type is "question"
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -128,8 +129,9 @@ async function handleStartButton() {
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
     pageSequence = config.pages;
-    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-    SHOW_RESULT = "A"; // or pull from data if you store it
+    // Fix: Count only those pages that have type === 'question'
+    NUM_QUESTIONS = config.pages.filter(p => p && p.type === "question").length;
+    SHOW_RESULT = "A";
     state.page = 0;
     console.log("Loaded pages from Supabase:", config.pages);
     console.log("Number of questions:", NUM_QUESTIONS);
@@ -153,7 +155,6 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// Everything else—render logic, navigation, UI—remains 100% yours and unchanged
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
