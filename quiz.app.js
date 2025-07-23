@@ -45,10 +45,7 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-
-let state = {
-  page: 0,
-};
+let state = { page: 0 };
 
 function getQuizUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -116,9 +113,10 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
+// Only fill in type if missing, and skip pages with no bg or type
 function autoFixPages(pages) {
-  // Only fix type if missing, otherwise keep the user's data
   return pages.map((p, idx) => {
+    if (!p || typeof p !== "object") return null;
     if (typeof p.type === "string" && p.type.length > 0) return p;
     let t = "";
     if (idx === 0) t = "intro";
@@ -131,7 +129,7 @@ function autoFixPages(pages) {
     else if (p.bg && p.bg.includes("5d.png")) t = "resultD";
     else t = "question";
     return { ...p, type: t };
-  });
+  }).filter(p => p && p.type && p.bg);
 }
 
 async function handleStartButton() {
@@ -195,26 +193,13 @@ function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  if (!current || typeof current.type !== "string") {
-    let pageNum = state.page + 1;
-    renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
+  // If truly no valid page, show admin error
+  if (!current || typeof current.type !== "string" || !current.bg) {
+    renderErrorScreen(`<p>All pages are malformed or empty. Please check your Supabase data.</p>
       <div class="fullscreen-bottom">
-        <button class="main-btn" id="nextBtn">Next</button>
-        <button class="main-btn" id="backBtn">Back</button>
-      </div>
-    `);
-
-    // Let user try to skip forward or back
-    const next = () => {
-      state.page = Math.min(state.page + 1, pageSequence.length - 1);
-      render();
-    };
-    const back = () => {
-      state.page = Math.max(state.page - 1, 0);
-      render();
-    };
-    document.getElementById("nextBtn").onclick = next;
-    document.getElementById("backBtn").onclick = back;
+        <button class="main-btn" id="nextBtn">Reload</button>
+      </div>`);
+    document.getElementById("nextBtn").onclick = () => location.reload();
     return;
   }
 
