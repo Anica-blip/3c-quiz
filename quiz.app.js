@@ -135,25 +135,22 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// Always start at first page, but if pages are missing 'type', try to auto-detect and set type field based on position/heuristics
+// Fix missing type fields based on position and bg filename
 function autoFixPages(pages) {
-  // If all pages are missing type, guess by position and bg filename
-  const fixedPages = pages.map((p, idx) => {
+  return pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
     let t = "";
-    // Heuristic: first page = intro, last = thankyou, others by bg
     if (idx === 0) t = "intro";
     else if (idx === pages.length - 1) t = "thankyou";
-    else if (p.bg && p.bg.includes("3")) t = "question";
-    else if (p.bg && p.bg.includes("4")) t = "pre-results";
-    else if (p.bg && p.bg.includes("5a")) t = "resultA";
-    else if (p.bg && p.bg.includes("5b")) t = "resultB";
-    else if (p.bg && p.bg.includes("5c")) t = "resultC";
-    else if (p.bg && p.bg.includes("5d")) t = "resultD";
-    else t = "question"; // fallback
+    else if (p.bg && /3[a-h]\.png$/.test(p.bg)) t = "question";
+    else if (p.bg && p.bg.includes("4.png")) t = "pre-results";
+    else if (p.bg && p.bg.includes("5a.png")) t = "resultA";
+    else if (p.bg && p.bg.includes("5b.png")) t = "resultB";
+    else if (p.bg && p.bg.includes("5c.png")) t = "resultC";
+    else if (p.bg && p.bg.includes("5d.png")) t = "resultD";
+    else t = "question";
     return { ...p, type: t };
   });
-  return fixedPages;
 }
 
 async function handleStartButton() {
@@ -167,7 +164,6 @@ async function handleStartButton() {
     console.log('Supabase config (latest):', config);
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    // Auto-fix missing type fields
     config.pages = autoFixPages(config.pages);
     console.log("Loaded (and fixed) pages from Supabase:", config.pages);
     pageSequence = config.pages;
