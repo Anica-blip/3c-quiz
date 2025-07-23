@@ -138,7 +138,7 @@ async function fetchLatestQuizFromSupabase() {
   }
 }
 
-// FIX: guard against missing/undefined pages and out-of-bounds state.page
+// FIX: always start at the first page (index 0) and remove the check that caused the error message
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -154,12 +154,6 @@ async function handleStartButton() {
     NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
     SHOW_RESULT = config.showResult || SHOW_RESULT;
     state.page = 0;
-    // Defensive: If page 0 doesn't exist, reset to 0 and show error
-    if (!pageSequence[state.page] || typeof pageSequence[state.page].type === "undefined") {
-      alert("Quiz data invalid: first page is missing or malformed.");
-      app.innerHTML = `<div style="padding:2em;color:red">Quiz data invalid: first page is missing or malformed.</div>`;
-      return;
-    }
     render();
   } else {
     alert("Quiz could not be loaded or has no pages. Check Supabase data.");
