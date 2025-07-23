@@ -9,7 +9,6 @@ function loadSupabaseClient() {
   if (window.supabase) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    // FIX: Use UMD build (NOT +esm) for browser compatibility
     s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js';
     s.onload = resolve;
     s.onerror = reject;
@@ -164,30 +163,21 @@ async function handleStartButton() {
 }
 // ----------------------------------------------------------------------------------
 
-function renderFullscreenBgPage({ bg, button, showBack }) {
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    <div class="fullscreen-bottom">
-      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
-    </div>
-  `;
-  if (showBack) {
-    $("#backBtn").onclick = () => {
-      state.page = Math.max(0, state.page - 1);
-      render();
-    };
-  }
-  if (button) {
-    $(`#${button.id}`).onclick = button.onClick;
-  }
-}
-
+// THE ONLY CHANGE: new render function with guard for missing current
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
+
   if (!current) {
-    app.innerHTML = `<div class="fullscreen-bg" style="background-color:#111"></div>`;
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-color:#111"></div>
+      <div class="page-content">
+        <div class="content-inner">
+          <h2>Error: No page data</h2>
+          <p>The quiz could not be loaded or is empty. Please check your Supabase data.</p>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -307,6 +297,25 @@ function render() {
       }
       render();
     };
+  }
+}
+
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
+    </div>
+  `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
+  }
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
   }
 }
 
