@@ -109,6 +109,7 @@ async function fetchLatestQuizFromSupabase() {
   return { pages };
 }
 
+// MINIMAL PATCH: For any page missing "type", show a clear error and skip it in the questions count.
 async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
@@ -121,8 +122,13 @@ async function handleStartButton() {
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
     pageSequence = config.pages;
-    // DEBUG: log all page types to help diagnose if type field is missing/wrong
+    // Log all page types, warn if undefined
     console.log("Supabase loaded page types:", pageSequence.map((p, i) => `#${i} type=${p && p.type}`));
+    pageSequence.forEach((p, i) => {
+      if (!p.type) {
+        console.error(`Page at index ${i} missing "type" field!`);
+      }
+    });
     NUM_QUESTIONS = pageSequence.filter(p => p && typeof p.type === "string" && p.type.toLowerCase() === "question").length;
     SHOW_RESULT = "A";
     answers = [];
@@ -416,17 +422,18 @@ function render() {
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        <h2>${current.type.toUpperCase()}</h2>
-        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+        <h2>${current.type ? current.type.toUpperCase() : "PAGE"}</h2>
+        <pre style="color:#fff;background:#181040">${JSON.stringify(current, null, 2)}</pre>
       </div>
     </div>
     <div class="fullscreen-bottom">
-      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      <button class="main-btn" id="nextBtn">${nextLabel}</button>
+      ${showBack ? `<button class="main-btn" id="nextBtn">Next</button><button class="main-btn" id="backBtn">Back</button>` : `<button class="main-btn" id="nextBtn">Next</button>`}
     </div>
   `;
-
-  $("#nextBtn").onclick = nextAction;
+  $("#nextBtn").onclick = () => {
+    state.page = Math.min(state.page + 1, pageSequence.length - 1);
+    render();
+  };
   if (showBack) {
     $("#backBtn").onclick = () => {
       state.page = Math.max(state.page - 1, 0);
