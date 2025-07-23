@@ -1,7 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-// --- SUPABASE INITIALIZATION (your values) ---
+// --- SUPABASE INITIALIZATION ---
 const SUPABASE_URL = "https://cgxjqsbrditbteqhdyus.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneGpxc2JyZGl0YnRlcWhkeXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMTY1ODEsImV4cCI6MjA2NjY5MjU4MX0.xUDy5ic-r52kmRtocdcW8Np9-lczjMZ6YKPXc03rIG4";
 
@@ -55,99 +55,86 @@ function getQuizUrl() {
   return params.get("quizUrl");
 }
 
-async function fetchQuizConfig(url) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Quiz file not found");
-    return await res.json();
-  } catch (e) {
-    console.error("Failed to load quiz JSON:", e);
-    return null;
-  }
+function showErrorOnApp(msg) {
+  app.innerHTML = `
+    <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#fafafa;color:#c00;">
+      <h2>Error</h2>
+      <p>${msg}</p>
+      <button class="main-btn" onclick="window.location.reload()">Reload</button>
+    </div>
+  `;
 }
 
 async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
-  try {
-    await initSupabase();
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .or(`quiz_url.eq.${quizUrlOrSlug},quiz_slug.eq.${quizUrlOrSlug}`)
-      .limit(1)
-      .maybeSingle();
+  await initSupabase();
+  // Search for either quiz_slug or quiz_url match (exact)
+  const { data, error } = await supabase
+    .from('quizzes')
+    .select('*')
+    .or(`quiz_url.eq.${quizUrlOrSlug},quiz_slug.eq.${quizUrlOrSlug}`)
+    .limit(1)
+    .maybeSingle();
 
-    if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
-
-    let pages = data.pages;
-    if (typeof pages === "string") {
+  if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
+  let pages = data.pages;
+  if (typeof pages === "string") {
+    try {
       pages = JSON.parse(pages);
+    } catch (e) {
+      throw new Error("Could not parse quiz pages JSON. Check your admin app or Supabase data.");
     }
-    return {
-      pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A", // or use data.showResult if you store it
-    };
-  } catch (e) {
-    console.error("Failed to fetch quiz by url/slug from Supabase:", e);
-    return null;
   }
+  if (!Array.isArray(pages) || pages.length === 0) throw new Error("Quiz pages are empty or invalid.");
+  return {
+    pages,
+    numQuestions: pages.filter(p => p.type === "question").length,
+    showResult: "A",
+  };
 }
 
 async function fetchLatestQuizFromSupabase() {
-  try {
-    await initSupabase();
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  await initSupabase();
+  const { data, error } = await supabase
+    .from('quizzes')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-    if (error || !data) throw error || new Error("No quiz found in Supabase");
-
-    let pages = data.pages;
-    if (typeof pages === "string") {
+  if (error || !data) throw error || new Error("No quiz found in Supabase");
+  let pages = data.pages;
+  if (typeof pages === "string") {
+    try {
       pages = JSON.parse(pages);
+    } catch (e) {
+      throw new Error("Could not parse quiz pages JSON. Check your admin app or Supabase data.");
     }
-    return {
-      pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A",
-    };
-  } catch (e) {
-    console.error("Failed to fetch latest quiz from Supabase:", e);
-    return null;
   }
+  if (!Array.isArray(pages) || pages.length === 0) throw new Error("Quiz pages are empty or invalid.");
+  return {
+    pages,
+    numQuestions: pages.filter(p => p.type === "question").length,
+    showResult: "A",
+  };
 }
 
 async function handleStartButton() {
   const quizUrl = getQuizUrl();
-  if (quizUrl) {
-    // Try to fetch by quiz_url or quiz_slug
-    const config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 1;
-      render();
-      return;
+  try {
+    let config = null;
+    if (quizUrl) {
+      config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+    } else {
+      config = await fetchLatestQuizFromSupabase();
     }
-  } else {
-    // Fallback to latest
-    const config = await fetchLatestQuizFromSupabase();
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 1;
-      render();
-      return;
-    }
+    pageSequence = config.pages;
+    NUM_QUESTIONS = config.numQuestions || NUM_QUESTIONS;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 1;
+    render();
+  } catch (e) {
+    showErrorOnApp(e.message || "Quiz could not be loaded. Please check your quiz ID or contact support.");
   }
-  // If nothing loaded, just go to next page
-  state.page++;
-  render();
 }
 
 function renderFullscreenBgPage({ bg, button, showBack }) {
