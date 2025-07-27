@@ -71,13 +71,15 @@ async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
   try {
     await initSupabase();
     const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .or(`quiz_url.eq.${quizUrlOrSlug},quiz_slug.eq.${quizUrlOrSlug}`)
-      .limit(1)
-      .maybeSingle();
+  .from('quizzes')
+  .select('*')
+  .or(`quiz_url.eq."${quizUrlOrSlug}",quiz_slug.eq."${quizUrlOrSlug}"`)
+  .limit(1)
+  .maybeSingle();
 
-    console.log('Supabase raw response (by url/slug):', { data, error });
+    console.log('Supabase raw response (by url/slug):', { data, error });if (!data) {
+    console.warn("No matching quiz found for quizUrl:", quizUrlOrSlug);
+  }
 
     if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
 
