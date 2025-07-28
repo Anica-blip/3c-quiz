@@ -373,3 +373,4 @@ function render() {
 }
 
 render();
+handleStartButton();
