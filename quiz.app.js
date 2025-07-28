@@ -372,3 +372,12 @@ function render() {
   }
 }
 
+app.innerHTML = `
+  <div class="fullscreen-bg" style="background-color: #111;"></div>
+  <div class="page-content">
+    <div class="content-inner">
+      <h2>Loading quiz…</h2>
+    </div>
+  </div>
+`;
+handleStartButton();
