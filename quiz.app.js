@@ -23,22 +23,22 @@ async function initSupabase() {
   supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-// --- ONLY use quiz_url column for fetch ---
-async function fetchQuizFromSupabaseByUrl(quizUrl) {
+// --- ONLY use quiz_app_url column for fetch ---
+async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
   try {
-    console.log("[Loader] Attempting Supabase fetch for quiz_url:", quizUrl);
+    console.log("[Loader] Attempting Supabase fetch for quiz_app_url:", quizAppUrl);
     await initSupabase();
     const { data, error } = await supabase
       .from('quizzes')
       .select('*')
-      .eq('quiz_url', quizUrl)
+      .eq('quiz_app_url', quizAppUrl)
       .limit(1)
       .maybeSingle();
 
     console.log("[Loader] Supabase response:", { data, error });
 
     if (!data) {
-      console.warn("[Loader] No quiz found for quiz_url:", quizUrl);
+      console.warn("[Loader] No quiz found for quiz_app_url:", quizAppUrl);
       return null;
     }
 
@@ -91,14 +91,12 @@ let state = {
 };
 
 // --- Loader: ONLY fetch from Supabase when Start is pressed ---
-function getQuizUrl() {
-  const params = new URLSearchParams(window.location.search);
-  const quizUrl = params.get("quizUrl") || params.get("quiz_url") || params.get("quiz");
-  console.log("[Loader] quizUrl param found:", quizUrl);
-  if (quizUrl && quizUrl.includes("landing.html")) {
-    return quizUrl;
-  }
-  return null;
+function getQuizAppUrl() {
+  // Use the actual app page URL for lookup
+  // (Avoid quizUrl query param, just use window.location.href for exact match)
+  const quizAppUrl = window.location.href;
+  console.log("[Loader] quizAppUrl (window.location.href):", quizAppUrl);
+  return quizAppUrl;
 }
 
 function autoFixPages(pages) {
@@ -225,14 +223,14 @@ function render() {
         </div>
       </div>
     `;
-    // --- Key: loader triggers ONLY on Start button ---
+    // --- Loader triggers ONLY on Start button ---
     $("#startBtn").onclick = async () => {
       $("#startBtn").disabled = true;
-      let quizUrl = getQuizUrl();
-      console.log("[Loader] Start button clicked. quizUrl param:", quizUrl);
-      if (quizUrl) {
+      let quizAppUrl = getQuizAppUrl();
+      console.log("[Loader] Start button clicked. quizAppUrl:", quizAppUrl);
+      if (quizAppUrl) {
         try {
-          const config = await fetchQuizFromSupabaseByUrl(quizUrl);
+          const config = await fetchQuizFromSupabaseByAppUrl(quizAppUrl);
           if (config && Array.isArray(config.pages) && config.pages.length > 0) {
             config.pages = autoFixPages(config.pages);
             pageSequence = config.pages;
@@ -251,8 +249,8 @@ function render() {
           console.log("[Loader] Exception:", err);
         }
       } else {
-        renderErrorScreen("<b>No quizUrl param in the URL (must contain landing.html)</b>");
-        console.log("[Loader] No quizUrl param found in the URL.");
+        renderErrorScreen("<b>No quizAppUrl in the URL</b>");
+        console.log("[Loader] No quizAppUrl found in the URL.");
       }
     };
     return;
