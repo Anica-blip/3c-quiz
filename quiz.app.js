@@ -343,3 +343,4 @@ function render() {
 
 // --- Start by showing the cover page ---
 render();
+
