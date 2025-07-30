@@ -51,12 +51,11 @@ let state = {
   quizLoaded: false
 };
 
-// --- Only load quiz from Supabase when Start is pressed ---
+// --- Loader: ONLY fetch from Supabase when Start is pressed ---
 function getQuizUrl() {
-  // Accept quizUrl, quiz_url or quiz param for flexibility
   const params = new URLSearchParams(window.location.search);
   const quizUrl = params.get("quizUrl") || params.get("quiz_url") || params.get("quiz");
-  // Only use it if it contains landing.html
+  console.log("[Loader] quizUrl param found:", quizUrl);
   if (quizUrl && quizUrl.includes("landing.html")) {
     return quizUrl;
   }
@@ -64,58 +63,47 @@ function getQuizUrl() {
 }
 
 async function fetchQuizFromSupabaseByUrl(quizUrl) {
-  // Log the attempt for debugging
-  console.log("[Quiz Loader] Attempting Supabase fetch for quiz_url:", quizUrl);
-  try {
-    await initSupabase();
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('quiz_url', quizUrl)
-      .limit(1)
-      .maybeSingle();
+  console.log("[Loader] Attempting Supabase fetch for quiz_url:", quizUrl);
+  await initSupabase();
+  const { data, error } = await supabase
+    .from('quizzes')
+    .select('*')
+    .eq('quiz_url', quizUrl)
+    .limit(1)
+    .maybeSingle();
 
-    console.log("[Quiz Loader] Supabase response:", { data, error });
+  console.log("[Loader] Supabase response:", { data, error });
 
-    if (!data) {
-      console.warn("[Quiz Loader] No quiz found for quiz_url:", quizUrl);
-      return null;
-    }
-
-    let pages = data.pages;
-    if (typeof pages === "string") {
-      try {
-        pages = JSON.parse(pages);
-      } catch (e) {
-        console.error("[Quiz Loader] Could not parse pages JSON string from Supabase:", pages);
-        throw new Error("Quiz 'pages' column is not valid JSON.");
-      }
-    }
-    return {
-      pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A",
-    };
-  } catch (e) {
-    console.error("[Quiz Loader] Failed to fetch quiz by url from Supabase:", e);
+  if (!data) {
+    console.warn("[Loader] No quiz found for quiz_url:", quizUrl);
     return null;
   }
+
+  let pages = data.pages;
+  if (typeof pages === "string") {
+    try {
+      pages = JSON.parse(pages);
+    } catch (e) {
+      console.error("[Loader] Could not parse pages JSON string from Supabase:", pages);
+      throw new Error("Quiz 'pages' column is not valid JSON.");
+    }
+  }
+  return {
+    pages,
+    numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+    showResult: "A",
+  };
 }
 
 function autoFixPages(pages) {
-  // If a page is missing a 'type', assign "question" ONLY if it has answers or blocks with answers
-  const fixedPages = pages.map((p, idx) => {
+  return pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
-
-    // If it has answers array or blocks with answer type, it's a question
     if (
       (Array.isArray(p.answers) && p.answers.length > 0) ||
       (Array.isArray(p.blocks) && p.blocks.some(b => b.type === "answer"))
     ) {
       return { ...p, type: "question" };
     }
-
-    // Otherwise, use original heuristics for intro, thankyou, etc.
     if (idx === 0) return { ...p, type: "cover" };
     if (idx === pages.length - 1) return { ...p, type: "thankyou" };
     if (p.bg && p.bg.includes("4")) return { ...p, type: "pre-results" };
@@ -125,7 +113,6 @@ function autoFixPages(pages) {
     if (p.bg && p.bg.includes("5d")) return { ...p, type: "resultD" };
     return { ...p, type: "intro" };
   });
-  return fixedPages;
 }
 
 function renderErrorScreen(extra = "") {
@@ -173,7 +160,6 @@ function render() {
       </div>
     `);
 
-    // Let user try to skip forward or back
     const next = () => {
       state.page = Math.min(state.page + 1, pageSequence.length - 1);
       render();
@@ -233,25 +219,34 @@ function render() {
         </div>
       </div>
     `;
-    // --- THIS IS THE IMPORTANT PART: loader triggers ONLY on Start button ---
+    // --- Key: loader triggers ONLY on Start button ---
     $("#startBtn").onclick = async () => {
       $("#startBtn").disabled = true;
       let quizUrl = getQuizUrl();
+      console.log("[Loader] Start button clicked. quizUrl param:", quizUrl);
       if (quizUrl) {
-        const config = await fetchQuizFromSupabaseByUrl(quizUrl);
-        if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-          config.pages = autoFixPages(config.pages);
-          pageSequence = config.pages;
-          NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-          SHOW_RESULT = config.showResult || SHOW_RESULT;
-          state.page = 1; // Move to first real page after cover
-          state.quizLoaded = true;
-          render();
-        } else {
-          renderErrorScreen("<b>No quiz data loaded from Supabase!</b>");
+        try {
+          const config = await fetchQuizFromSupabaseByUrl(quizUrl);
+          if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+            config.pages = autoFixPages(config.pages);
+            pageSequence = config.pages;
+            NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+            SHOW_RESULT = config.showResult || SHOW_RESULT;
+            state.page = 1; // Move to first real page after cover
+            state.quizLoaded = true;
+            console.log("[Loader] Quiz loaded and app state updated.");
+            render();
+          } else {
+            renderErrorScreen("<b>No quiz data loaded from Supabase!</b>");
+            console.log("[Loader] No quiz data found after Supabase fetch.");
+          }
+        } catch (err) {
+          renderErrorScreen(`<b>Error loading quiz from Supabase:</b> <pre>${err.message}</pre>`);
+          console.log("[Loader] Exception:", err);
         }
       } else {
         renderErrorScreen("<b>No quizUrl param in the URL (must contain landing.html)</b>");
+        console.log("[Loader] No quizUrl param found in the URL.");
       }
     };
     return;
