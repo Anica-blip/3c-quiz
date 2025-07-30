@@ -23,40 +23,22 @@ async function initSupabase() {
   supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-const defaultPageSequence = [
-  { type: "cover", bg: "static/1.png" },
-  { type: "intro", bg: "static/2.png" },
-  { type: "question", bg: "static/3a.png" },
-  { type: "question", bg: "static/3b.png" },
-  { type: "question", bg: "static/3c.png" },
-  { type: "question", bg: "static/3d.png" },
-  { type: "question", bg: "static/3e.png" },
-  { type: "question", bg: "static/3f.png" },
-  { type: "question", bg: "static/3g.png" },
-  { type: "question", bg: "static/3h.png" },
-  { type: "pre-results", bg: "static/4.png" },
-  { type: "resultA", bg: "static/5a.png" },
-  { type: "resultB", bg: "static/5b.png" },
-  { type: "resultC", bg: "static/5c.png" },
-  { type: "resultD", bg: "static/5d.png" },
-  { type: "thankyou", bg: "static/6.png" },
+// --- Quiz State ---
+let pageSequence = [
+  { type: "cover", bg: "static/1.png" }
 ];
-
-let pageSequence = [...defaultPageSequence];
-let NUM_QUESTIONS = 8;
+let NUM_QUESTIONS = 0;
 let SHOW_RESULT = "A";
-
 let state = {
   page: 0,
+  quizLoaded: false
 };
 
-// --- Get quiz_url from ?quiz_url parameter ---
-function getQuizUrlFromQuery() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("quiz_url") || null;
+// --- Only load from Supabase when Start is pressed ---
+function getCurrentLandingUrl() {
+  return window.location.href;
 }
 
-// --- Fetch quiz from Supabase using quiz_url (EXACT MATCH) ---
 async function fetchQuizFromSupabaseByUrl(quizUrl) {
   await initSupabase();
   const { data, error } = await supabase
@@ -67,44 +49,15 @@ async function fetchQuizFromSupabaseByUrl(quizUrl) {
     .maybeSingle();
 
   if (!data) {
-    console.warn("No matching quiz found for quiz_url:", quizUrl);
+    console.warn("No quiz found with quiz_url:", quizUrl);
     return null;
   }
+
   let pages = data.pages;
   if (typeof pages === "string") {
     try {
       pages = JSON.parse(pages);
     } catch (e) {
-      console.error("Could not parse pages JSON string from Supabase:", pages);
-      throw new Error("Quiz 'pages' column is not valid JSON.");
-    }
-  }
-  return {
-    pages,
-    numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-    showResult: "A",
-  };
-}
-
-async function fetchLatestQuizFromSupabase() {
-  await initSupabase();
-  const { data, error } = await supabase
-    .from('quizzes')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!data) {
-    console.warn("No latest quiz found in Supabase");
-    return null;
-  }
-  let pages = data.pages;
-  if (typeof pages === "string") {
-    try {
-      pages = JSON.parse(pages);
-    } catch (e) {
-      console.error("Could not parse pages JSON string from Supabase:", pages);
       throw new Error("Quiz 'pages' column is not valid JSON.");
     }
   }
@@ -116,7 +69,7 @@ async function fetchLatestQuizFromSupabase() {
 }
 
 function autoFixPages(pages) {
-  const fixedPages = pages.map((p, idx) => {
+  return pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
     if (
       (Array.isArray(p.answers) && p.answers.length > 0) ||
@@ -133,31 +86,6 @@ function autoFixPages(pages) {
     if (p.bg && p.bg.includes("5d")) return { ...p, type: "resultD" };
     return { ...p, type: "intro" };
   });
-  return fixedPages;
-}
-
-async function handleStartLoader() {
-  let quizUrl = getQuizUrlFromQuery();
-  let config = null;
-  if (quizUrl) {
-    config = await fetchQuizFromSupabaseByUrl(quizUrl);
-    console.log('Supabase config (by quiz_url):', config);
-  } else {
-    config = await fetchLatestQuizFromSupabase();
-    console.log('Supabase config (latest):', config);
-  }
-  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    config.pages = autoFixPages(config.pages);
-    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
-    pageSequence = config.pages;
-    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-    SHOW_RESULT = config.showResult || SHOW_RESULT;
-    state.page = 0;
-    render();
-  } else {
-    renderErrorScreen();
-    console.log('Config object:', config);
-  }
 }
 
 function renderErrorScreen(extra = "") {
@@ -166,34 +94,45 @@ function renderErrorScreen(extra = "") {
     <div class="page-content">
       <div class="content-inner">
         <h2>Error: No page data</h2>
-        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
+        <p>The quiz could not be loaded. Please check your Supabase data.</p>
         ${extra}
       </div>
     </div>
   `;
 }
 
-function renderFullscreenBgPage({ bg, button, showBack }) {
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    <div class="fullscreen-bottom">
-      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
-    </div>
-  `;
-  if (showBack) {
-    $("#backBtn").onclick = () => {
-      state.page = Math.max(0, state.page - 1);
-      render();
-    };
-  }
-  if (button) {
-    $(`#${button.id}`).onclick = button.onClick;
-  }
-}
-
+// --- Main render function ---
 function render() {
-  app.innerHTML = "";
+  // COVER PAGE (before quiz is loaded)
+  if (!state.quizLoaded) {
+    app.innerHTML = `
+      <div class="cover-outer">
+        <div class="cover-image-container">
+          <img class="cover-img" src="static/1.png" alt="cover"/>
+          <button class="main-btn cover-btn-in-img" id="startBtn">Start</button>
+        </div>
+      </div>
+    `;
+    $("#startBtn").onclick = async () => {
+      $("#startBtn").disabled = true; // Prevent double click
+      const quizUrl = getCurrentLandingUrl();
+      const config = await fetchQuizFromSupabaseByUrl(quizUrl);
+      if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+        config.pages = autoFixPages(config.pages);
+        pageSequence = config.pages;
+        NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+        SHOW_RESULT = config.showResult || SHOW_RESULT;
+        state.page = 1; // Move to first real page after cover
+        state.quizLoaded = true;
+        render();
+      } else {
+        renderErrorScreen();
+      }
+    };
+    return;
+  }
+
+  // --- MAIN QUIZ NAVIGATION ---
   const current = pageSequence[state.page];
 
   if (!current || typeof current.type !== "string") {
@@ -255,31 +194,16 @@ function render() {
     render();
   };
 
-  if (current.type === "cover") {
+  if (current.type === "intro") {
     app.innerHTML = `
-      <div class="cover-outer">
-        <div class="cover-image-container">
-          <img class="cover-img" src="${current.bg}" alt="cover"/>
-          <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
-        </div>
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+        <button class="main-btn" id="mainBtn">Continue</button>
       </div>
     `;
-    $("#nextBtn").onclick = () => {
-      state.page++;
-      render();
-    };
-    return;
-  }
-
-  if (current.type === "intro") {
-    renderFullscreenBgPage({
-      bg: current.bg,
-      button: { label: "Continue", id: "mainBtn", onClick: () => {
-        state.page++;
-        render();
-      }},
-      showBack: true
-    });
+    $("#mainBtn").onclick = () => { state.page++; render(); };
+    if (showBack) $("#backBtn").onclick = () => { state.page--; render(); };
     return;
   }
 
@@ -318,7 +242,6 @@ function render() {
       <button class="main-btn" id="nextBtn">${nextLabel}</button>
     </div>
   `;
-
   $("#nextBtn").onclick = nextAction;
   if (showBack) {
     $("#backBtn").onclick = () => {
@@ -340,5 +263,5 @@ function render() {
   }
 }
 
-// --- LAUNCH: load quiz from Supabase using ?quiz_url=... format (from landing.html) ---
-handleStartLoader();
+// --- Start with cover page ---
+render();
