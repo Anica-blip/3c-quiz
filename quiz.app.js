@@ -50,72 +50,94 @@ let state = {
   page: 0,
 };
 
-// --- FIX: Correct loader for new landing.html quiz format ---
-function getQuizSlugFromUrl() {
-  // Accept either ?quiz=quiz.01 or ?quiz_slug=quiz.01 (for backwards compatibility)
+function getQuizUrl() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("quiz") || params.get("quiz_slug") || null;
+  const quizUrl = params.get("quizUrl");
+  return quizUrl && quizUrl.trim() !== "" ? quizUrl : null;
 }
 
-async function fetchQuizFromSupabaseBySlugOrUrl(slugOrUrl) {
-  await initSupabase();
-  // Try both quiz_slug and quiz_url columns, in case of legacy or direct links
-  const { data, error } = await supabase
-    .from('quizzes')
-    .select('*')
-    .or(`quiz_slug.eq.${slugOrUrl},quiz_url.eq.${slugOrUrl}`)
-    .limit(1)
-    .maybeSingle();
-
-  if (!data) {
-    console.warn("No matching quiz found for:", slugOrUrl);
+async function fetchQuizConfig(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Quiz file not found");
+    return await res.json();
+  } catch (e) {
+    console.error("Failed to load quiz JSON:", e);
     return null;
   }
-  let pages = data.pages;
-  if (typeof pages === "string") {
-    try {
-      pages = JSON.parse(pages);
-    } catch (e) {
-      console.error("Could not parse pages JSON string from Supabase:", pages);
-      throw new Error("Quiz 'pages' column is not valid JSON.");
-    }
+}
+
+async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
+  try {
+    await initSupabase();
+    const { data, error } = await supabase
+  .from('quizzes')
+  .select('*')
+  .or(`quiz_url.eq."${quizUrlOrSlug}",quiz_slug.eq."${quizUrlOrSlug}"`)
+  .limit(1)
+  .maybeSingle();
+
+    console.log('Supabase raw response (by url/slug):', { data, error });if (!data) {
+    console.warn("No matching quiz found for quizUrl:", quizUrlOrSlug);
   }
-  return {
-    pages,
-    numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-    showResult: "A",
-  };
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
+    };
+  } catch (e) {
+    console.error("Failed to fetch quiz by url/slug from Supabase:", e);
+    return null;
+  }
 }
 
 async function fetchLatestQuizFromSupabase() {
-  await initSupabase();
-  const { data, error } = await supabase
-    .from('quizzes')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  try {
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  if (!data) {
-    console.warn("No latest quiz found in Supabase");
+    console.log('Supabase raw response (latest):', { data, error });
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase");
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
+    };
+  } catch (e) {
+    console.error("Failed to fetch latest quiz from Supabase:", e);
     return null;
   }
-  let pages = data.pages;
-  if (typeof pages === "string") {
-    try {
-      pages = JSON.parse(pages);
-    } catch (e) {
-      console.error("Could not parse pages JSON string from Supabase:", pages);
-      throw new Error("Quiz 'pages' column is not valid JSON.");
-    }
-  }
-  return {
-    pages,
-    numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-    showResult: "A",
-  };
 }
 
+// --- ONLY THIS FUNCTION IS CHANGED ---
 function autoFixPages(pages) {
   // If a page is missing a 'type', assign "question" ONLY if it has answers or blocks with answers
   const fixedPages = pages.map((p, idx) => {
@@ -141,13 +163,14 @@ function autoFixPages(pages) {
   });
   return fixedPages;
 }
+// --- END OF CHANGE ---
 
-async function handleStartLoader() {
-  let quizSlug = getQuizSlugFromUrl();
+async function handleStartButton() {
+  let quizUrl = getQuizUrl();
   let config = null;
-  if (quizSlug) {
-    config = await fetchQuizFromSupabaseBySlugOrUrl(quizSlug);
-    console.log('Supabase config (by slug/url):', config);
+  if (quizUrl) {
+    config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+    console.log('Supabase config (by url/slug):', config);
   } else {
     config = await fetchLatestQuizFromSupabase();
     console.log('Supabase config (latest):', config);
@@ -349,5 +372,4 @@ function render() {
   }
 }
 
-// --- LAUNCH: load quiz from Supabase using ?quiz=quiz.01 format (from landing.html) ---
-handleStartLoader();
+render();
