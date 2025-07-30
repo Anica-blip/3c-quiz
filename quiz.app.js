@@ -26,7 +26,6 @@ async function initSupabase() {
 // --- ONLY use quiz_app_url column for fetch ---
 async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
   try {
-    console.log("[Loader] Attempting Supabase fetch for quiz_app_url:", quizAppUrl);
     await initSupabase();
     const { data, error } = await supabase
       .from('quizzes')
@@ -35,19 +34,13 @@ async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
       .limit(1)
       .maybeSingle();
 
-    console.log("[Loader] Supabase response:", { data, error });
-
-    if (!data) {
-      console.warn("[Loader] No quiz found for quiz_app_url:", quizAppUrl);
-      return null;
-    }
+    if (!data) return null;
 
     let pages = data.pages;
     if (typeof pages === "string") {
       try {
         pages = JSON.parse(pages);
       } catch (e) {
-        console.error("[Loader] Could not parse pages JSON string from Supabase:", pages);
         throw new Error("Quiz 'pages' column is not valid JSON.");
       }
     }
@@ -57,7 +50,6 @@ async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
       showResult: "A",
     };
   } catch (err) {
-    console.error("[Loader] Error during Supabase fetch:", err);
     return { error: err.message || "Unknown error during Supabase fetch." };
   }
 }
@@ -91,12 +83,9 @@ let state = {
   quizError: ""
 };
 
-// --- Loader: ONLY fetch from Supabase when Start is pressed ---
+// --- Loader: ONLY fetch from Supabase if quizUrl param is present ---
 function getQuizAppUrl() {
-  // Use the actual app page URL for lookup
-  // (Avoid quizUrl query param, just use window.location.href for exact match)
   const quizAppUrl = window.location.href;
-  console.log("[Loader] quizAppUrl (window.location.href):", quizAppUrl);
   return quizAppUrl;
 }
 
@@ -159,7 +148,7 @@ function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  // --- FIX: If fetch failed, show error screen and prevent navigation ---
+  // --- If fetch failed, show error screen and prevent navigation ---
   if (state.quizError) {
     renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
     return;
@@ -236,9 +225,9 @@ function render() {
     // --- Loader triggers ONLY on Start button ---
     $("#startBtn").onclick = async () => {
       $("#startBtn").disabled = true;
-      let quizAppUrl = getQuizAppUrl();
-      console.log("[Loader] Start button clicked. quizAppUrl:", quizAppUrl);
-      if (quizAppUrl) {
+      // If quizUrl param exists, try Supabase fetch
+      if (window.location.search.includes("quizUrl=")) {
+        let quizAppUrl = getQuizAppUrl();
         try {
           const config = await fetchQuizFromSupabaseByAppUrl(quizAppUrl);
           if (config && config.error) {
@@ -254,7 +243,6 @@ function render() {
             state.page = 1; // Move to first real page after cover
             state.quizLoaded = true;
             state.quizError = "";
-            console.log("[Loader] Quiz loaded and app state updated.");
             render();
           } else {
             state.quizError = "No quiz data loaded from Supabase!";
@@ -265,7 +253,10 @@ function render() {
           render();
         }
       } else {
-        state.quizError = "No quizAppUrl in the URL";
+        // No quizUrl param, proceed with original hardcoded quiz
+        state.page = 1; // Go to intro of original quiz
+        state.quizLoaded = true;
+        state.quizError = "";
         render();
       }
     };
@@ -343,4 +334,3 @@ function render() {
 
 // --- Start by showing the cover page ---
 render();
-
