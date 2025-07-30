@@ -50,33 +50,38 @@ let state = {
   page: 0,
 };
 
-// --- ONLY THIS FUNCTION IS CHANGED: getQuizUrl checks for landing.html in front ---
 function getQuizUrl() {
   const params = new URLSearchParams(window.location.search);
-  const quizUrl = params.get("quizUrl") || params.get("quiz_url") || params.get("quiz");
-  // If quizUrl exists and contains landing.html, use it; otherwise, null
-  if (quizUrl && quizUrl.includes('landing.html')) {
-    return quizUrl;
-  }
-  return null;
+  const quizUrl = params.get("quizUrl");
+  return quizUrl && quizUrl.trim() !== "" ? quizUrl : null;
 }
 
-// --- Supabase fetch using ONLY quiz_url ---
-async function fetchQuizFromSupabaseByUrl(quizUrl) {
+async function fetchQuizConfig(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Quiz file not found");
+    return await res.json();
+  } catch (e) {
+    console.error("Failed to load quiz JSON:", e);
+    return null;
+  }
+}
+
+async function fetchQuizFromSupabaseByUrlOrSlug(quizUrlOrSlug) {
   try {
     await initSupabase();
     const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('quiz_url', quizUrl)
-      .limit(1)
-      .maybeSingle();
+  .from('quizzes')
+  .select('*')
+  .or(`quiz_url.eq."${quizUrlOrSlug}",quiz_slug.eq."${quizUrlOrSlug}"`)
+  .limit(1)
+  .maybeSingle();
 
-    console.log('Supabase raw response (by url):', { data, error });
-    if (!data) {
-      console.warn("No matching quiz found for quizUrl:", quizUrl);
-      return null;
-    }
+    console.log('Supabase raw response (by url/slug):', { data, error });if (!data) {
+    console.warn("No matching quiz found for quizUrl:", quizUrlOrSlug);
+  }
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase for this url/slug");
 
     let pages = data.pages;
     if (typeof pages === "string") {
@@ -93,7 +98,7 @@ async function fetchQuizFromSupabaseByUrl(quizUrl) {
       showResult: "A",
     };
   } catch (e) {
-    console.error("Failed to fetch quiz by url from Supabase:", e);
+    console.error("Failed to fetch quiz by url/slug from Supabase:", e);
     return null;
   }
 }
@@ -164,8 +169,8 @@ async function handleStartButton() {
   let quizUrl = getQuizUrl();
   let config = null;
   if (quizUrl) {
-    config = await fetchQuizFromSupabaseByUrl(quizUrl);
-    console.log('Supabase config (by url):', config);
+    config = await fetchQuizFromSupabaseByUrlOrSlug(quizUrl);
+    console.log('Supabase config (by url/slug):', config);
   } else {
     config = await fetchLatestQuizFromSupabase();
     console.log('Supabase config (latest):', config);
@@ -367,18 +372,4 @@ function render() {
   }
 }
 
-// --- On initial load, if quizUrl is present (and contains landing.html), load from Supabase
-(async () => {
-  let quizUrl = getQuizUrl();
-  if (quizUrl) {
-    let config = await fetchQuizFromSupabaseByUrl(quizUrl);
-    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-      config.pages = autoFixPages(config.pages);
-      pageSequence = config.pages;
-      NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-      SHOW_RESULT = config.showResult || SHOW_RESULT;
-      state.page = 0;
-    }
-  }
-  render();
-})();
+render();
