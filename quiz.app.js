@@ -63,36 +63,41 @@ function getQuizUrl() {
 }
 
 async function fetchQuizFromSupabaseByUrl(quizUrl) {
-  console.log("[Loader] Attempting Supabase fetch for quiz_url:", quizUrl);
-  await initSupabase();
-  const { data, error } = await supabase
-    .from('quizzes')
-    .select('*')
-    .eq('quiz_url', quizUrl)
-    .limit(1)
-    .maybeSingle();
+  try {
+    console.log("[Loader] Attempting Supabase fetch for quiz_url:", quizUrl);
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .eq('quiz_url', quizUrl)
+      .limit(1)
+      .maybeSingle();
 
-  console.log("[Loader] Supabase response:", { data, error });
+    console.log("[Loader] Supabase response:", { data, error });
 
-  if (!data) {
-    console.warn("[Loader] No quiz found for quiz_url:", quizUrl);
+    if (!data) {
+      console.warn("[Loader] No quiz found for quiz_url:", quizUrl);
+      return null;
+    }
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("[Loader] Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
+    };
+  } catch (err) {
+    console.error("[Loader] Error during Supabase fetch:", err);
     return null;
   }
-
-  let pages = data.pages;
-  if (typeof pages === "string") {
-    try {
-      pages = JSON.parse(pages);
-    } catch (e) {
-      console.error("[Loader] Could not parse pages JSON string from Supabase:", pages);
-      throw new Error("Quiz 'pages' column is not valid JSON.");
-    }
-  }
-  return {
-    pages,
-    numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-    showResult: "A",
-  };
 }
 
 function autoFixPages(pages) {
