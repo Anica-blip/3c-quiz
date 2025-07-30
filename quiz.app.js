@@ -58,7 +58,7 @@ async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
     };
   } catch (err) {
     console.error("[Loader] Error during Supabase fetch:", err);
-    return null;
+    return { error: err.message || "Unknown error during Supabase fetch." };
   }
 }
 
@@ -87,7 +87,8 @@ let SHOW_RESULT = "A";
 
 let state = {
   page: 0,
-  quizLoaded: false
+  quizLoaded: false,
+  quizError: ""
 };
 
 // --- Loader: ONLY fetch from Supabase when Start is pressed ---
@@ -127,6 +128,9 @@ function renderErrorScreen(extra = "") {
         <h2>Error: No page data</h2>
         <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
         ${extra}
+        <div class="fullscreen-bottom">
+          <button class="main-btn" onclick="window.location.reload()">Reload</button>
+        </div>
       </div>
     </div>
   `;
@@ -154,6 +158,12 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
+
+  // --- FIX: If fetch failed, show error screen and prevent navigation ---
+  if (state.quizError) {
+    renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
+    return;
+  }
 
   if (!current || typeof current.type !== "string") {
     let pageNum = state.page + 1;
@@ -231,6 +241,11 @@ function render() {
       if (quizAppUrl) {
         try {
           const config = await fetchQuizFromSupabaseByAppUrl(quizAppUrl);
+          if (config && config.error) {
+            state.quizError = config.error;
+            render();
+            return;
+          }
           if (config && Array.isArray(config.pages) && config.pages.length > 0) {
             config.pages = autoFixPages(config.pages);
             pageSequence = config.pages;
@@ -238,19 +253,20 @@ function render() {
             SHOW_RESULT = config.showResult || SHOW_RESULT;
             state.page = 1; // Move to first real page after cover
             state.quizLoaded = true;
+            state.quizError = "";
             console.log("[Loader] Quiz loaded and app state updated.");
             render();
           } else {
-            renderErrorScreen("<b>No quiz data loaded from Supabase!</b>");
-            console.log("[Loader] No quiz data found after Supabase fetch.");
+            state.quizError = "No quiz data loaded from Supabase!";
+            render();
           }
         } catch (err) {
-          renderErrorScreen(`<b>Error loading quiz from Supabase:</b> <pre>${err.message}</pre>`);
-          console.log("[Loader] Exception:", err);
+          state.quizError = err.message || "Error loading quiz from Supabase.";
+          render();
         }
       } else {
-        renderErrorScreen("<b>No quizAppUrl in the URL</b>");
-        console.log("[Loader] No quizAppUrl found in the URL.");
+        state.quizError = "No quizAppUrl in the URL";
+        render();
       }
     };
     return;
