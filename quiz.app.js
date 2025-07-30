@@ -1,7 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-// --- SUPABASE INITIALIZATION ---
+// --- SUPABASE INITIALIZATION (your values) ---
 const SUPABASE_URL = "https://cgxjqsbrditbteqhdyus.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneGpxc2JyZGl0YnRlcWhkeXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMTY1ODEsImV4cCI6MjA2NjY5MjU4MX0.xUDy5ic-r52kmRtocdcW8Np9-lczjMZ6YKPXc03rIG4";
 
@@ -48,62 +48,105 @@ let SHOW_RESULT = "A";
 
 let state = {
   page: 0,
-  quizLoaded: false
 };
 
-// --- Loader: ONLY fetch from Supabase when Start is pressed ---
+// --- ONLY THIS FUNCTION IS CHANGED: getQuizUrl checks for landing.html in front ---
 function getQuizUrl() {
   const params = new URLSearchParams(window.location.search);
   const quizUrl = params.get("quizUrl") || params.get("quiz_url") || params.get("quiz");
-  console.log("[Loader] quizUrl param found:", quizUrl);
-  if (quizUrl && quizUrl.includes("landing.html")) {
+  // If quizUrl exists and contains landing.html, use it; otherwise, null
+  if (quizUrl && quizUrl.includes('landing.html')) {
     return quizUrl;
   }
   return null;
 }
 
+// --- Supabase fetch using ONLY quiz_url ---
 async function fetchQuizFromSupabaseByUrl(quizUrl) {
-  console.log("[Loader] Attempting Supabase fetch for quiz_url:", quizUrl);
-  await initSupabase();
-  const { data, error } = await supabase
-    .from('quizzes')
-    .select('*')
-    .eq('quiz_url', quizUrl)
-    .limit(1)
-    .maybeSingle();
+  try {
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .eq('quiz_url', quizUrl)
+      .limit(1)
+      .maybeSingle();
 
-  console.log("[Loader] Supabase response:", { data, error });
+    console.log('Supabase raw response (by url):', { data, error });
+    if (!data) {
+      console.warn("No matching quiz found for quizUrl:", quizUrl);
+      return null;
+    }
 
-  if (!data) {
-    console.warn("[Loader] No quiz found for quiz_url:", quizUrl);
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
+    };
+  } catch (e) {
+    console.error("Failed to fetch quiz by url from Supabase:", e);
     return null;
   }
-
-  let pages = data.pages;
-  if (typeof pages === "string") {
-    try {
-      pages = JSON.parse(pages);
-    } catch (e) {
-      console.error("[Loader] Could not parse pages JSON string from Supabase:", pages);
-      throw new Error("Quiz 'pages' column is not valid JSON.");
-    }
-  }
-  return {
-    pages,
-    numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-    showResult: "A",
-  };
 }
 
+async function fetchLatestQuizFromSupabase() {
+  try {
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    console.log('Supabase raw response (latest):', { data, error });
+
+    if (error || !data) throw error || new Error("No quiz found in Supabase");
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
+    };
+  } catch (e) {
+    console.error("Failed to fetch latest quiz from Supabase:", e);
+    return null;
+  }
+}
+
+// --- ONLY THIS FUNCTION IS CHANGED ---
 function autoFixPages(pages) {
-  return pages.map((p, idx) => {
+  // If a page is missing a 'type', assign "question" ONLY if it has answers or blocks with answers
+  const fixedPages = pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
+
+    // If it has answers array or blocks with answer type, it's a question
     if (
       (Array.isArray(p.answers) && p.answers.length > 0) ||
       (Array.isArray(p.blocks) && p.blocks.some(b => b.type === "answer"))
     ) {
       return { ...p, type: "question" };
     }
+
+    // Otherwise, use original heuristics for intro, thankyou, etc.
     if (idx === 0) return { ...p, type: "cover" };
     if (idx === pages.length - 1) return { ...p, type: "thankyou" };
     if (p.bg && p.bg.includes("4")) return { ...p, type: "pre-results" };
@@ -113,6 +156,33 @@ function autoFixPages(pages) {
     if (p.bg && p.bg.includes("5d")) return { ...p, type: "resultD" };
     return { ...p, type: "intro" };
   });
+  return fixedPages;
+}
+// --- END OF CHANGE ---
+
+async function handleStartButton() {
+  let quizUrl = getQuizUrl();
+  let config = null;
+  if (quizUrl) {
+    config = await fetchQuizFromSupabaseByUrl(quizUrl);
+    console.log('Supabase config (by url):', config);
+  } else {
+    config = await fetchLatestQuizFromSupabase();
+    console.log('Supabase config (latest):', config);
+  }
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    // Auto-fix missing type fields
+    config.pages = autoFixPages(config.pages);
+    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
+    pageSequence = config.pages;
+    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 0;
+    render();
+  } else {
+    renderErrorScreen();
+    console.log('Config object:', config);
+  }
 }
 
 function renderErrorScreen(extra = "") {
@@ -160,6 +230,7 @@ function render() {
       </div>
     `);
 
+    // Let user try to skip forward or back
     const next = () => {
       state.page = Math.min(state.page + 1, pageSequence.length - 1);
       render();
@@ -215,39 +286,14 @@ function render() {
       <div class="cover-outer">
         <div class="cover-image-container">
           <img class="cover-img" src="${current.bg}" alt="cover"/>
-          <button class="main-btn cover-btn-in-img" id="startBtn">${nextLabel}</button>
+          <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
         </div>
       </div>
     `;
-    // --- Key: loader triggers ONLY on Start button ---
-    $("#startBtn").onclick = async () => {
-      $("#startBtn").disabled = true;
-      let quizUrl = getQuizUrl();
-      console.log("[Loader] Start button clicked. quizUrl param:", quizUrl);
-      if (quizUrl) {
-        try {
-          const config = await fetchQuizFromSupabaseByUrl(quizUrl);
-          if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-            config.pages = autoFixPages(config.pages);
-            pageSequence = config.pages;
-            NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-            SHOW_RESULT = config.showResult || SHOW_RESULT;
-            state.page = 1; // Move to first real page after cover
-            state.quizLoaded = true;
-            console.log("[Loader] Quiz loaded and app state updated.");
-            render();
-          } else {
-            renderErrorScreen("<b>No quiz data loaded from Supabase!</b>");
-            console.log("[Loader] No quiz data found after Supabase fetch.");
-          }
-        } catch (err) {
-          renderErrorScreen(`<b>Error loading quiz from Supabase:</b> <pre>${err.message}</pre>`);
-          console.log("[Loader] Exception:", err);
-        }
-      } else {
-        renderErrorScreen("<b>No quizUrl param in the URL (must contain landing.html)</b>");
-        console.log("[Loader] No quizUrl param found in the URL.");
-      }
+    // --- Don't touch this: keep advancing page, not reloading Supabase ---
+    $("#nextBtn").onclick = () => {
+      state.page++;
+      render();
     };
     return;
   }
@@ -321,5 +367,18 @@ function render() {
   }
 }
 
-// --- Start by showing the cover page ---
-render();
+// --- On initial load, if quizUrl is present (and contains landing.html), load from Supabase
+(async () => {
+  let quizUrl = getQuizUrl();
+  if (quizUrl) {
+    let config = await fetchQuizFromSupabaseByUrl(quizUrl);
+    if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+      config.pages = autoFixPages(config.pages);
+      pageSequence = config.pages;
+      NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+      SHOW_RESULT = config.showResult || SHOW_RESULT;
+      state.page = 0;
+    }
+  }
+  render();
+})();
