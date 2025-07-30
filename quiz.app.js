@@ -23,45 +23,6 @@ async function initSupabase() {
   supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-// --- ONLY use quiz_app_url column for fetch ---
-async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
-  try {
-    console.log("[Loader] Attempting Supabase fetch for quiz_app_url:", quizAppUrl);
-    await initSupabase();
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('quiz_app_url', quizAppUrl)
-      .limit(1)
-      .maybeSingle();
-
-    console.log("[Loader] Supabase response:", { data, error });
-
-    if (!data) {
-      console.warn("[Loader] No quiz found for quiz_app_url:", quizAppUrl);
-      return null;
-    }
-
-    let pages = data.pages;
-    if (typeof pages === "string") {
-      try {
-        pages = JSON.parse(pages);
-      } catch (e) {
-        console.error("[Loader] Could not parse pages JSON string from Supabase:", pages);
-        throw new Error("Quiz 'pages' column is not valid JSON.");
-      }
-    }
-    return {
-      pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A",
-    };
-  } catch (err) {
-    console.error("[Loader] Error during Supabase fetch:", err);
-    return null;
-  }
-}
-
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -91,12 +52,52 @@ let state = {
 };
 
 // --- Loader: ONLY fetch from Supabase when Start is pressed ---
-function getQuizAppUrl() {
-  // Use the actual app page URL for lookup
-  // (Avoid quizUrl query param, just use window.location.href for exact match)
-  const quizAppUrl = window.location.href;
-  console.log("[Loader] quizAppUrl (window.location.href):", quizAppUrl);
-  return quizAppUrl;
+function getQuizUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const quizUrl = params.get("quizUrl") || params.get("quiz_url") || params.get("quiz");
+  console.log("[Loader] quizUrl param found:", quizUrl);
+  if (quizUrl && quizUrl.includes("landing.html")) {
+    return quizUrl;
+  }
+  return null;
+}
+
+async function fetchQuizFromSupabaseByUrl(quizUrl) {
+  try {
+    console.log("[Loader] Attempting Supabase fetch for quiz_url:", quizUrl);
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .eq('quiz_url', quizUrl)
+      .limit(1)
+      .maybeSingle();
+
+    console.log("[Loader] Supabase response:", { data, error });
+
+    if (!data) {
+      console.warn("[Loader] No quiz found for quiz_url:", quizUrl);
+      return null;
+    }
+
+    let pages = data.pages;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        console.error("[Loader] Could not parse pages JSON string from Supabase:", pages);
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    }
+    return {
+      pages,
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
+    };
+  } catch (err) {
+    console.error("[Loader] Error during Supabase fetch:", err);
+    return null;
+  }
 }
 
 function autoFixPages(pages) {
@@ -223,14 +224,14 @@ function render() {
         </div>
       </div>
     `;
-    // --- Loader triggers ONLY on Start button ---
+    // --- Key: loader triggers ONLY on Start button ---
     $("#startBtn").onclick = async () => {
       $("#startBtn").disabled = true;
-      let quizAppUrl = getQuizAppUrl();
-      console.log("[Loader] Start button clicked. quizAppUrl:", quizAppUrl);
-      if (quizAppUrl) {
+      let quizUrl = getQuizUrl();
+      console.log("[Loader] Start button clicked. quizUrl param:", quizUrl);
+      if (quizUrl) {
         try {
-          const config = await fetchQuizFromSupabaseByAppUrl(quizAppUrl);
+          const config = await fetchQuizFromSupabaseByUrl(quizUrl);
           if (config && Array.isArray(config.pages) && config.pages.length > 0) {
             config.pages = autoFixPages(config.pages);
             pageSequence = config.pages;
@@ -249,8 +250,8 @@ function render() {
           console.log("[Loader] Exception:", err);
         }
       } else {
-        renderErrorScreen("<b>No quizAppUrl in the URL</b>");
-        console.log("[Loader] No quizAppUrl found in the URL.");
+        renderErrorScreen("<b>No quizUrl param in the URL (must contain landing.html)</b>");
+        console.log("[Loader] No quizUrl param found in the URL.");
       }
     };
     return;
