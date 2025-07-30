@@ -1,7 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-// --- SUPABASE INITIALIZATION (your values) ---
+// --- SUPABASE INITIALIZATION ---
 const SUPABASE_URL = "https://cgxjqsbrditbteqhdyus.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneGpxc2JyZGl0YnRlcWhkeXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMTY1ODEsImV4cCI6MjA2NjY5MjU4MX0.xUDy5ic-r52kmRtocdcW8Np9-lczjMZ6YKPXc03rIG4";
 
@@ -50,35 +50,24 @@ let state = {
   page: 0,
 };
 
-// --- FIX: Correct loader for new landing.html quiz format ---
-function getQuizSlugFromUrl() {
-  // Accept either ?quiz=quiz.01 or ?quiz_slug=quiz.01 (for backwards compatibility)
+// --- Get quiz_url from ?quiz_url parameter ---
+function getQuizUrlFromQuery() {
   const params = new URLSearchParams(window.location.search);
-  let quizSlug = params.get("quiz") || params.get("quiz_slug") || null;
-  // Also accept quiz_url param (for direct links from database)
-  if (!quizSlug && params.get("quiz_url")) {
-    let quizUrlParam = params.get("quiz_url");
-    // Extract quiz_slug from the landing html url if possible
-    let m = quizUrlParam.match(/[?&]quiz=(quiz\.\d+)/);
-    if (m) {
-      quizSlug = m[1];
-    }
-  }
-  return quizSlug;
+  return params.get("quiz_url") || null;
 }
 
-async function fetchQuizFromSupabaseBySlugOrUrl(slugOrUrl) {
+// --- Fetch quiz from Supabase using quiz_url (EXACT MATCH) ---
+async function fetchQuizFromSupabaseByUrl(quizUrl) {
   await initSupabase();
-  // Try both quiz_slug and quiz_url columns, in case of legacy or direct links
   const { data, error } = await supabase
     .from('quizzes')
     .select('*')
-    .or(`quiz_slug.eq.${slugOrUrl},quiz_url.eq.${slugOrUrl}`)
+    .eq('quiz_url', quizUrl)
     .limit(1)
     .maybeSingle();
 
   if (!data) {
-    console.warn("No matching quiz found for:", slugOrUrl);
+    console.warn("No matching quiz found for quiz_url:", quizUrl);
     return null;
   }
   let pages = data.pages;
@@ -127,19 +116,14 @@ async function fetchLatestQuizFromSupabase() {
 }
 
 function autoFixPages(pages) {
-  // If a page is missing a 'type', assign "question" ONLY if it has answers or blocks with answers
   const fixedPages = pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
-
-    // If it has answers array or blocks with answer type, it's a question
     if (
       (Array.isArray(p.answers) && p.answers.length > 0) ||
       (Array.isArray(p.blocks) && p.blocks.some(b => b.type === "answer"))
     ) {
       return { ...p, type: "question" };
     }
-
-    // Otherwise, use original heuristics for intro, thankyou, etc.
     if (idx === 0) return { ...p, type: "cover" };
     if (idx === pages.length - 1) return { ...p, type: "thankyou" };
     if (p.bg && p.bg.includes("4")) return { ...p, type: "pre-results" };
@@ -153,17 +137,16 @@ function autoFixPages(pages) {
 }
 
 async function handleStartLoader() {
-  let quizSlug = getQuizSlugFromUrl();
+  let quizUrl = getQuizUrlFromQuery();
   let config = null;
-  if (quizSlug) {
-    config = await fetchQuizFromSupabaseBySlugOrUrl(quizSlug);
-    console.log('Supabase config (by slug/url):', config);
+  if (quizUrl) {
+    config = await fetchQuizFromSupabaseByUrl(quizUrl);
+    console.log('Supabase config (by quiz_url):', config);
   } else {
     config = await fetchLatestQuizFromSupabase();
     console.log('Supabase config (latest):', config);
   }
   if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    // Auto-fix missing type fields
     config.pages = autoFixPages(config.pages);
     console.log("Loaded (and fixed) pages from Supabase:", config.pages);
     pageSequence = config.pages;
@@ -222,7 +205,6 @@ function render() {
       </div>
     `);
 
-    // Let user try to skip forward or back
     const next = () => {
       state.page = Math.min(state.page + 1, pageSequence.length - 1);
       render();
@@ -282,7 +264,6 @@ function render() {
         </div>
       </div>
     `;
-    // --- Don't touch this: keep advancing page, not reloading Supabase ---
     $("#nextBtn").onclick = () => {
       state.page++;
       render();
@@ -359,5 +340,5 @@ function render() {
   }
 }
 
-// --- LAUNCH: load quiz from Supabase using ?quiz=quiz.01 format (from landing.html) ---
+// --- LAUNCH: load quiz from Supabase using ?quiz_url=... format (from landing.html) ---
 handleStartLoader();
