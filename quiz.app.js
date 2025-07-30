@@ -1,7 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-// --- SUPABASE INIT ---
+// --- SUPABASE INITIALIZATION (your values) ---
 const SUPABASE_URL = "https://cgxjqsbrditbteqhdyus.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneGpxc2JyZGl0YnRlcWhkeXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMTY1ODEsImV4cCI6MjA2NjY5MjU4MX0.xUDy5ic-r52kmRtocdcW8Np9-lczjMZ6YKPXc03rIG4";
 
@@ -23,33 +23,60 @@ async function initSupabase() {
   supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-// --- MAIN LOGIC: get the current page URL including query string ---
-function getCurrentLandingUrl() {
-  // Always use the full URL as shown in the browser bar
-  return window.location.href;
+const defaultPageSequence = [
+  { type: "cover", bg: "static/1.png" },
+  { type: "intro", bg: "static/2.png" },
+  { type: "question", bg: "static/3a.png" },
+  { type: "question", bg: "static/3b.png" },
+  { type: "question", bg: "static/3c.png" },
+  { type: "question", bg: "static/3d.png" },
+  { type: "question", bg: "static/3e.png" },
+  { type: "question", bg: "static/3f.png" },
+  { type: "question", bg: "static/3g.png" },
+  { type: "question", bg: "static/3h.png" },
+  { type: "pre-results", bg: "static/4.png" },
+  { type: "resultA", bg: "static/5a.png" },
+  { type: "resultB", bg: "static/5b.png" },
+  { type: "resultC", bg: "static/5c.png" },
+  { type: "resultD", bg: "static/5d.png" },
+  { type: "thankyou", bg: "static/6.png" },
+];
+
+let pageSequence = [...defaultPageSequence];
+let NUM_QUESTIONS = 8;
+let SHOW_RESULT = "A";
+
+let state = {
+  page: 0,
+};
+
+// --- FIX: Correct loader for new landing.html quiz format ---
+function getQuizSlugFromUrl() {
+  // Accept either ?quiz=quiz.01 or ?quiz_slug=quiz.01 (for backwards compatibility)
+  const params = new URLSearchParams(window.location.search);
+  return params.get("quiz") || params.get("quiz_slug") || null;
 }
 
-// --- Fetch quiz from Supabase matching quiz_url exactly ---
-async function fetchQuizFromSupabaseByUrl(quizUrl) {
+async function fetchQuizFromSupabaseBySlugOrUrl(slugOrUrl) {
   await initSupabase();
+  // Try both quiz_slug and quiz_url columns, in case of legacy or direct links
   const { data, error } = await supabase
     .from('quizzes')
     .select('*')
-    .eq('quiz_url', quizUrl)
+    .or(`quiz_slug.eq.${slugOrUrl},quiz_url.eq.${slugOrUrl}`)
     .limit(1)
     .maybeSingle();
 
   if (!data) {
-    console.warn("No quiz found with quiz_url:", quizUrl);
+    console.warn("No matching quiz found for:", slugOrUrl);
     return null;
   }
-
   let pages = data.pages;
   if (typeof pages === "string") {
     try {
       pages = JSON.parse(pages);
     } catch (e) {
-      console.error("Could not parse pages JSON from Supabase:", pages);
+      console.error("Could not parse pages JSON string from Supabase:", pages);
       throw new Error("Quiz 'pages' column is not valid JSON.");
     }
   }
@@ -60,33 +87,49 @@ async function fetchQuizFromSupabaseByUrl(quizUrl) {
   };
 }
 
-// --- Loader function ---
-async function handleStartLoader() {
-  const quizUrl = getCurrentLandingUrl();
-  let config = await fetchQuizFromSupabaseByUrl(quizUrl);
-  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-    config.pages = autoFixPages(config.pages);
-    pageSequence = config.pages;
-    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
-    SHOW_RESULT = config.showResult || SHOW_RESULT;
-    state.page = 0;
-    render();
-  } else {
-    renderErrorScreen();
-    console.log('Config object:', config);
+async function fetchLatestQuizFromSupabase() {
+  await initSupabase();
+  const { data, error } = await supabase
+    .from('quizzes')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) {
+    console.warn("No latest quiz found in Supabase");
+    return null;
   }
+  let pages = data.pages;
+  if (typeof pages === "string") {
+    try {
+      pages = JSON.parse(pages);
+    } catch (e) {
+      console.error("Could not parse pages JSON string from Supabase:", pages);
+      throw new Error("Quiz 'pages' column is not valid JSON.");
+    }
+  }
+  return {
+    pages,
+    numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+    showResult: "A",
+  };
 }
 
-// --- Utility functions ---
 function autoFixPages(pages) {
-  return pages.map((p, idx) => {
+  // If a page is missing a 'type', assign "question" ONLY if it has answers or blocks with answers
+  const fixedPages = pages.map((p, idx) => {
     if (typeof p.type === "string" && p.type.length > 0) return p;
+
+    // If it has answers array or blocks with answer type, it's a question
     if (
       (Array.isArray(p.answers) && p.answers.length > 0) ||
       (Array.isArray(p.blocks) && p.blocks.some(b => b.type === "answer"))
     ) {
       return { ...p, type: "question" };
     }
+
+    // Otherwise, use original heuristics for intro, thankyou, etc.
     if (idx === 0) return { ...p, type: "cover" };
     if (idx === pages.length - 1) return { ...p, type: "thankyou" };
     if (p.bg && p.bg.includes("4")) return { ...p, type: "pre-results" };
@@ -96,6 +139,32 @@ function autoFixPages(pages) {
     if (p.bg && p.bg.includes("5d")) return { ...p, type: "resultD" };
     return { ...p, type: "intro" };
   });
+  return fixedPages;
+}
+
+async function handleStartLoader() {
+  let quizSlug = getQuizSlugFromUrl();
+  let config = null;
+  if (quizSlug) {
+    config = await fetchQuizFromSupabaseBySlugOrUrl(quizSlug);
+    console.log('Supabase config (by slug/url):', config);
+  } else {
+    config = await fetchLatestQuizFromSupabase();
+    console.log('Supabase config (latest):', config);
+  }
+  if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+    // Auto-fix missing type fields
+    config.pages = autoFixPages(config.pages);
+    console.log("Loaded (and fixed) pages from Supabase:", config.pages);
+    pageSequence = config.pages;
+    NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+    SHOW_RESULT = config.showResult || SHOW_RESULT;
+    state.page = 0;
+    render();
+  } else {
+    renderErrorScreen();
+    console.log('Config object:', config);
+  }
 }
 
 function renderErrorScreen(extra = "") {
@@ -111,13 +180,174 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// -- The rest of your rendering and navigation logic below --
-//   (unchanged from previous versions, can copy-paste from your working code)
-
-// For completeness, here's a minimal render function:
-function render() {
-  app.innerHTML = `<div>Quiz loaded. Implement your quiz rendering logic here.</div>`;
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
+    </div>
+  `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
+  }
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
+  }
 }
 
-// --- LAUNCH ---
+function render() {
+  app.innerHTML = "";
+  const current = pageSequence[state.page];
+
+  if (!current || typeof current.type !== "string") {
+    let pageNum = state.page + 1;
+    renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
+      <div class="fullscreen-bottom">
+        <button class="main-btn" id="nextBtn">Next</button>
+        <button class="main-btn" id="backBtn">Back</button>
+      </div>
+    `);
+
+    // Let user try to skip forward or back
+    const next = () => {
+      state.page = Math.min(state.page + 1, pageSequence.length - 1);
+      render();
+    };
+    const back = () => {
+      state.page = Math.max(state.page - 1, 0);
+      render();
+    };
+    document.getElementById("nextBtn").onclick = next;
+    document.getElementById("backBtn").onclick = back;
+    return;
+  }
+
+  let showBack = state.page > 0;
+  let nextLabel = "Next";
+  if (current.type === "cover") nextLabel = "Start";
+  if (current.type === "pre-results") nextLabel = "Get Results";
+  if (
+    current.type === "resultA" ||
+    current.type === "resultB" ||
+    current.type === "resultC" ||
+    current.type === "resultD"
+  ) {
+    nextLabel = "Finish";
+  }
+
+  let nextAction = () => {
+    if (current.type === "pre-results") {
+      if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
+      else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
+      else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
+      else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
+      render();
+      return;
+    } else if (
+      current.type === "resultA" ||
+      current.type === "resultB" ||
+      current.type === "resultC" ||
+      current.type === "resultD"
+    ) {
+      state.page = pageSequence.findIndex(p => p.type === "thankyou");
+      render();
+      return;
+    } else if (current.type === "thankyou") {
+      return;
+    }
+    state.page = Math.min(state.page + 1, pageSequence.length - 1);
+    render();
+  };
+
+  if (current.type === "cover") {
+    app.innerHTML = `
+      <div class="cover-outer">
+        <div class="cover-image-container">
+          <img class="cover-img" src="${current.bg}" alt="cover"/>
+          <button class="main-btn cover-btn-in-img" id="nextBtn">${nextLabel}</button>
+        </div>
+      </div>
+    `;
+    // --- Don't touch this: keep advancing page, not reloading Supabase ---
+    $("#nextBtn").onclick = () => {
+      state.page++;
+      render();
+    };
+    return;
+  }
+
+  if (current.type === "intro") {
+    renderFullscreenBgPage({
+      bg: current.bg,
+      button: { label: "Continue", id: "mainBtn", onClick: () => {
+        state.page++;
+        render();
+      }},
+      showBack: true
+    });
+    return;
+  }
+
+  if (current.type === "thankyou") {
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="page-content">
+        <div class="content-inner">
+          <h2>${current.type.toUpperCase()}</h2>
+          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      </div>
+    `;
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        render();
+      };
+    }
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        <h2>${current.type.toUpperCase()}</h2>
+        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+      </div>
+    </div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      <button class="main-btn" id="nextBtn">${nextLabel}</button>
+    </div>
+  `;
+
+  $("#nextBtn").onclick = nextAction;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      if (
+        current.type === "thankyou" ||
+        current.type === "resultA" ||
+        current.type === "resultB" ||
+        current.type === "resultC" ||
+        current.type === "resultD"
+      ) {
+        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+      } else if (current.type === "pre-results") {
+        state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+      } else {
+        state.page = Math.max(state.page - 1, 0);
+      }
+      render();
+    };
+  }
+}
+
+// --- LAUNCH: load quiz from Supabase using ?quiz=quiz.01 format (from landing.html) ---
 handleStartLoader();
