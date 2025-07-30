@@ -54,7 +54,17 @@ let state = {
 function getQuizSlugFromUrl() {
   // Accept either ?quiz=quiz.01 or ?quiz_slug=quiz.01 (for backwards compatibility)
   const params = new URLSearchParams(window.location.search);
-  return params.get("quiz") || params.get("quiz_slug") || null;
+  let quizSlug = params.get("quiz") || params.get("quiz_slug") || null;
+  // Also accept quiz_url param (for direct links from database)
+  if (!quizSlug && params.get("quiz_url")) {
+    let quizUrlParam = params.get("quiz_url");
+    // Extract quiz_slug from the landing html url if possible
+    let m = quizUrlParam.match(/[?&]quiz=(quiz\.\d+)/);
+    if (m) {
+      quizSlug = m[1];
+    }
+  }
+  return quizSlug;
 }
 
 async function fetchQuizFromSupabaseBySlugOrUrl(slugOrUrl) {
