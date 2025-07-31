@@ -170,10 +170,8 @@ function renderBlocks(blocks) {
       type === "description" ||
       type === "desc" ||
       type === "question" ||
-      type === "answer a" ||
-      type === "answer b" ||
-      type === "answer c" ||
-      type === "answer d"
+      type === "answer" || // Accepts 'answer' as the type (JSON does not use answer a/b/c/d, just "answer")
+      type === "result"
     ) {
       if (block.width !== undefined) style += `width:${block.width}px;`;
       if (block.height !== undefined) style += `height:${block.height}px;`;
@@ -193,13 +191,10 @@ function renderBlocks(blocks) {
         html += `<div class="block-desc" style="${style}">${block.text}</div>`;
       } else if (type === "question") {
         html += `<div class="block-question" style="${style}">${block.text}</div>`;
-      } else if (
-        type === "answer a" ||
-        type === "answer b" ||
-        type === "answer c" ||
-        type === "answer d"
-      ) {
+      } else if (type === "answer") {
         html += `<div class="block-answer" style="${style}" data-answer="${block.value || block.text}">${block.text}</div>`;
+      } else if (type === "result") {
+        html += `<div class="block-result" style="${style}">${block.text}</div>`;
       }
     }
     // Ignore all other types
