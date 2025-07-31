@@ -155,8 +155,7 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
-// --- BLOCK RENDERING ---
-// Overlay blocks are rendered inside a 375px x 600px (or image height) parent, absolutely positioned over the image.
+// --- BLOCK RENDERING: Absolutely inside .block-layer (over <img>) ---
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
@@ -175,7 +174,7 @@ function renderBlocks(blocks) {
       if (block.height !== undefined) style += `height:${block.height}px;`;
       if (block.x !== undefined) style += `left:${block.x}px;`;
       if (block.y !== undefined) style += `top:${block.y}px;`;
-      style += `position:absolute;`; // Always absolutely position
+      style += `position:absolute;`;
       if (block.fontSize) style += `font-size:${block.fontSize};`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -267,7 +266,6 @@ function render() {
     render();
   };
 
-  // -- FIX: Render image and overlay in sync as in your admin/editor
   if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
     app.innerHTML = `
       <div class="fullscreen-centered">
@@ -307,7 +305,6 @@ function render() {
     return;
   }
 
-  // Cover page is unchanged
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
