@@ -156,19 +156,21 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
-// --- MIRROR JSON FORMATTING FOR BLOCKS ---
+// --- MIRROR JSON FORMATTING FOR BLOCKS, INCLUDING WxH, FONTS, COORDINATES ---
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
     // Build inline style from JSON attributes
     let style = "";
+    // Absolute coordinates and box size
     if (block.x !== undefined) style += `left:${block.x}px;`;
     if (block.y !== undefined) style += `top:${block.y}px;`;
     if (block.width !== undefined) style += `width:${block.width}px;`;
     if (block.height !== undefined) style += `height:${block.height}px;`;
-    // Only make position absolute if there is a coordinate
+    // Only set position: absolute if any coordinate is present
     if (block.x !== undefined || block.y !== undefined || block.position === "absolute") style += `position:absolute;`;
+    // Typography/visual
     if (block.fontSize) style += `font-size:${block.fontSize};`;
     if (block.color) style += `color:${block.color};`;
     if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -178,6 +180,9 @@ function renderBlocks(blocks) {
     if (block.margin) style += `margin:${block.margin};`;
     if (block.padding) style += `padding:${block.padding};`;
     if (block.zIndex) style += `z-index:${block.zIndex};`;
+    // Optional border/bg for debugging layout
+    if (block.border) style += `border:${block.border};`;
+    if (block.background) style += `background:${block.background};`;
 
     switch (block.type) {
       case "title":
