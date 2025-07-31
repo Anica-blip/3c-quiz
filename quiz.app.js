@@ -1,9 +1,10 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const DESIGN_WIDTH = 375;
-const DESIGN_HEIGHT = 600;
+const DESIGN_WIDTH = 375;   // Admin/editor design width
+const DESIGN_HEIGHT = 600;  // Admin/editor design height
 
+// --- GitHub Pages Loader ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -92,35 +93,22 @@ function autoFixPages(pages) {
 
 function renderErrorScreen(extra = "") {
   app.innerHTML = `
-    <div class="fullscreen-bg" style="background-color:#111"></div>
-    <div class="page-content">
-      <div class="content-inner">
-        <h2>Error: No page data</h2>
-        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your quiz data.</p>
-        ${extra}
-        <div class="fullscreen-bottom">
-          <button class="main-btn" onclick="window.location.reload()">Reload</button>
-        </div>
+    <div style="background-color:#111;min-height:100vh;width:100vw;"></div>
+    <div style="position:fixed;top:20vh;left:10vw;width:80vw;z-index:10;color:#fff;">
+      <h2>Error: No page data</h2>
+      <p>The quiz could not be loaded or is empty or the page is malformed. Please check your quiz data.</p>
+      ${extra}
+      <div style="margin-top:2em;">
+        <button class="main-btn" onclick="window.location.reload()">Reload</button>
       </div>
     </div>
   `;
 }
 
-function getBgImageRect() {
-  const vw = window.innerWidth, vh = window.innerHeight;
-  const rW = vw / DESIGN_WIDTH, rH = vh / DESIGN_HEIGHT;
-  let scale = Math.min(rW, rH);
-  let imgW = DESIGN_WIDTH * scale, imgH = DESIGN_HEIGHT * scale;
-  let offsetLeft = (vw - imgW) / 2;
-  let offsetTop = (vh - imgH) / 2;
-  return { scaleX: scale, scaleY: scale, offsetLeft, offsetTop };
-}
-
-function renderBlocks(blocks) {
+// --- Overlay logic: scale/position overlay blocks to the displayed image size only ---
+function renderBlocks(blocks, scaleX, scaleY) {
   if (!Array.isArray(blocks)) return "";
-  const { scaleX, scaleY, offsetLeft, offsetTop } = getBgImageRect();
   let html = "";
-
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
@@ -133,29 +121,28 @@ function renderBlocks(blocks) {
       type === "answer" ||
       type === "result"
     ) {
-      if (block.x !== undefined) style += `left:${offsetLeft + block.x * scaleX}px;`;
-      if (block.y !== undefined) style += `top:${offsetTop + block.y * scaleY}px;`;
-      if (block.width !== undefined) style += `width:${block.width * scaleX}px;`;
-      if (block.height !== undefined) style += `height:${block.height * scaleY}px;`;
-      style += `position:absolute;box-sizing:border-box;overflow:hidden;`;
+      if (block.x !== undefined) style += `left: ${block.x * scaleX}px;`;
+      if (block.y !== undefined) style += `top: ${block.y * scaleY}px;`;
+      if (block.width !== undefined) style += `width: ${block.width * scaleX}px;`;
+      if (block.height !== undefined) style += `height: ${block.height * scaleY}px;`;
+      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
+      style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      if (block.fontSize) style += `font-size:${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY}px;`;
+      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
       if (block.textAlign) style += `text-align:${block.textAlign};`;
       if (block.margin !== undefined) style += `margin:${block.margin};`;
       if (block.lineHeight) style += `line-height:${block.lineHeight};`;
 
-      if (type === "title")
-        html += `<div class="block-title" style="${style}">${block.text}</div>`;
-      else if (type === "description" || type === "desc")
-        html += `<div class="block-desc" style="${style}">${block.text}</div>`;
-      else if (type === "question")
-        html += `<div class="block-question" style="${style}">${block.text}</div>`;
-      else if (type === "answer")
-        html += `<div class="block-answer" style="${style}" data-answer="${block.value || block.text}">${block.text}</div>`;
-      else if (type === "result")
-        html += `<div class="block-result" style="${style}">${block.text}</div>`;
+      let className = "";
+      if (type === "title") className = "block-title";
+      else if (type === "description" || type === "desc") className = "block-desc";
+      else if (type === "question") className = "block-question";
+      else if (type === "answer") className = "block-answer";
+      else if (type === "result") className = "block-result";
+
+      html += `<div class="${className}" style="${style}">${block.text}</div>`;
     }
   });
   return html;
@@ -169,12 +156,10 @@ function render() {
     renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
     return;
   }
-
   if (!current || typeof current.type !== "string") {
     app.innerHTML = `<div style="color:red;">Invalid page data.</div>`;
     return;
   }
-
   let showBack = state.page > 0;
   let nextLabel = "Next";
   if (current.type === "cover") nextLabel = "Start";
@@ -260,12 +245,15 @@ function render() {
     return;
   }
 
-  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
+  // MAIN QUIZ PAGES: render as image+block overlay, fixed to image's display size
+  if (
+    ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
+  ) {
     app.innerHTML = `
-      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="page-content">
-        <div class="content-inner">
-          ${renderBlocks(current.blocks)}
+      <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
+        <div id="img-block-container" style="position:relative;overflow:visible;">
+          <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:100%;height:auto;max-width:96vw;max-height:90vh;" />
+          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -273,6 +261,19 @@ function render() {
         ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
       </div>
     `;
+    const img = $("#quiz-bg-img");
+    img.onload = () => {
+      const displayW = img.width;
+      const displayH = img.height;
+      const scaleX = displayW / DESIGN_WIDTH;
+      const scaleY = displayH / DESIGN_HEIGHT;
+      const overlay = $("#block-overlay-layer");
+      overlay.style.width = displayW + "px";
+      overlay.style.height = displayH + "px";
+      overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY);
+    };
+    if (img.complete) img.onload();
+
     if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
     if (showBack) {
       $("#backBtn").onclick = () => {
@@ -285,7 +286,9 @@ function render() {
         ) {
           state.page = pageSequence.findIndex(p => p.type === "pre-results");
         } else if (current.type === "pre-results") {
-          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+          state.page = pageSequence.findIndex(
+            (p, i) => p.type === "question" && i > 0 && i < pageSequence.length
+          ) + NUM_QUESTIONS - 1;
         } else {
           state.page = Math.max(state.page - 1, 0);
         }
@@ -296,6 +299,5 @@ function render() {
   }
 }
 
-// --- Start by showing the cover page ---
 render();
 window.addEventListener("resize", render);
