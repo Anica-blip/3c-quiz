@@ -292,9 +292,8 @@ function render() {
     return;
   }
 
-  if (current.type === "intro" || current.type === "question" || current.type === "pre-results" ||
-      current.type === "resultA" || current.type === "resultB" || current.type === "resultC" ||
-      current.type === "resultD" || current.type === "thankyou") {
+  // FIX: Render actual blocks for ALL main quiz page types (including intro, results, thank you, etc.)
+  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
