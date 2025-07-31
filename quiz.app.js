@@ -161,16 +161,23 @@ function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
-    // Build style string from JSON attributes if present
+    // Build inline style from JSON attributes
     let style = "";
-    if (block.x !== undefined) style += `left:${block.x}px;position:absolute;`;
-    if (block.y !== undefined) style += `top:${block.y}px;position:absolute;`;
+    if (block.x !== undefined) style += `left:${block.x}px;`;
+    if (block.y !== undefined) style += `top:${block.y}px;`;
     if (block.width !== undefined) style += `width:${block.width}px;`;
     if (block.height !== undefined) style += `height:${block.height}px;`;
+    // Only make position absolute if there is a coordinate
+    if (block.x !== undefined || block.y !== undefined || block.position === "absolute") style += `position:absolute;`;
     if (block.fontSize) style += `font-size:${block.fontSize};`;
     if (block.color) style += `color:${block.color};`;
     if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
     if (block.textAlign) style += `text-align:${block.textAlign};`;
+    if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+    if (block.letterSpacing) style += `letter-spacing:${block.letterSpacing};`;
+    if (block.margin) style += `margin:${block.margin};`;
+    if (block.padding) style += `padding:${block.padding};`;
+    if (block.zIndex) style += `z-index:${block.zIndex};`;
 
     switch (block.type) {
       case "title":
