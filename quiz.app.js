@@ -2,24 +2,56 @@ const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
 // --- GitHub Pages Loader ---
+// The loader fetches quiz from /quizzes folder in your repository
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
 
+  // DEBUG: Log the URL being fetched
+  console.log("[DEBUG] Fetching quiz from URL:", url);
+
   try {
+    console.log("[DEBUG] Sending fetch request...");
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Quiz file not found at: ${url}`);
+    console.log("[DEBUG] Fetch response status:", response.status);
+
+    if (!response.ok) {
+      throw new Error(`Quiz file not found at: ${url}`);
+    }
+
+    console.log("[DEBUG] Reading JSON...");
     const data = await response.json();
+    console.log("[DEBUG] Raw quiz data:", data);
 
     let pages = data.pages;
-    if (typeof pages === "string") pages = JSON.parse(pages);
-    else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) pages = Object.values(pages);
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    } else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) {
+      pages = Object.values(pages);
+    }
+    console.log("[DEBUG] Parsed pages:", pages);
+
+    if (Array.isArray(pages)) {
+      pages.forEach((p, idx) => {
+        if (Array.isArray(p.blocks)) {
+          p.blocks.forEach((block, bidx) => {
+            console.log(`[DEBUG] Page ${idx} Block ${bidx} | type: ${block.type} | text: ${block.text}`);
+          });
+        }
+      });
+    }
 
     let numQuestions = 0;
     if (Array.isArray(pages)) {
       numQuestions = pages.filter(p => {
         if (p.type === "question") return true;
-        if (Array.isArray(p.blocks)) return p.blocks.some(b => b.type === "question");
+        if (Array.isArray(p.blocks)) {
+          return p.blocks.some(b => b.type === "question");
+        }
         return false;
       }).length;
     }
@@ -30,6 +62,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       showResult: data.showResult || "A",
     };
   } catch (err) {
+    console.error("[DEBUG] Error during quiz fetch:", err);
     return { error: err.message || "Unknown error during quiz fetch." };
   }
 }
@@ -104,30 +137,50 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- GENIUS BLOCK RENDERING: scale block coordinates if needed ---
-function renderBlocks(blocks, scale) {
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
+    </div>
+  `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
+  }
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
+  }
+}
+
+// --- MIRROR JSON FORMATTING STRICTLY FOR BLOCKS YOU USE (INCLUDING MARGIN) ---
+function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    // All coordinates and sizes get scaled if scale != 1
-    const sx = scale, sy = scale;
+    // Only mirror these block types
     if (
       type === "title" ||
       type === "description" ||
       type === "desc" ||
       type === "question" ||
-      type === "answer" ||
-      type === "result"
+      type === "answer a" ||
+      type === "answer b" ||
+      type === "answer c" ||
+      type === "answer d"
     ) {
-      if (block.width !== undefined) style += `width:${block.width * sx}px;`;
-      if (block.height !== undefined) style += `height:${block.height * sy}px;`;
-      if (block.x !== undefined) style += `left:${block.x * sx}px;`;
-      if (block.y !== undefined) style += `top:${block.y * sy}px;`;
-      style += `position:absolute;`;
-      if (block.fontSize) style += `font-size:${typeof block.fontSize === "number" ? block.fontSize * sx + "px" : block.fontSize};`;
+      if (block.width !== undefined) style += `width:${block.width}px;`;
+      if (block.height !== undefined) style += `height:${block.height}px;`;
+      if (block.x !== undefined) style += `left:${block.x}px;`;
+      if (block.y !== undefined) style += `top:${block.y}px;`;
+      if (block.x !== undefined || block.y !== undefined) style += `position:absolute;`;
+      if (block.fontSize) style += `font-size:${block.fontSize};`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
       if (block.textAlign) style += `text-align:${block.textAlign};`;
@@ -140,12 +193,16 @@ function renderBlocks(blocks, scale) {
         html += `<div class="block-desc" style="${style}">${block.text}</div>`;
       } else if (type === "question") {
         html += `<div class="block-question" style="${style}">${block.text}</div>`;
-      } else if (type === "answer") {
+      } else if (
+        type === "answer a" ||
+        type === "answer b" ||
+        type === "answer c" ||
+        type === "answer d"
+      ) {
         html += `<div class="block-answer" style="${style}" data-answer="${block.value || block.text}">${block.text}</div>`;
-      } else if (type === "result") {
-        html += `<div class="block-result" style="${style}">${block.text}</div>`;
       }
     }
+    // Ignore all other types
   });
   return html;
 }
@@ -159,74 +216,71 @@ function render() {
     return;
   }
 
-  // --- GENIUS: always same logic for block/image overlay ---
-  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
-    // SCALE = container width / design width (375)
-    const vw = Math.min(window.innerWidth, 450);
-    const scale = vw < 375 ? vw / 375 : 1;
-    const containerW = 375 * scale;
-    const containerH = 600 * scale;
-
-    app.innerHTML = `
-      <div class="fullscreen-centered" style="width:100vw;height:100vh;display:flex;justify-content:center;align-items:flex-start;">
-        <div class="quiz-image-overlay" style="position:relative;width:${containerW}px;height:${containerH}px;">
-          <img class="quiz-bg-img" src="${current.bg}" alt="Quiz background" draggable="false"
-            style="width:${containerW}px;height:${containerH}px;display:block;"/>
-          <div class="block-layer" style="position:absolute;left:0;top:0;width:${containerW}px;height:${containerH}px;pointer-events:none;">
-            ${renderBlocks(current.blocks, scale)}
-          </div>
-        </div>
-      </div>
+  if (!current || typeof current.type !== "string") {
+    let pageNum = state.page + 1;
+    renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
       <div class="fullscreen-bottom">
-        ${state.page > 0 ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${current.type === "pre-results" ? "Get Results" : current.type.startsWith("result") ? "Finish" : "Next"}</button>` : ""}
+        <button class="main-btn" id="nextBtn">Next</button>
+        <button class="main-btn" id="backBtn">Back</button>
       </div>
-    `;
-    if (current.type !== "thankyou") $("#nextBtn").onclick = () => {
-      if (current.type === "pre-results") {
-        if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
-        else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
-        else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
-        else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
-        render();
-        return;
-      } else if (current.type.startsWith("result")) {
-        state.page = pageSequence.findIndex(p => p.type === "thankyou");
-        render();
-        return;
-      } else if (current.type === "thankyou") {
-        return;
-      }
+    `);
+
+    const next = () => {
       state.page = Math.min(state.page + 1, pageSequence.length - 1);
       render();
     };
-    if (state.page > 0) {
-      $("#backBtn").onclick = () => {
-        if (
-          current.type === "thankyou" ||
-          current.type === "resultA" ||
-          current.type === "resultB" ||
-          current.type === "resultC" ||
-          current.type === "resultD"
-        ) {
-          state.page = pageSequence.findIndex(p => p.type === "pre-results");
-        } else if (current.type === "pre-results") {
-          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
-        } else {
-          state.page = Math.max(state.page - 1, 0);
-        }
-        render();
-      };
-    }
+    const back = () => {
+      state.page = Math.max(state.page - 1, 0);
+      render();
+    };
+    document.getElementById("nextBtn").onclick = next;
+    document.getElementById("backBtn").onclick = back;
     return;
   }
+
+  let showBack = state.page > 0;
+  let nextLabel = "Next";
+  if (current.type === "cover") nextLabel = "Start";
+  if (current.type === "pre-results") nextLabel = "Get Results";
+  if (
+    current.type === "resultA" ||
+    current.type === "resultB" ||
+    current.type === "resultC" ||
+    current.type === "resultD"
+  ) {
+    nextLabel = "Finish";
+  }
+
+  let nextAction = () => {
+    if (current.type === "pre-results") {
+      if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
+      else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
+      else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
+      else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
+      render();
+      return;
+    } else if (
+      current.type === "resultA" ||
+      current.type === "resultB" ||
+      current.type === "resultC" ||
+      current.type === "resultD"
+    ) {
+      state.page = pageSequence.findIndex(p => p.type === "thankyou");
+      render();
+      return;
+    } else if (current.type === "thankyou") {
+      return;
+    }
+    state.page = Math.min(state.page + 1, pageSequence.length - 1);
+    render();
+  };
 
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
         <div class="cover-image-container">
           <img class="cover-img" src="${current.bg}" alt="cover"/>
-          <button class="main-btn cover-btn-in-img" id="startBtn">Start</button>
+          <button class="main-btn cover-btn-in-img" id="startBtn">${nextLabel}</button>
         </div>
       </div>
     `;
@@ -235,7 +289,11 @@ function render() {
       const quizUrlParam = getQuizUrlParam();
       if (quizUrlParam) {
         try {
+          console.log("[DEBUG] Attempting to fetch quiz for param:", quizUrlParam);
+
           const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
+
+          console.log("[DEBUG] Loader response:", config);
 
           if (config && config.error) {
             state.quizError = config.error;
@@ -256,6 +314,7 @@ function render() {
             render();
           }
         } catch (err) {
+          console.error("[DEBUG] Error loading quiz from repository:", err);
           state.quizError = err.message || "Error loading quiz from repository.";
           render();
         }
@@ -268,8 +327,44 @@ function render() {
     };
     return;
   }
+
+  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="page-content">
+        <div class="content-inner" style="position:relative;">
+          ${renderBlocks(current.blocks)}
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+      </div>
+    `;
+    if (current.type !== "thankyou") {
+      $("#nextBtn").onclick = nextAction;
+    }
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        if (
+          current.type === "thankyou" ||
+          current.type === "resultA" ||
+          current.type === "resultB" ||
+          current.type === "resultC" ||
+          current.type === "resultD"
+        ) {
+          state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        } else if (current.type === "pre-results") {
+          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+        } else {
+          state.page = Math.max(state.page - 1, 0);
+        }
+        render();
+      };
+    }
+    return;
+  }
 }
 
 // --- Start by showing the cover page ---
 render();
-window.addEventListener("resize", () => render());
