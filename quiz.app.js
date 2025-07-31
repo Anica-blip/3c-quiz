@@ -129,9 +129,29 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-function renderFullscreenBgPage({ bg, button, showBack }) {
+// --- NEW: Renders blocks as HTML for intro, question, etc. ---
+function renderBlocks(blocks) {
+  if (!blocks || !Array.isArray(blocks)) return "";
+  let html = "";
+  blocks.forEach(block => {
+    if (block.type === "title") html += `<h2>${block.text}</h2>`;
+    else if (block.type === "desc") html += `<p>${block.text}</p>`;
+    else if (block.type === "question") html += `<p><strong>${block.text}</strong></p>`;
+    else if (block.type === "answer") html += `<div class="answer-block">${block.text || ""}</div>`;
+    // Add other block types as needed
+  });
+  return html;
+}
+
+// --- PATCH: Pass blocks to renderFullscreenBgPage for intro ---
+function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        ${renderBlocks(blocks)}
+      </div>
+    </div>
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -276,6 +296,7 @@ function render() {
     return;
   }
 
+  // --- PATCH: intro page now renders blocks ---
   if (current.type === "intro") {
     renderFullscreenBgPage({
       bg: current.bg,
@@ -283,7 +304,8 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true
+      showBack: true,
+      blocks: current.blocks
     });
     return;
   }
@@ -310,12 +332,12 @@ function render() {
     return;
   }
 
+  // PATCH: Also render blocks for other standard pages
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        <h2>${current.type.toUpperCase()}</h2>
-        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+        ${renderBlocks(current.blocks)}
       </div>
     </div>
     <div class="fullscreen-bottom">
