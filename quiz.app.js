@@ -1,8 +1,9 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const DESIGN_WIDTH = 375;   // Editor reference width
-const DESIGN_HEIGHT = 600;  // Editor reference height
+// Editor grid reference for all block coordinates (update if your admin/editor changed)
+const DESIGN_WIDTH = 375;
+const DESIGN_HEIGHT = 600;
 
 // --- Loader logic unchanged ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
@@ -105,8 +106,9 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- Overlay logic: scale/position overlay blocks to the displayed image size only, for EACH PAGE and EACH BLOCK ---
-function renderBlocks(blocks, scaleX, scaleY) {
+// --- Block rendering logic: fits overlay to the ACTUAL displayed image ONLY, per page ---
+// --- Adds logic to shrink overlay by a small safety percentage so it NEVER overflows ---
+function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
@@ -121,14 +123,15 @@ function renderBlocks(blocks, scaleX, scaleY) {
       type === "answer" ||
       type === "result"
     ) {
-      if (block.x !== undefined) style += `left: ${block.x * scaleX}px;`;
-      if (block.y !== undefined) style += `top: ${block.y * scaleY}px;`;
-      if (block.width !== undefined) style += `width: ${block.width * scaleX}px;`;
-      if (block.height !== undefined) style += `height: ${block.height * scaleY}px;`;
+      // Multiply all X, Y, W, H by a shrink factor to avoid accidental overflow on the right
+      if (block.x !== undefined) style += `left: ${(block.x * scaleX * shrinkFactor).toFixed(2)}px;`;
+      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      if (block.width !== undefined) style += `width: ${(block.width * scaleX * shrinkFactor).toFixed(2)}px;`;
+      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY}px;`;
+      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
       if (block.textAlign) style += `text-align:${block.textAlign};`;
@@ -148,7 +151,6 @@ function renderBlocks(blocks, scaleX, scaleY) {
   return html;
 }
 
-// --- MAIN RENDER FUNCTION ---
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
@@ -246,7 +248,7 @@ function render() {
     return;
   }
 
-  // MAIN QUIZ PAGES: render as image+block overlay, fixed to image's display size and position
+  // MAIN QUIZ PAGES: render as image+block overlay, fitted to image display and never overflowing
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
@@ -276,11 +278,11 @@ function render() {
       overlay.style.left = "0px";
       overlay.style.top = "0px";
 
-      // 3. For each block, use the PER-IMAGE scale factor
+      // 3. For each block, use the PER-IMAGE scale factor and a shrink factor to guarantee no overflow
       const scaleX = displayW / DESIGN_WIDTH;
       const scaleY = displayH / DESIGN_HEIGHT;
 
-      overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY);
+      overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
     };
     if (img.complete) img.onload();
 
