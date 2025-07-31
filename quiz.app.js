@@ -2,7 +2,7 @@ const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
 const DESIGN_WIDTH = 375;   // The design width (admin/editor grid)
-const DESIGN_HEIGHT = 600;  // The design height
+const DESIGN_HEIGHT = 600;  // The design height (admin/editor grid)
 
 // --- GitHub Pages Loader ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
@@ -107,18 +107,18 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- The key: SCALE and OFFSET all blocks to overlay the image, and force text to wrap within the block ---
+// Calculate image rect and scaling (CSS background-size: contain)
 function getBgImageRect() {
-  // simulate the CSS background-size: contain for .fullscreen-bg
   const vw = window.innerWidth, vh = window.innerHeight;
   const rW = vw / DESIGN_WIDTH, rH = vh / DESIGN_HEIGHT;
   let scale = Math.min(rW, rH);
   let imgW = DESIGN_WIDTH * scale, imgH = DESIGN_HEIGHT * scale;
   let offsetLeft = (vw - imgW) / 2;
   let offsetTop = (vh - imgH) / 2;
-  return { scaleX: scale, scaleY: scale, imgW, imgH, offsetLeft, offsetTop };
+  return { scaleX: scale, scaleY: scale, offsetLeft, offsetTop };
 }
 
+// Render a block with precise x/y/width/height/wrapping per JSON
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   const { scaleX, scaleY, offsetLeft, offsetTop } = getBgImageRect();
@@ -128,6 +128,7 @@ function renderBlocks(blocks) {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
+    // Only block types that need overlay positioning
     if (
       type === "title" ||
       type === "description" ||
@@ -136,14 +137,12 @@ function renderBlocks(blocks) {
       type === "answer" ||
       type === "result"
     ) {
-      // Position absolutely using X/Y, WIDTH/HEIGHT, scaling and offset for each block
       if (block.x !== undefined) style += `left:${offsetLeft + block.x * scaleX}px;`;
       if (block.y !== undefined) style += `top:${offsetTop + block.y * scaleY}px;`;
       if (block.width !== undefined) style += `width:${block.width * scaleX}px;`;
       if (block.height !== undefined) style += `height:${block.height * scaleY}px;`;
-      style += `position:absolute;box-sizing:border-box;`;
-      // --- Essential for text wrapping! ---
-      style += "overflow:hidden;white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+      style += `position:absolute;box-sizing:border-box;overflow:hidden;`;
+      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
       if (block.fontSize) style += `font-size:${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -151,17 +150,16 @@ function renderBlocks(blocks) {
       if (block.margin !== undefined) style += `margin:${block.margin};`;
       if (block.lineHeight) style += `line-height:${block.lineHeight};`;
 
-      if (type === "title") {
+      if (type === "title")
         html += `<div class="block-title" style="${style}">${block.text}</div>`;
-      } else if (type === "description" || type === "desc") {
+      else if (type === "description" || type === "desc")
         html += `<div class="block-desc" style="${style}">${block.text}</div>`;
-      } else if (type === "question") {
+      else if (type === "question")
         html += `<div class="block-question" style="${style}">${block.text}</div>`;
-      } else if (type === "answer") {
+      else if (type === "answer")
         html += `<div class="block-answer" style="${style}" data-answer="${block.value || block.text}">${block.text}</div>`;
-      } else if (type === "result") {
+      else if (type === "result")
         html += `<div class="block-result" style="${style}">${block.text}</div>`;
-      }
     }
   });
   return html;
