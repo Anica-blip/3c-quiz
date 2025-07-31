@@ -156,7 +156,7 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
 }
 
 // --- MIRROR JSON FORMATTING STRICTLY FOR BLOCKS YOU USE (INCLUDING MARGIN) ---
-// FIX: Blocks are rendered inside a 375px-wide centered container matching your image
+// FIX: Each block is absolutely positioned INSIDE a 375px-wide container, coordinates match admin/editor
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
@@ -176,7 +176,7 @@ function renderBlocks(blocks) {
       if (block.height !== undefined) style += `height:${block.height}px;`;
       if (block.x !== undefined) style += `left:${block.x}px;`;
       if (block.y !== undefined) style += `top:${block.y}px;`;
-      if (block.x !== undefined || block.y !== undefined) style += `position:absolute;`;
+      style += `position:absolute;`; // Always absolutely position
       if (block.fontSize) style += `font-size:${block.fontSize};`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -325,7 +325,7 @@ function render() {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
-        <div class="content-inner" style="position:relative; margin:0 auto; width:375px; height:100vh;">
+        <div class="content-inner" style="position:relative; margin:0 auto; width:375px; height:100vh; overflow:hidden;">
           ${renderBlocks(current.blocks)}
         </div>
       </div>
