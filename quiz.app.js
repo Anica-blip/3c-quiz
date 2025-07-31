@@ -3,9 +3,9 @@ const app = $("#app");
 
 // --- GitHub Pages Loader ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
-  // Build the URL to the quiz JSON file
+  // Build the URL to the quiz JSON file in your repository's /quizzes folder
   // Assumes quizUrl is like "quiz.01" and files are in /quizzes/quiz.01.json
-  const repoBase = "https://anica-blip.github.io/3c-quiz/quizzes/";
+  const repoBase = window.location.origin + "/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
 
   try {
