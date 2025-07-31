@@ -35,19 +35,37 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     console.log("[DEBUG] Raw quiz data:", data);
 
     let pages = data.pages;
+    // --- FIX: robustly parse 'pages' whether it's a string or an object ---
     if (typeof pages === "string") {
       try {
         pages = JSON.parse(pages);
       } catch (e) {
         throw new Error("Quiz 'pages' column is not valid JSON.");
       }
+    } else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) {
+      // If some exports mistakenly provide an object, convert to array
+      pages = Object.values(pages);
     }
+
     // DEBUG: Log parsed pages
     console.log("[DEBUG] Parsed pages:", pages);
 
+    // --- FIX: Properly count questions when using block-based pages ---
+    let numQuestions = 0;
+    if (Array.isArray(pages)) {
+      numQuestions = pages.filter(p => {
+        if (p.type === "question") return true;
+        if (Array.isArray(p.blocks)) {
+          // If blocks contain at least one question block, count as a question page
+          return p.blocks.some(b => b.type === "question");
+        }
+        return false;
+      }).length;
+    }
+
     return {
       pages,
-      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      numQuestions,
       showResult: data.showResult || "A",
     };
   } catch (err) {
@@ -129,29 +147,9 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- NEW: Renders blocks as HTML for intro, question, etc. ---
-function renderBlocks(blocks) {
-  if (!blocks || !Array.isArray(blocks)) return "";
-  let html = "";
-  blocks.forEach(block => {
-    if (block.type === "title") html += `<h2>${block.text}</h2>`;
-    else if (block.type === "desc") html += `<p>${block.text}</p>`;
-    else if (block.type === "question") html += `<p><strong>${block.text}</strong></p>`;
-    else if (block.type === "answer") html += `<div class="answer-block">${block.text || ""}</div>`;
-    // Add other block types as needed
-  });
-  return html;
-}
-
-// --- PATCH: Pass blocks to renderFullscreenBgPage for intro ---
-function renderFullscreenBgPage({ bg, button, showBack, blocks }) {
+function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
-    <div class="page-content">
-      <div class="content-inner">
-        ${renderBlocks(blocks)}
-      </div>
-    </div>
     <div class="fullscreen-bottom">
       ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
       ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
@@ -269,7 +267,7 @@ function render() {
           if (config && Array.isArray(config.pages) && config.pages.length > 0) {
             config.pages = autoFixPages(config.pages);
             pageSequence = config.pages;
-            NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+            NUM_QUESTIONS = config.numQuestions; // <-- FIX: Use numQuestions calculated in loader
             SHOW_RESULT = config.showResult || SHOW_RESULT;
             state.page = 1; // Move to first real page after cover
             state.quizLoaded = true;
@@ -296,7 +294,6 @@ function render() {
     return;
   }
 
-  // --- PATCH: intro page now renders blocks ---
   if (current.type === "intro") {
     renderFullscreenBgPage({
       bg: current.bg,
@@ -304,8 +301,7 @@ function render() {
         state.page++;
         render();
       }},
-      showBack: true,
-      blocks: current.blocks
+      showBack: true
     });
     return;
   }
@@ -332,12 +328,12 @@ function render() {
     return;
   }
 
-  // PATCH: Also render blocks for other standard pages
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
     <div class="page-content">
       <div class="content-inner">
-        ${renderBlocks(current.blocks)}
+        <h2>${current.type.toUpperCase()}</h2>
+        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
       </div>
     </div>
     <div class="fullscreen-bottom">
