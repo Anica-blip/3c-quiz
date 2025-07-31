@@ -156,7 +156,7 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
-// --- MIRROR JSON FORMATTING STRICTLY FOR SPECIFIC BLOCK TYPES ---
+// --- MIRROR JSON FORMATTING STRICTLY FOR BLOCKS YOU USE (INCLUDING MARGIN) ---
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
@@ -164,7 +164,7 @@ function renderBlocks(blocks) {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    // Mirror ONLY for these 7 types, using W x H, X x Y, fontSize, color
+    // Only mirror these block types
     if (
       type === "title" ||
       type === "description" ||
@@ -177,10 +177,15 @@ function renderBlocks(blocks) {
     ) {
       if (block.width !== undefined) style += `width:${block.width}px;`;
       if (block.height !== undefined) style += `height:${block.height}px;`;
-      if (block.x !== undefined) style += `left:${block.x}px;position:absolute;`;
-      if (block.y !== undefined) style += `top:${block.y}px;position:absolute;`;
+      if (block.x !== undefined) style += `left:${block.x}px;`;
+      if (block.y !== undefined) style += `top:${block.y}px;`;
+      if (block.x !== undefined || block.y !== undefined) style += `position:absolute;`;
       if (block.fontSize) style += `font-size:${block.fontSize};`;
       if (block.color) style += `color:${block.color};`;
+      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+      if (block.textAlign) style += `text-align:${block.textAlign};`;
+      if (block.margin !== undefined) style += `margin:${block.margin};`;
+      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
 
       if (type === "title") {
         html += `<div class="block-title" style="${style}">${block.text}</div>`;
