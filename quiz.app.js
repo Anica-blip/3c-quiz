@@ -8,12 +8,30 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
 
+  // DEBUG: Log the URL being fetched
+  console.log("[DEBUG] Fetching quiz from URL:", url);
+
   try {
+    // DEBUG: Log before sending fetch
+    console.log("[DEBUG] Sending fetch request...");
+
     const response = await fetch(url);
+
+    // DEBUG: Log the response status
+    console.log("[DEBUG] Fetch response status:", response.status);
+
     if (!response.ok) {
       throw new Error(`Quiz file not found at: ${url}`);
     }
+
+    // DEBUG: Log before reading JSON
+    console.log("[DEBUG] Reading JSON...");
+
     const data = await response.json();
+
+    // DEBUG: Log the raw data
+    console.log("[DEBUG] Raw quiz data:", data);
+
     let pages = data.pages;
     if (typeof pages === "string") {
       try {
@@ -22,12 +40,17 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
         throw new Error("Quiz 'pages' column is not valid JSON.");
       }
     }
+    // DEBUG: Log parsed pages
+    console.log("[DEBUG] Parsed pages:", pages);
+
     return {
       pages,
       numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
       showResult: data.showResult || "A",
     };
   } catch (err) {
+    // DEBUG: Log error
+    console.error("[DEBUG] Error during quiz fetch:", err);
     return { error: err.message || "Unknown error during quiz fetch." };
   }
 }
@@ -208,7 +231,14 @@ function render() {
       const quizUrlParam = getQuizUrlParam();
       if (quizUrlParam) {
         try {
+          // DEBUG: Log that we're about to fetch the quiz
+          console.log("[DEBUG] Attempting to fetch quiz for param:", quizUrlParam);
+
           const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
+
+          // DEBUG: Log response from loader
+          console.log("[DEBUG] Loader response:", config);
+
           if (config && config.error) {
             state.quizError = config.error;
             render();
@@ -228,6 +258,8 @@ function render() {
             render();
           }
         } catch (err) {
+          // DEBUG: Log fetch error
+          console.error("[DEBUG] Error loading quiz from repository:", err);
           state.quizError = err.message || "Error loading quiz from repository.";
           render();
         }
