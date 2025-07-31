@@ -2,7 +2,6 @@ const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
 // --- GitHub Pages Loader ---
-// The loader fetches quiz from /quizzes folder in your repository
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -157,9 +156,19 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
 }
 
 // --- MIRROR JSON FORMATTING STRICTLY FOR BLOCKS YOU USE (INCLUDING MARGIN) ---
+// *** THIS FUNCTION NOW CENTERS BLOCKS RELATIVE TO THE VISIBLE IMAGE ON DESKTOP ***
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
+
+  // Calculate offset for centering blocks relative to the background image
+  // Assume your design is 375px wide (adjust if your admin/editor uses a different width)
+  const DESIGN_WIDTH = 375;
+  const vw = window.innerWidth;
+  const isMobile = vw <= 600;
+  // On desktop, center the design: offset = (vw - DESIGN_WIDTH) / 2; on mobile, offset = 0
+  const offsetX = isMobile ? 0 : Math.max(0, Math.floor((vw - DESIGN_WIDTH) / 2));
+
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
@@ -170,12 +179,13 @@ function renderBlocks(blocks) {
       type === "description" ||
       type === "desc" ||
       type === "question" ||
-      type === "answer" || // Accepts 'answer' as the type (JSON does not use answer a/b/c/d, just "answer")
+      type === "answer" ||
       type === "result"
     ) {
+      // NOTE: left coordinate is adjusted by offsetX to center blocks on desktop
       if (block.width !== undefined) style += `width:${block.width}px;`;
       if (block.height !== undefined) style += `height:${block.height}px;`;
-      if (block.x !== undefined) style += `left:${block.x}px;`;
+      if (block.x !== undefined) style += `left:${block.x + offsetX}px;`;
       if (block.y !== undefined) style += `top:${block.y}px;`;
       if (block.x !== undefined || block.y !== undefined) style += `position:absolute;`;
       if (block.fontSize) style += `font-size:${block.fontSize};`;
