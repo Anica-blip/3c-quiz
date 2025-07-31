@@ -1,10 +1,9 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const DESIGN_WIDTH = 375;   // The design width (admin/editor grid)
-const DESIGN_HEIGHT = 600;  // The design height (admin/editor grid)
+const DESIGN_WIDTH = 375;
+const DESIGN_HEIGHT = 600;
 
-// --- GitHub Pages Loader ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -107,7 +106,6 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// Calculate image rect and scaling (CSS background-size: contain)
 function getBgImageRect() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const rW = vw / DESIGN_WIDTH, rH = vh / DESIGN_HEIGHT;
@@ -118,7 +116,6 @@ function getBgImageRect() {
   return { scaleX: scale, scaleY: scale, offsetLeft, offsetTop };
 }
 
-// Render a block with precise x/y/width/height/wrapping per JSON
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   const { scaleX, scaleY, offsetLeft, offsetTop } = getBgImageRect();
@@ -128,7 +125,6 @@ function renderBlocks(blocks) {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    // Only block types that need overlay positioning
     if (
       type === "title" ||
       type === "description" ||
@@ -265,7 +261,6 @@ function render() {
   }
 
   if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
-    // Renders the background image as a CSS background, and overlays the blocks (now scaled+offset)
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
