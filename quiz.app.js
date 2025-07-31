@@ -4,9 +4,6 @@ const app = $("#app");
 // --- GitHub Pages Loader ---
 // The loader fetches quiz from /quizzes folder in your repository
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
-  // Build the URL to the quiz JSON file in your repository's /quizzes folder (under /3c-quiz/quizzes/)
-  // Assumes quizUrl is like "quiz.01" and files are in /quizzes/quiz.01.json
-  // This is correct for your published site at /3c-quiz/
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
 
@@ -14,28 +11,19 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   console.log("[DEBUG] Fetching quiz from URL:", url);
 
   try {
-    // DEBUG: Log before sending fetch
     console.log("[DEBUG] Sending fetch request...");
-
     const response = await fetch(url);
-
-    // DEBUG: Log the response status
     console.log("[DEBUG] Fetch response status:", response.status);
 
     if (!response.ok) {
       throw new Error(`Quiz file not found at: ${url}`);
     }
 
-    // DEBUG: Log before reading JSON
     console.log("[DEBUG] Reading JSON...");
-
     const data = await response.json();
-
-    // DEBUG: Log the raw data
     console.log("[DEBUG] Raw quiz data:", data);
 
     let pages = data.pages;
-    // --- FIX: robustly parse 'pages' whether it's a string or an object ---
     if (typeof pages === "string") {
       try {
         pages = JSON.parse(pages);
@@ -43,14 +31,10 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
         throw new Error("Quiz 'pages' column is not valid JSON.");
       }
     } else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) {
-      // If some exports mistakenly provide an object, convert to array
       pages = Object.values(pages);
     }
-
-    // DEBUG: Log parsed pages
     console.log("[DEBUG] Parsed pages:", pages);
 
-    // --- DEBUG: Log all blocks for each page ---
     if (Array.isArray(pages)) {
       pages.forEach((p, idx) => {
         if (Array.isArray(p.blocks)) {
@@ -61,13 +45,11 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       });
     }
 
-    // --- FIX: Properly count questions when using block-based pages ---
     let numQuestions = 0;
     if (Array.isArray(pages)) {
       numQuestions = pages.filter(p => {
         if (p.type === "question") return true;
         if (Array.isArray(p.blocks)) {
-          // If blocks contain at least one question block, count as a question page
           return p.blocks.some(b => b.type === "question");
         }
         return false;
@@ -80,7 +62,6 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       showResult: data.showResult || "A",
     };
   } catch (err) {
-    // DEBUG: Log error
     console.error("[DEBUG] Error during quiz fetch:", err);
     return { error: err.message || "Unknown error during quiz fetch." };
   }
@@ -115,9 +96,7 @@ let state = {
   quizError: ""
 };
 
-// --- Loader: ONLY fetch from repo if quizUrl param is present ---
 function getQuizUrlParam() {
-  // Get the value of quizUrl from the query string, e.g. ?quizUrl=quiz.01
   const params = new URLSearchParams(window.location.search);
   return params.get("quizUrl");
 }
@@ -177,11 +156,25 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
+// --- NEW: renderBlocks will output the actual text from your JSON blocks ---
+function renderBlocks(blocks) {
+  if (!Array.isArray(blocks)) return "";
+  let html = "";
+  blocks.forEach(block => {
+    if (block.type === "title") html += `<h2>${block.text}</h2>`;
+    else if (block.type === "desc") html += `<p>${block.text}</p>`;
+    else if (block.type === "question") html += `<div class="question">${block.text}</div>`;
+    else if (block.type === "answer") html += `<div class="answer">${block.text}</div>`;
+    else if (block.type === "result") html += `<div class="result">${block.text}</div>`;
+    else html += `<div>${block.text}</div>`;
+  });
+  return html;
+}
+
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
-  // --- If fetch failed, show error screen and prevent navigation ---
   if (state.quizError) {
     renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
     return;
@@ -255,19 +248,15 @@ function render() {
         </div>
       </div>
     `;
-    // --- Loader triggers ONLY on Start button ---
     $("#startBtn").onclick = async () => {
       $("#startBtn").disabled = true;
-      // If quizUrl param exists, try to fetch from repo
       const quizUrlParam = getQuizUrlParam();
       if (quizUrlParam) {
         try {
-          // DEBUG: Log that we're about to fetch the quiz
           console.log("[DEBUG] Attempting to fetch quiz for param:", quizUrlParam);
 
           const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
 
-          // DEBUG: Log response from loader
           console.log("[DEBUG] Loader response:", config);
 
           if (config && config.error) {
@@ -278,9 +267,9 @@ function render() {
           if (config && Array.isArray(config.pages) && config.pages.length > 0) {
             config.pages = autoFixPages(config.pages);
             pageSequence = config.pages;
-            NUM_QUESTIONS = config.numQuestions; // <-- FIX: Use numQuestions calculated in loader
+            NUM_QUESTIONS = config.numQuestions;
             SHOW_RESULT = config.showResult || SHOW_RESULT;
-            state.page = 1; // Move to first real page after cover
+            state.page = 1;
             state.quizLoaded = true;
             state.quizError = "";
             render();
@@ -289,14 +278,12 @@ function render() {
             render();
           }
         } catch (err) {
-          // DEBUG: Log fetch error
           console.error("[DEBUG] Error loading quiz from repository:", err);
           state.quizError = err.message || "Error loading quiz from repository.";
           render();
         }
       } else {
-        // No quizUrl param, proceed with original hardcoded quiz
-        state.page = 1; // Go to intro of original quiz
+        state.page = 1;
         state.quizLoaded = true;
         state.quizError = "";
         render();
@@ -305,72 +292,43 @@ function render() {
     return;
   }
 
-  if (current.type === "intro") {
-    renderFullscreenBgPage({
-      bg: current.bg,
-      button: { label: "Continue", id: "mainBtn", onClick: () => {
-        state.page++;
-        render();
-      }},
-      showBack: true
-    });
-    return;
-  }
-
-  if (current.type === "thankyou") {
+  if (current.type === "intro" || current.type === "question" || current.type === "pre-results" ||
+      current.type === "resultA" || current.type === "resultB" || current.type === "resultC" ||
+      current.type === "resultD" || current.type === "thankyou") {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
         <div class="content-inner">
-          <h2>${current.type.toUpperCase()}</h2>
-          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+          ${renderBlocks(current.blocks)}
         </div>
       </div>
       <div class="fullscreen-bottom">
         ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
       </div>
     `;
+    if (current.type !== "thankyou") {
+      $("#nextBtn").onclick = nextAction;
+    }
     if (showBack) {
       $("#backBtn").onclick = () => {
-        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        if (
+          current.type === "thankyou" ||
+          current.type === "resultA" ||
+          current.type === "resultB" ||
+          current.type === "resultC" ||
+          current.type === "resultD"
+        ) {
+          state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        } else if (current.type === "pre-results") {
+          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+        } else {
+          state.page = Math.max(state.page - 1, 0);
+        }
         render();
       };
     }
     return;
-  }
-
-  app.innerHTML = `
-    <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-    <div class="page-content">
-      <div class="content-inner">
-        <h2>${current.type.toUpperCase()}</h2>
-        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
-      </div>
-    </div>
-    <div class="fullscreen-bottom">
-      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-      <button class="main-btn" id="nextBtn">${nextLabel}</button>
-    </div>
-  `;
-
-  $("#nextBtn").onclick = nextAction;
-  if (showBack) {
-    $("#backBtn").onclick = () => {
-      if (
-        current.type === "thankyou" ||
-        current.type === "resultA" ||
-        current.type === "resultB" ||
-        current.type === "resultC" ||
-        current.type === "resultD"
-      ) {
-        state.page = pageSequence.findIndex(p => p.type === "pre-results");
-      } else if (current.type === "pre-results") {
-        state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
-      } else {
-        state.page = Math.max(state.page - 1, 0);
-      }
-      render();
-    };
   }
 }
 
