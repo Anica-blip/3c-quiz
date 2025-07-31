@@ -156,17 +156,41 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
-// --- NEW: renderBlocks will output the actual text from your JSON blocks ---
+// --- MIRROR CHANGES: render blocks with full editor structure and formatting ---
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
-    if (block.type === "title") html += `<h2>${block.text}</h2>`;
-    else if (block.type === "desc") html += `<p>${block.text}</p>`;
-    else if (block.type === "question") html += `<div class="question">${block.text}</div>`;
-    else if (block.type === "answer") html += `<div class="answer">${block.text}</div>`;
-    else if (block.type === "result") html += `<div class="result">${block.text}</div>`;
-    else html += `<div>${block.text}</div>`;
+    // If your JSON contains x/y/width/height/font/color attributes, use them here
+    let style = "";
+    if (block.x !== undefined) style += `left:${block.x}px;position:absolute;`;
+    if (block.y !== undefined) style += `top:${block.y}px;position:absolute;`;
+    if (block.width !== undefined) style += `width:${block.width}px;`;
+    if (block.height !== undefined) style += `height:${block.height}px;`;
+    if (block.fontSize) style += `font-size:${block.fontSize};`;
+    if (block.color) style += `color:${block.color};`;
+    if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+    if (block.textAlign) style += `text-align:${block.textAlign};`;
+
+    switch (block.type) {
+      case "title":
+        html += `<div class="block-title" style="${style}">${block.text}</div>`;
+        break;
+      case "desc":
+        html += `<div class="block-desc" style="${style}">${block.text}</div>`;
+        break;
+      case "question":
+        html += `<div class="block-question" style="${style}">${block.text}</div>`;
+        break;
+      case "answer":
+        html += `<div class="block-answer" style="${style}" data-answer="${block.value || block.text}">${block.text}</div>`;
+        break;
+      case "result":
+        html += `<div class="block-result" style="${style}">${block.text}</div>`;
+        break;
+      default:
+        html += `<div class="block-generic" style="${style}">${block.text}</div>`;
+    }
   });
   return html;
 }
@@ -292,12 +316,11 @@ function render() {
     return;
   }
 
-  // FIX: Render actual blocks for ALL main quiz page types (including intro, results, thank you, etc.)
   if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
     app.innerHTML = `
       <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
       <div class="page-content">
-        <div class="content-inner">
+        <div class="content-inner" style="position:relative;">
           ${renderBlocks(current.blocks)}
         </div>
       </div>
