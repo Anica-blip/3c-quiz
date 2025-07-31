@@ -90,31 +90,58 @@ html, body {
   background-color: #12093b;
 }
 
-/* FIX: Ensure page content is above background */
+/* FIX: ABSOLUTE LAYER for quiz blocks */
 .page-content {
-  position: relative;
-  z-index: 2;
+  position: absolute; /* CHANGED from relative to absolute */
+  left: 0;
+  top: 0;
   width: 100vw;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  height: 100vh;
+  z-index: 2;
+  pointer-events: none; /* So buttons below work; you can override per block */
 }
 
 .content-inner {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 2em 1.2em 0 1.2em;
-  background: rgba(18, 9, 59, 0.38); /* Optional: add translucent box for contrast */
-  border-radius: 1em;
+  position: absolute;
+  left: 0; top: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
   box-sizing: border-box;
   color: #fff;
+  z-index: 2;
+  pointer-events: none;
 }
 
+/* Make quiz blocks respect pointer events and render as overlay */
+.block-title,
+.block-desc,
+.block-question,
+.block-answer,
+.block-result {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: auto;
+  background: none;
+  border: none;
+  /* font and color are set via inline style from JS */
+  overflow: hidden;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.block-title { font-weight: bold; }
+.block-desc { font-style: normal; }
+.block-question { }
+.block-answer { cursor: pointer; }
+.block-result { font-weight: bold; }
+
+/* .result-vertical etc... remains unchanged */
 .result-vertical {
   position: absolute;
   left: 0; right: 0;
@@ -147,7 +174,6 @@ html, body {
   gap: 0.5em;
 }
 
-/* New: Cover page button centered at bottom with spacing above */
 .cover-btn-outer {
   position: absolute;
   left: 0; right: 0; bottom: 10vh;
@@ -165,7 +191,6 @@ html, body {
   display: block;
 }
 
-/* New: Back arrow button for all pages except cover */
 .back-arrow-btn {
   background: none;
   border: none;
@@ -185,7 +210,6 @@ html, body {
   color: #fff;
 }
 
-/* For legacy bottom back button, keep for backward compatibility */
 .back-btn.bottom {
   position: absolute;
   left: 1.8em;
@@ -209,7 +233,6 @@ html, body {
   opacity: 1;
 }
 
-/* Responsive adjustments for mobile */
 @media (max-width: 600px) {
   .cover-img {
     max-width: 98vw;
