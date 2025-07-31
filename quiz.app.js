@@ -1,8 +1,8 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const DESIGN_WIDTH = 375;   // Editor's intended image width
-const DESIGN_HEIGHT = 600;  // Editor's intended image height
+const DESIGN_WIDTH = 375;   // The design width (admin/editor grid)
+const DESIGN_HEIGHT = 600;  // The design height
 
 // --- GitHub Pages Loader ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
@@ -91,14 +91,43 @@ function autoFixPages(pages) {
   });
 }
 
-// --- GENIUS BLOCK RENDERING: scale block coordinates to fit the bg image ---
-function renderBlocks(blocks, scale) {
+function renderErrorScreen(extra = "") {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-color:#111"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        <h2>Error: No page data</h2>
+        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your quiz data.</p>
+        ${extra}
+        <div class="fullscreen-bottom">
+          <button class="main-btn" onclick="window.location.reload()">Reload</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// --- The key: SCALE and OFFSET all blocks to overlay the image ---
+function getBgImageRect() {
+  // simulate the CSS background-size: contain for .fullscreen-bg
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const rW = vw / DESIGN_WIDTH, rH = vh / DESIGN_HEIGHT;
+  let scale = Math.min(rW, rH);
+  let imgW = DESIGN_WIDTH * scale, imgH = DESIGN_HEIGHT * scale;
+  let offsetLeft = (vw - imgW) / 2;
+  let offsetTop = (vh - imgH) / 2;
+  return { scaleX: scale, scaleY: scale, imgW, imgH, offsetLeft, offsetTop };
+}
+
+function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
+  const { scaleX, scaleY, offsetLeft, offsetTop } = getBgImageRect();
   let html = "";
 
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
+
     if (
       type === "title" ||
       type === "description" ||
@@ -107,12 +136,12 @@ function renderBlocks(blocks, scale) {
       type === "answer" ||
       type === "result"
     ) {
-      if (block.width !== undefined) style += `width:${block.width * scale}px;`;
-      if (block.height !== undefined) style += `height:${block.height * scale}px;`;
-      if (block.x !== undefined) style += `left:${block.x * scale}px;`;
-      if (block.y !== undefined) style += `top:${block.y * scale}px;`;
+      if (block.width !== undefined) style += `width:${block.width * scaleX}px;`;
+      if (block.height !== undefined) style += `height:${block.height * scaleY}px;`;
+      if (block.x !== undefined) style += `left:${offsetLeft + block.x * scaleX}px;`;
+      if (block.y !== undefined) style += `top:${offsetTop + block.y * scaleY}px;`;
       style += `position:absolute;`;
-      if (block.fontSize) style += `font-size:${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scale}px;`;
+      if (block.fontSize) style += `font-size:${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
       if (block.textAlign) style += `text-align:${block.textAlign};`;
@@ -140,7 +169,7 @@ function render() {
   const current = pageSequence[state.page];
 
   if (state.quizError) {
-    app.innerHTML = `<div style="color:red;padding:2em;">${state.quizError}</div>`;
+    renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
     return;
   }
 
@@ -185,52 +214,6 @@ function render() {
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
     render();
   };
-
-  // --- FIX: use <img> and overlay block-layer absolutely on top ---
-  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
-    // Calculate scale to fit screen (keep aspect ratio)
-    const maxW = Math.min(window.innerWidth, 500);
-    const maxH = Math.min(window.innerHeight, 900);
-    const scale = Math.min(maxW / DESIGN_WIDTH, maxH / DESIGN_HEIGHT, 1);
-
-    const imgW = DESIGN_WIDTH * scale;
-    const imgH = DESIGN_HEIGHT * scale;
-
-    app.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;">
-        <div style="position:relative;width:${imgW}px;height:${imgH}px;">
-          <img src="${current.bg}" alt="bg" style="width:${imgW}px;height:${imgH}px;display:block;"/>
-          <div style="position:absolute;left:0;top:0;width:${imgW}px;height:${imgH}px;pointer-events:none;">
-            ${renderBlocks(current.blocks, scale)}
-          </div>
-        </div>
-      </div>
-      <div class="fullscreen-bottom">
-        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
-      </div>
-    `;
-    if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
-    if (showBack) {
-      $("#backBtn").onclick = () => {
-        if (
-          current.type === "thankyou" ||
-          current.type === "resultA" ||
-          current.type === "resultB" ||
-          current.type === "resultC" ||
-          current.type === "resultD"
-        ) {
-          state.page = pageSequence.findIndex(p => p.type === "pre-results");
-        } else if (current.type === "pre-results") {
-          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
-        } else {
-          state.page = Math.max(state.page - 1, 0);
-        }
-        render();
-      };
-    }
-    return;
-  }
 
   if (current.type === "cover") {
     app.innerHTML = `
@@ -279,8 +262,44 @@ function render() {
     };
     return;
   }
+
+  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
+    // Renders the background image as a CSS background, and overlays the blocks (now scaled+offset)
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="page-content">
+        <div class="content-inner">
+          ${renderBlocks(current.blocks)}
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+      </div>
+    `;
+    if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        if (
+          current.type === "thankyou" ||
+          current.type === "resultA" ||
+          current.type === "resultB" ||
+          current.type === "resultC" ||
+          current.type === "resultD"
+        ) {
+          state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        } else if (current.type === "pre-results") {
+          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+        } else {
+          state.page = Math.max(state.page - 1, 0);
+        }
+        render();
+      };
+    }
+    return;
+  }
 }
 
 // --- Start by showing the cover page ---
 render();
-window.addEventListener("resize", () => render());
+window.addEventListener("resize", render);
