@@ -50,6 +50,17 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     // DEBUG: Log parsed pages
     console.log("[DEBUG] Parsed pages:", pages);
 
+    // --- DEBUG: Log all blocks for each page ---
+    if (Array.isArray(pages)) {
+      pages.forEach((p, idx) => {
+        if (Array.isArray(p.blocks)) {
+          p.blocks.forEach((block, bidx) => {
+            console.log(`[DEBUG] Page ${idx} Block ${bidx} | type: ${block.type} | text: ${block.text}`);
+          });
+        }
+      });
+    }
+
     // --- FIX: Properly count questions when using block-based pages ---
     let numQuestions = 0;
     if (Array.isArray(pages)) {
