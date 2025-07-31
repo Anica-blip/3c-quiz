@@ -1,8 +1,8 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const DESIGN_WIDTH = 375;   // Admin/editor design width
-const DESIGN_HEIGHT = 600;  // Admin/editor design height
+const DESIGN_WIDTH = 375;   // Editor reference width for all block coordinates
+const DESIGN_HEIGHT = 600;  // Editor reference height for all block coordinates
 
 // --- GitHub Pages Loader ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
@@ -105,7 +105,7 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- Overlay logic: scale/position overlay blocks to the displayed image size only ---
+// --- Overlay logic: scale/position overlay blocks to the displayed image size only, for EACH PAGE and EACH BLOCK ---
 function renderBlocks(blocks, scaleX, scaleY) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
@@ -113,6 +113,7 @@ function renderBlocks(blocks, scaleX, scaleY) {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
+    // For every block on every page, use PRECISE, SCALED coordinates for that image:
     if (
       type === "title" ||
       type === "description" ||
@@ -127,6 +128,7 @@ function renderBlocks(blocks, scaleX, scaleY) {
       if (block.height !== undefined) style += `height: ${block.height * scaleY}px;`;
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
+      // ENFORCE text wraps strictly within width; NO overflow
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
       if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY}px;`;
       if (block.color) style += `color:${block.color};`;
@@ -265,6 +267,7 @@ function render() {
     img.onload = () => {
       const displayW = img.width;
       const displayH = img.height;
+      // IMPORTANT: All block coordinates are scaled to the ACTUAL image size
       const scaleX = displayW / DESIGN_WIDTH;
       const scaleY = displayH / DESIGN_HEIGHT;
       const overlay = $("#block-overlay-layer");
