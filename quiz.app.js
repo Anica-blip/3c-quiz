@@ -1,41 +1,19 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-// --- SUPABASE INITIALIZATION ---
-const SUPABASE_URL = "https://cgxjqsbrditbteqhdyus.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneGpxc2JyZGl0YnRlcWhkeXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMTY1ODEsImV4cCI6MjA2NjY5MjU4MX0.xUDy5ic-r52kmRtocdcW8Np9-lczjMZ6YKPXc03rIG4";
+// --- GitHub Pages Loader ---
+async function fetchQuizFromRepoByQuizUrl(quizUrl) {
+  // Build the URL to the quiz JSON file
+  // Assumes quizUrl is like "quiz.01" and files are in /quizzes/quiz.01.json
+  const repoBase = "https://anica-blip.github.io/3c-quiz/quizzes/";
+  const url = `${repoBase}${quizUrl}.json`;
 
-function loadSupabaseClient() {
-  if (window.supabase) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-let supabase;
-async function initSupabase() {
-  await loadSupabaseClient();
-  if (!window.supabase) throw new Error('Supabase JS failed to load');
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
-
-// --- ONLY use quiz_app_url column for fetch ---
-async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
   try {
-    await initSupabase();
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('quiz_app_url', quizAppUrl)
-      .limit(1)
-      .maybeSingle();
-
-    if (!data) return null;
-
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Quiz file not found at: ${url}`);
+    }
+    const data = await response.json();
     let pages = data.pages;
     if (typeof pages === "string") {
       try {
@@ -47,10 +25,10 @@ async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
     return {
       pages,
       numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
-      showResult: "A",
+      showResult: data.showResult || "A",
     };
   } catch (err) {
-    return { error: err.message || "Unknown error during Supabase fetch." };
+    return { error: err.message || "Unknown error during quiz fetch." };
   }
 }
 
@@ -83,10 +61,11 @@ let state = {
   quizError: ""
 };
 
-// --- Loader: ONLY fetch from Supabase if quizUrl param is present ---
-function getQuizAppUrl() {
-  const quizAppUrl = window.location.href;
-  return quizAppUrl;
+// --- Loader: ONLY fetch from repo if quizUrl param is present ---
+function getQuizUrlParam() {
+  // Get the value of quizUrl from the query string, e.g. ?quizUrl=quiz.01
+  const params = new URLSearchParams(window.location.search);
+  return params.get("quizUrl");
 }
 
 function autoFixPages(pages) {
@@ -115,7 +94,7 @@ function renderErrorScreen(extra = "") {
     <div class="page-content">
       <div class="content-inner">
         <h2>Error: No page data</h2>
-        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
+        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your quiz data.</p>
         ${extra}
         <div class="fullscreen-bottom">
           <button class="main-btn" onclick="window.location.reload()">Reload</button>
@@ -225,11 +204,11 @@ function render() {
     // --- Loader triggers ONLY on Start button ---
     $("#startBtn").onclick = async () => {
       $("#startBtn").disabled = true;
-      // If quizUrl param exists, try Supabase fetch
-      if (window.location.search.includes("quizUrl=")) {
-        let quizAppUrl = getQuizAppUrl();
+      // If quizUrl param exists, try to fetch from repo
+      const quizUrlParam = getQuizUrlParam();
+      if (quizUrlParam) {
         try {
-          const config = await fetchQuizFromSupabaseByAppUrl(quizAppUrl);
+          const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
           if (config && config.error) {
             state.quizError = config.error;
             render();
@@ -245,11 +224,11 @@ function render() {
             state.quizError = "";
             render();
           } else {
-            state.quizError = "No quiz data loaded from Supabase!";
+            state.quizError = "No quiz data loaded from repository!";
             render();
           }
         } catch (err) {
-          state.quizError = err.message || "Error loading quiz from Supabase.";
+          state.quizError = err.message || "Error loading quiz from repository.";
           render();
         }
       } else {
