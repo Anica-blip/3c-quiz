@@ -156,12 +156,12 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
-// --- MIRROR CHANGES: render blocks with full editor structure and formatting ---
+// --- MIRROR JSON FORMATTING FOR BLOCKS ---
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
-    // If your JSON contains x/y/width/height/font/color attributes, use them here
+    // Build style string from JSON attributes if present
     let style = "";
     if (block.x !== undefined) style += `left:${block.x}px;position:absolute;`;
     if (block.y !== undefined) style += `top:${block.y}px;position:absolute;`;
