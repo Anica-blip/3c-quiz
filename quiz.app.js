@@ -155,15 +155,14 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
-// --- MIRROR JSON FORMATTING STRICTLY FOR BLOCKS YOU USE (INCLUDING MARGIN) ---
-// FIX: Each block is absolutely positioned INSIDE a 375px-wide container, coordinates match admin/editor
+// --- BLOCK RENDERING ---
+// Overlay blocks are rendered inside a 375px x 600px (or image height) parent, absolutely positioned over the image.
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
-
     if (
       type === "title" ||
       type === "description" ||
@@ -268,6 +267,47 @@ function render() {
     render();
   };
 
+  // -- FIX: Render image and overlay in sync as in your admin/editor
+  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
+    app.innerHTML = `
+      <div class="fullscreen-centered">
+        <div class="quiz-image-overlay">
+          <img class="quiz-bg-img" src="${current.bg}" alt="Quiz background" draggable="false"/>
+          <div class="block-layer">
+            ${renderBlocks(current.blocks)}
+          </div>
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+      </div>
+    `;
+    if (current.type !== "thankyou") {
+      $("#nextBtn").onclick = nextAction;
+    }
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        if (
+          current.type === "thankyou" ||
+          current.type === "resultA" ||
+          current.type === "resultB" ||
+          current.type === "resultC" ||
+          current.type === "resultD"
+        ) {
+          state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        } else if (current.type === "pre-results") {
+          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+        } else {
+          state.page = Math.max(state.page - 1, 0);
+        }
+        render();
+      };
+    }
+    return;
+  }
+
+  // Cover page is unchanged
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
@@ -318,43 +358,6 @@ function render() {
         render();
       }
     };
-    return;
-  }
-
-  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
-    app.innerHTML = `
-      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="page-content">
-        <div class="content-inner" style="position:relative; margin:0 auto; width:375px; height:100vh; overflow:hidden;">
-          ${renderBlocks(current.blocks)}
-        </div>
-      </div>
-      <div class="fullscreen-bottom">
-        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
-      </div>
-    `;
-    if (current.type !== "thankyou") {
-      $("#nextBtn").onclick = nextAction;
-    }
-    if (showBack) {
-      $("#backBtn").onclick = () => {
-        if (
-          current.type === "thankyou" ||
-          current.type === "resultA" ||
-          current.type === "resultB" ||
-          current.type === "resultC" ||
-          current.type === "resultD"
-        ) {
-          state.page = pageSequence.findIndex(p => p.type === "pre-results");
-        } else if (current.type === "pre-results") {
-          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
-        } else {
-          state.page = Math.max(state.page - 1, 0);
-        }
-        render();
-      };
-    }
     return;
   }
 }
