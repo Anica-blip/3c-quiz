@@ -2,7 +2,6 @@ const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
 // --- GitHub Pages Loader ---
-// The loader fetches quiz from /quizzes folder in your repository
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -156,30 +155,26 @@ function renderFullscreenBgPage({ bg, button, showBack }) {
   }
 }
 
-// --- MIRROR JSON FORMATTING STRICTLY FOR BLOCKS YOU USE (INCLUDING MARGIN) ---
+// --- BLOCK RENDERING: Absolutely inside .block-layer (over <img>) ---
 function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
-
-    // Only mirror these block types
     if (
       type === "title" ||
       type === "description" ||
       type === "desc" ||
       type === "question" ||
-      type === "answer a" ||
-      type === "answer b" ||
-      type === "answer c" ||
-      type === "answer d"
+      type === "answer" ||
+      type === "result"
     ) {
       if (block.width !== undefined) style += `width:${block.width}px;`;
       if (block.height !== undefined) style += `height:${block.height}px;`;
       if (block.x !== undefined) style += `left:${block.x}px;`;
       if (block.y !== undefined) style += `top:${block.y}px;`;
-      if (block.x !== undefined || block.y !== undefined) style += `position:absolute;`;
+      style += `position:absolute;`;
       if (block.fontSize) style += `font-size:${block.fontSize};`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -193,16 +188,12 @@ function renderBlocks(blocks) {
         html += `<div class="block-desc" style="${style}">${block.text}</div>`;
       } else if (type === "question") {
         html += `<div class="block-question" style="${style}">${block.text}</div>`;
-      } else if (
-        type === "answer a" ||
-        type === "answer b" ||
-        type === "answer c" ||
-        type === "answer d"
-      ) {
+      } else if (type === "answer") {
         html += `<div class="block-answer" style="${style}" data-answer="${block.value || block.text}">${block.text}</div>`;
+      } else if (type === "result") {
+        html += `<div class="block-result" style="${style}">${block.text}</div>`;
       }
     }
-    // Ignore all other types
   });
   return html;
 }
@@ -275,6 +266,45 @@ function render() {
     render();
   };
 
+  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
+    app.innerHTML = `
+      <div class="fullscreen-centered">
+        <div class="quiz-image-overlay">
+          <img class="quiz-bg-img" src="${current.bg}" alt="Quiz background" draggable="false"/>
+          <div class="block-layer">
+            ${renderBlocks(current.blocks)}
+          </div>
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+      </div>
+    `;
+    if (current.type !== "thankyou") {
+      $("#nextBtn").onclick = nextAction;
+    }
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        if (
+          current.type === "thankyou" ||
+          current.type === "resultA" ||
+          current.type === "resultB" ||
+          current.type === "resultC" ||
+          current.type === "resultD"
+        ) {
+          state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        } else if (current.type === "pre-results") {
+          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+        } else {
+          state.page = Math.max(state.page - 1, 0);
+        }
+        render();
+      };
+    }
+    return;
+  }
+
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
@@ -325,43 +355,6 @@ function render() {
         render();
       }
     };
-    return;
-  }
-
-  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
-    app.innerHTML = `
-      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
-      <div class="page-content">
-        <div class="content-inner" style="position:relative;">
-          ${renderBlocks(current.blocks)}
-        </div>
-      </div>
-      <div class="fullscreen-bottom">
-        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
-      </div>
-    `;
-    if (current.type !== "thankyou") {
-      $("#nextBtn").onclick = nextAction;
-    }
-    if (showBack) {
-      $("#backBtn").onclick = () => {
-        if (
-          current.type === "thankyou" ||
-          current.type === "resultA" ||
-          current.type === "resultB" ||
-          current.type === "resultC" ||
-          current.type === "resultD"
-        ) {
-          state.page = pageSequence.findIndex(p => p.type === "pre-results");
-        } else if (current.type === "pre-results") {
-          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
-        } else {
-          state.page = Math.max(state.page - 1, 0);
-        }
-        render();
-      };
-    }
     return;
   }
 }
