@@ -2,7 +2,7 @@ const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
 // --- GitHub Pages Loader ---
-// FIXED: Loader fetches quiz from /quizzes folder in your repository
+// The loader fetches quiz from /quizzes folder in your repository
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   // Build the URL to the quiz JSON file in your repository's /quizzes folder (under /3c-quiz/quizzes/)
   // Assumes quizUrl is like "quiz.01" and files are in /quizzes/quiz.01.json
