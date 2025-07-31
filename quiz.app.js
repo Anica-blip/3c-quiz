@@ -1,28 +1,57 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const DESIGN_WIDTH = 375;   // Editor's intended image width
-const DESIGN_HEIGHT = 600;  // Editor's intended image height
-
 // --- GitHub Pages Loader ---
+// The loader fetches quiz from /quizzes folder in your repository
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
 
+  // DEBUG: Log the URL being fetched
+  console.log("[DEBUG] Fetching quiz from URL:", url);
+
   try {
+    console.log("[DEBUG] Sending fetch request...");
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Quiz file not found at: ${url}`);
+    console.log("[DEBUG] Fetch response status:", response.status);
+
+    if (!response.ok) {
+      throw new Error(`Quiz file not found at: ${url}`);
+    }
+
+    console.log("[DEBUG] Reading JSON...");
     const data = await response.json();
+    console.log("[DEBUG] Raw quiz data:", data);
 
     let pages = data.pages;
-    if (typeof pages === "string") pages = JSON.parse(pages);
-    else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) pages = Object.values(pages);
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        throw new Error("Quiz 'pages' column is not valid JSON.");
+      }
+    } else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) {
+      pages = Object.values(pages);
+    }
+    console.log("[DEBUG] Parsed pages:", pages);
+
+    if (Array.isArray(pages)) {
+      pages.forEach((p, idx) => {
+        if (Array.isArray(p.blocks)) {
+          p.blocks.forEach((block, bidx) => {
+            console.log(`[DEBUG] Page ${idx} Block ${bidx} | type: ${block.type} | text: ${block.text}`);
+          });
+        }
+      });
+    }
 
     let numQuestions = 0;
     if (Array.isArray(pages)) {
       numQuestions = pages.filter(p => {
         if (p.type === "question") return true;
-        if (Array.isArray(p.blocks)) return p.blocks.some(b => b.type === "question");
+        if (Array.isArray(p.blocks)) {
+          return p.blocks.some(b => b.type === "question");
+        }
         return false;
       }).length;
     }
@@ -33,6 +62,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       showResult: data.showResult || "A",
     };
   } catch (err) {
+    console.error("[DEBUG] Error during quiz fetch:", err);
     return { error: err.message || "Unknown error during quiz fetch." };
   }
 }
@@ -91,45 +121,82 @@ function autoFixPages(pages) {
   });
 }
 
-// --- GENIUS BLOCK RENDERING: scale block coordinates to fit the bg image ---
-function renderBlocks(blocks, scale) {
+function renderErrorScreen(extra = "") {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-color:#111"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        <h2>Error: No page data</h2>
+        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your quiz data.</p>
+        ${extra}
+        <div class="fullscreen-bottom">
+          <button class="main-btn" onclick="window.location.reload()">Reload</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
+    </div>
+  `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
+  }
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
+  }
+}
+
+// --- MIRROR JSON FORMATTING FOR BLOCKS ---
+function renderBlocks(blocks) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
-
   blocks.forEach(block => {
-    let type = (block.type || "").trim().toLowerCase();
+    // Build inline style from JSON attributes
     let style = "";
-    if (
-      type === "title" ||
-      type === "description" ||
-      type === "desc" ||
-      type === "question" ||
-      type === "answer" ||
-      type === "result"
-    ) {
-      if (block.width !== undefined) style += `width:${block.width * scale}px;`;
-      if (block.height !== undefined) style += `height:${block.height * scale}px;`;
-      if (block.x !== undefined) style += `left:${block.x * scale}px;`;
-      if (block.y !== undefined) style += `top:${block.y * scale}px;`;
-      style += `position:absolute;`;
-      if (block.fontSize) style += `font-size:${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scale}px;`;
-      if (block.color) style += `color:${block.color};`;
-      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.textAlign) style += `text-align:${block.textAlign};`;
-      if (block.margin !== undefined) style += `margin:${block.margin};`;
-      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+    if (block.x !== undefined) style += `left:${block.x}px;`;
+    if (block.y !== undefined) style += `top:${block.y}px;`;
+    if (block.width !== undefined) style += `width:${block.width}px;`;
+    if (block.height !== undefined) style += `height:${block.height}px;`;
+    // Only make position absolute if there is a coordinate
+    if (block.x !== undefined || block.y !== undefined || block.position === "absolute") style += `position:absolute;`;
+    if (block.fontSize) style += `font-size:${block.fontSize};`;
+    if (block.color) style += `color:${block.color};`;
+    if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+    if (block.textAlign) style += `text-align:${block.textAlign};`;
+    if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+    if (block.letterSpacing) style += `letter-spacing:${block.letterSpacing};`;
+    if (block.margin) style += `margin:${block.margin};`;
+    if (block.padding) style += `padding:${block.padding};`;
+    if (block.zIndex) style += `z-index:${block.zIndex};`;
 
-      if (type === "title") {
+    switch (block.type) {
+      case "title":
         html += `<div class="block-title" style="${style}">${block.text}</div>`;
-      } else if (type === "description" || type === "desc") {
+        break;
+      case "desc":
         html += `<div class="block-desc" style="${style}">${block.text}</div>`;
-      } else if (type === "question") {
+        break;
+      case "question":
         html += `<div class="block-question" style="${style}">${block.text}</div>`;
-      } else if (type === "answer") {
+        break;
+      case "answer":
         html += `<div class="block-answer" style="${style}" data-answer="${block.value || block.text}">${block.text}</div>`;
-      } else if (type === "result") {
+        break;
+      case "result":
         html += `<div class="block-result" style="${style}">${block.text}</div>`;
-      }
+        break;
+      default:
+        html += `<div class="block-generic" style="${style}">${block.text}</div>`;
     }
   });
   return html;
@@ -140,12 +207,29 @@ function render() {
   const current = pageSequence[state.page];
 
   if (state.quizError) {
-    app.innerHTML = `<div style="color:red;padding:2em;">${state.quizError}</div>`;
+    renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
     return;
   }
 
   if (!current || typeof current.type !== "string") {
-    app.innerHTML = `<div style="color:red;">Invalid page data.</div>`;
+    let pageNum = state.page + 1;
+    renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
+      <div class="fullscreen-bottom">
+        <button class="main-btn" id="nextBtn">Next</button>
+        <button class="main-btn" id="backBtn">Back</button>
+      </div>
+    `);
+
+    const next = () => {
+      state.page = Math.min(state.page + 1, pageSequence.length - 1);
+      render();
+    };
+    const back = () => {
+      state.page = Math.max(state.page - 1, 0);
+      render();
+    };
+    document.getElementById("nextBtn").onclick = next;
+    document.getElementById("backBtn").onclick = back;
     return;
   }
 
@@ -186,52 +270,6 @@ function render() {
     render();
   };
 
-  // --- FIX: use <img> and overlay block-layer absolutely on top ---
-  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
-    // Calculate scale to fit screen (keep aspect ratio)
-    const maxW = Math.min(window.innerWidth, 500);
-    const maxH = Math.min(window.innerHeight, 900);
-    const scale = Math.min(maxW / DESIGN_WIDTH, maxH / DESIGN_HEIGHT, 1);
-
-    const imgW = DESIGN_WIDTH * scale;
-    const imgH = DESIGN_HEIGHT * scale;
-
-    app.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;">
-        <div style="position:relative;width:${imgW}px;height:${imgH}px;">
-          <img src="${current.bg}" alt="bg" style="width:${imgW}px;height:${imgH}px;display:block;"/>
-          <div style="position:absolute;left:0;top:0;width:${imgW}px;height:${imgH}px;pointer-events:none;">
-            ${renderBlocks(current.blocks, scale)}
-          </div>
-        </div>
-      </div>
-      <div class="fullscreen-bottom">
-        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
-      </div>
-    `;
-    if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
-    if (showBack) {
-      $("#backBtn").onclick = () => {
-        if (
-          current.type === "thankyou" ||
-          current.type === "resultA" ||
-          current.type === "resultB" ||
-          current.type === "resultC" ||
-          current.type === "resultD"
-        ) {
-          state.page = pageSequence.findIndex(p => p.type === "pre-results");
-        } else if (current.type === "pre-results") {
-          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
-        } else {
-          state.page = Math.max(state.page - 1, 0);
-        }
-        render();
-      };
-    }
-    return;
-  }
-
   if (current.type === "cover") {
     app.innerHTML = `
       <div class="cover-outer">
@@ -246,7 +284,11 @@ function render() {
       const quizUrlParam = getQuizUrlParam();
       if (quizUrlParam) {
         try {
+          console.log("[DEBUG] Attempting to fetch quiz for param:", quizUrlParam);
+
           const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
+
+          console.log("[DEBUG] Loader response:", config);
 
           if (config && config.error) {
             state.quizError = config.error;
@@ -267,6 +309,7 @@ function render() {
             render();
           }
         } catch (err) {
+          console.error("[DEBUG] Error loading quiz from repository:", err);
           state.quizError = err.message || "Error loading quiz from repository.";
           render();
         }
@@ -279,8 +322,45 @@ function render() {
     };
     return;
   }
+
+  if (["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)) {
+    app.innerHTML = `
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="page-content">
+        <div class="content-inner" style="position:relative;">
+          ${renderBlocks(current.blocks)}
+        </div>
+      </div>
+      <div class="fullscreen-bottom">
+        ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+      </div>
+    `;
+    if (current.type !== "thankyou") {
+      $("#nextBtn").onclick = nextAction;
+    }
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        if (
+          current.type === "thankyou" ||
+          current.type === "resultA" ||
+          current.type === "resultB" ||
+          current.type === "resultC" ||
+          current.type === "resultD"
+        ) {
+          state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        } else if (current.type === "pre-results") {
+          state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+        } else {
+          state.page = Math.max(state.page - 1, 0);
+        }
+        render();
+      };
+    }
+    return;
+  }
 }
 
 // --- Start by showing the cover page ---
 render();
-window.addEventListener("resize", () => render());
+
