@@ -1,10 +1,10 @@
 const $ = (sel) => document.querySelector(sel);
 const app = $("#app");
 
-const DESIGN_WIDTH = 375;   // Editor reference width for all block coordinates
-const DESIGN_HEIGHT = 600;  // Editor reference height for all block coordinates
+const DESIGN_WIDTH = 375;   // Editor reference width
+const DESIGN_HEIGHT = 600;  // Editor reference height
 
-// --- GitHub Pages Loader ---
+// --- Loader logic unchanged ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -113,7 +113,6 @@ function renderBlocks(blocks, scaleX, scaleY) {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    // For every block on every page, use PRECISE, SCALED coordinates for that image:
     if (
       type === "title" ||
       type === "description" ||
@@ -128,7 +127,6 @@ function renderBlocks(blocks, scaleX, scaleY) {
       if (block.height !== undefined) style += `height: ${block.height * scaleY}px;`;
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
-      // ENFORCE text wraps strictly within width; NO overflow
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
       if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY}px;`;
       if (block.color) style += `color:${block.color};`;
@@ -150,6 +148,7 @@ function renderBlocks(blocks, scaleX, scaleY) {
   return html;
 }
 
+// --- MAIN RENDER FUNCTION ---
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
@@ -247,14 +246,14 @@ function render() {
     return;
   }
 
-  // MAIN QUIZ PAGES: render as image+block overlay, fixed to image's display size
+  // MAIN QUIZ PAGES: render as image+block overlay, fixed to image's display size and position
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
     app.innerHTML = `
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
         <div id="img-block-container" style="position:relative;overflow:visible;">
-          <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:100%;height:auto;max-width:96vw;max-height:90vh;" />
+          <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
           <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
         </div>
       </div>
@@ -265,14 +264,22 @@ function render() {
     `;
     const img = $("#quiz-bg-img");
     img.onload = () => {
-      const displayW = img.width;
-      const displayH = img.height;
-      // IMPORTANT: All block coordinates are scaled to the ACTUAL image size
-      const scaleX = displayW / DESIGN_WIDTH;
-      const scaleY = displayH / DESIGN_HEIGHT;
+      // 1. Measure image's actual displayed width and height
+      const rect = img.getBoundingClientRect();
+      const displayW = rect.width;
+      const displayH = rect.height;
+
+      // 2. Align the overlay container to the image's true position and size
       const overlay = $("#block-overlay-layer");
       overlay.style.width = displayW + "px";
       overlay.style.height = displayH + "px";
+      overlay.style.left = "0px";
+      overlay.style.top = "0px";
+
+      // 3. For each block, use the PER-IMAGE scale factor
+      const scaleX = displayW / DESIGN_WIDTH;
+      const scaleY = displayH / DESIGN_HEIGHT;
+
       overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY);
     };
     if (img.complete) img.onload();
