@@ -147,6 +147,29 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
+// DEBUG: Helper to log rendered text blocks after each render
+function debugLogContentInner() {
+  setTimeout(() => {
+    const contentDiv = document.querySelector('.content-inner');
+    if (contentDiv) {
+      console.log("[DEBUG] .content-inner HTML:", contentDiv.innerHTML);
+      // Also log all child nodes text for visibility
+      Array.from(contentDiv.childNodes).forEach((el, i) => {
+        console.log(`[DEBUG] .content-inner child ${i}:`, el.textContent);
+      });
+      // Check if any child elements have zero opacity or are hidden
+      contentDiv.querySelectorAll('*').forEach(el => {
+        const style = window.getComputedStyle(el);
+        if (style.opacity === "0" || style.visibility === "hidden" || style.display === "none") {
+          console.warn("[DEBUG] Hidden element found:", el, style);
+        }
+      });
+    } else {
+      console.warn("[DEBUG] .content-inner not found!");
+    }
+  }, 250);
+}
+
 function renderFullscreenBgPage({ bg, button, showBack }) {
   app.innerHTML = `
     <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
@@ -173,6 +196,7 @@ function render() {
   // --- If fetch failed, show error screen and prevent navigation ---
   if (state.quizError) {
     renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
+    debugLogContentInner();
     return;
   }
 
@@ -195,6 +219,7 @@ function render() {
     };
     document.getElementById("nextBtn").onclick = next;
     document.getElementById("backBtn").onclick = back;
+    debugLogContentInner();
     return;
   }
 
@@ -291,6 +316,7 @@ function render() {
         render();
       }
     };
+    debugLogContentInner();
     return;
   }
 
@@ -303,6 +329,7 @@ function render() {
       }},
       showBack: true
     });
+    debugLogContentInner();
     return;
   }
 
@@ -325,6 +352,7 @@ function render() {
         render();
       };
     }
+    debugLogContentInner();
     return;
   }
 
@@ -361,6 +389,7 @@ function render() {
       render();
     };
   }
+  debugLogContentInner();
 }
 
 // --- Start by showing the cover page ---
