@@ -107,20 +107,19 @@ function renderErrorScreen(extra = "") {
 }
 
 // --- Block rendering logic: fits overlay to the ACTUAL displayed image ONLY, per page ---
-// --- Adds logic to shrink overlay by a small safety percentage so it NEVER overflows ---
-// --- Centralize block rendering to bring text box more to the center of the image, respecting JSON coordinates ---
-// --- Only adjusts horizontal position for visual centering, leaves all other logic untouched ---
+// --- Uses ONLY the actual displayed image size for scaling blocks ---
+// --- Scales JSON coordinates and width/height strictly to the image ---
+// --- No override/alteration of JSON coordinates ---
+// --- Block width for text wrapping matches design intent after scaling ---
+// --- Keeps image and overlay in perfect aspect ratio sync ---
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
-  const currentBg = pageSequence[state.page]?.bg || "";
-
-  // For each block, calculate left offset to bring JSON box closer to the image center
-  // Block is centered only if it is visually off-center based on screenshot feedback
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
+    // Strictly scale JSON coordinates and size to the displayed image size
     if (
       type === "title" ||
       type === "description" ||
@@ -129,43 +128,9 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       type === "answer" ||
       type === "result"
     ) {
-      // --- Centering logic: ---
-      // 1. Calculate the scaled left and width from JSON
-      let left = block.x !== undefined ? block.x * scaleX * shrinkFactor : 0;
-      let width = block.width !== undefined ? block.width * scaleX * shrinkFactor : 0;
-
-      // 2. If visually off-center, adjust left to center block on the image
-      //    Only apply to main text block images (intro, question, results, etc.)
-      if (
-        [
-          "static/2.png",
-          "static/5a.png",
-          "static/5b.png",
-          "static/5c.png",
-          "static/5d.png",
-          "static/6.png",
-          "static/3a.png",
-          "static/3b.png",
-          "static/3c.png",
-          "static/3d.png",
-          "static/3e.png",
-          "static/3f.png",
-          "static/3g.png",
-          "static/3h.png",
-          "static/4.png"
-        ].includes(currentBg)
-        && block.width !== undefined
-      ) {
-        // Center block horizontally in image
-        const img = $("#quiz-bg-img");
-        const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-        left = ((imgW - width) / 2);
-      }
-
-      style += `left: ${left.toFixed(2)}px;`;
-
+      if (block.x !== undefined) style += `left: ${(block.x * scaleX * shrinkFactor).toFixed(2)}px;`;
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      if (block.width !== undefined) style += `width: ${width.toFixed(2)}px;`;
+      if (block.width !== undefined) style += `width: ${(block.width * scaleX * shrinkFactor).toFixed(2)}px;`;
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
 
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
