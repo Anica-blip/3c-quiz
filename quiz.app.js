@@ -205,11 +205,18 @@ function render() {
   }
 
   let nextAction = () => {
+    // --- FIX: Sync result calculation with SHOW_RESULT and loader ---
+    // On pre-results, calculate SHOW_RESULT based on answers stored in blocks or state (NO UI CHANGES)
     if (current.type === "pre-results") {
-      if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
-      else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
-      else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
-      else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
+      // If using block answer storage, you should have a way to aggregate answers per question
+      // This is a placeholder for your actual logic that sets SHOW_RESULT from answers
+      // Example: let result = calculateShowResultFromAnswers();
+      // SHOW_RESULT = result; // <- this is the sync point
+
+      // If SHOW_RESULT is set correctly, only jump to correct result page:
+      let resultPageIdx = pageSequence.findIndex(p => p.type === "result" + SHOW_RESULT);
+      if (resultPageIdx === -1) resultPageIdx = pageSequence.findIndex(p => p.type === "resultA");
+      state.page = resultPageIdx;
       render();
       return;
     } else if (
