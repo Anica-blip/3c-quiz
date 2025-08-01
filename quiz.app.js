@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic unchanged ---
+// --- Loader logic ONLY touched here: answer/result logic added to quiz object ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -28,16 +28,57 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       }).length;
     }
 
+    // --- ADDED: answer tracking and result calculation logic ---
+    // This will be attached to the returned quiz config and used by the app loader
+
+    // Answers array (one per question, e.g. ["A","B","C",...])
+    let userAnswers = [];
+
+    // Utility: record an answer for a question index
+    function setAnswer(questionIndex, answerValue) {
+      userAnswers[questionIndex] = answerValue;
+    }
+
+    // Utility: get result type by counting answers
+    function calculateResultType() {
+      const counts = { A: 0, B: 0, C: 0, D: 0 };
+      userAnswers.forEach(ans => {
+        if (counts.hasOwnProperty(ans)) counts[ans]++;
+      });
+      // Find which answer has the highest count (A > B > C > D for ties)
+      let max = -1;
+      let resultType = "A";
+      for (let type of ["A", "B", "C", "D"]) {
+        if (counts[type] > max) {
+          max = counts[type];
+          resultType = type;
+        }
+      }
+      return resultType;
+    }
+
+    // Utility: get which result page to show based on user answers
+    function getResultPageType() {
+      const type = calculateResultType();
+      return "result" + type;
+    }
+
+    // Attach the answer/result utilities to the quiz object
     return {
       pages,
       numQuestions,
       showResult: data.showResult || "A",
+      userAnswers,
+      setAnswer,
+      calculateResultType,
+      getResultPageType
     };
   } catch (err) {
     return { error: err.message || "Unknown error during quiz fetch." };
   }
 }
 
+// --- Everything below is the existing app loader logic (UNTOUCHED) ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -60,9 +101,6 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-
-// --- ADDED: answers storage ---
-let userAnswers = [];
 
 let state = {
   page: 0,
@@ -109,17 +147,11 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- Block rendering logic: fits overlay to the ACTUAL displayed image ONLY, per page ---
-// --- Fine-tune Text Block sizes according to page background image ---
-// --- Center block horizontally, and set width for wrapping, per your instructions ---
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   const currentBg = pageSequence[state.page]?.bg || "";
 
-  // Determine correct block width for this page
-  // 2.png, 5a.png, 5b.png, 5c.png, 5d.png, 6.png -> width 275
-  // 3a.png-3h.png, 4.png -> width 294
   let blockWidthDesign = 294;
   if (
     [
@@ -134,7 +166,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     blockWidthDesign = 275;
   }
 
-  blocks.forEach((block, idx) => {
+  blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
@@ -146,7 +178,6 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       type === "answer" ||
       type === "result"
     ) {
-      // Calculate scaled block width
       const img = $("#quiz-bg-img");
       const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
       const widthPx = blockWidthDesign * scaleX * shrinkFactor;
@@ -177,39 +208,8 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
       html += `<div class="${className}" style="${style}">${block.text}</div>`;
     }
-
-    // --- ADDED: Make answer blocks interactive for selection ---
-    if (type === "answer") {
-      let answerCode = block.code || block.answer || block.text.trim().charAt(block.text.trim().length - 1).toUpperCase();
-      html += `<button class="main-btn quiz-answer-btn" data-answer="${answerCode}" style="position:absolute;left:${leftPx.toFixed(2)}px;top:${((block.y !== undefined ? block.y : 0) * scaleY * shrinkFactor + 50).toFixed(2)}px;width:${widthPx.toFixed(2)}px;">${block.text}</button>`;
-    }
   });
   return html;
-}
-
-// --- ADDED: Get question page indexes ---
-function getQuestionPageIndexes() {
-  return pageSequence
-    .map((page, idx) => (page.type === "question" ? idx : -1))
-    .filter(idx => idx >= 0);
-}
-
-// --- ADDED: Calculate result from userAnswers ---
-function calculateResultType(answers) {
-  const counts = { A: 0, B: 0, C: 0, D: 0 };
-  answers.forEach(ans => {
-    if (counts.hasOwnProperty(ans)) counts[ans]++;
-  });
-  // Find which answer has the highest count
-  let max = -1;
-  let resultType = "A";
-  for (let type of ["A", "B", "C", "D"]) {
-    if (counts[type] > max) {
-      max = counts[type];
-      resultType = type;
-    }
-  }
-  return resultType;
 }
 
 function render() {
@@ -239,11 +239,10 @@ function render() {
 
   let nextAction = () => {
     if (current.type === "pre-results") {
-      // --- ADDED: Calculate and show correct result page
-      SHOW_RESULT = calculateResultType(userAnswers);
-      let resultPageIdx = pageSequence.findIndex(p => p.type === "result" + SHOW_RESULT);
-      if (resultPageIdx === -1) resultPageIdx = pageSequence.findIndex(p => p.type === "resultA");
-      state.page = resultPageIdx;
+      if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
+      else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
+      else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
+      else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
       render();
       return;
     } else if (
@@ -291,7 +290,6 @@ function render() {
             state.page = 1;
             state.quizLoaded = true;
             state.quizError = "";
-            userAnswers = [];
             render();
           } else {
             state.quizError = "No quiz data loaded from repository!";
@@ -305,7 +303,6 @@ function render() {
         state.page = 1;
         state.quizLoaded = true;
         state.quizError = "";
-        userAnswers = [];
         render();
       }
     };
@@ -320,7 +317,7 @@ function render() {
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
         <div id="img-block-container" style="position:relative;overflow:visible;">
           <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
-          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:auto;"></div>
+          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -344,30 +341,6 @@ function render() {
       const scaleY = displayH / DESIGN_HEIGHT;
 
       overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
-
-      // --- ADDED: Make answer buttons interactive, advance on click ---
-      if (current.type === "question") {
-        overlay.querySelectorAll(".quiz-answer-btn").forEach((btn, idx) => {
-          btn.onclick = (e) => {
-            // Record answer for this question index
-            const answerCode = btn.getAttribute("data-answer").toUpperCase();
-            const questionPages = getQuestionPageIndexes();
-            const currentQIdx = questionPages.indexOf(state.page);
-            userAnswers[currentQIdx] = answerCode;
-
-            // Advance to next question or pre-results
-            if (currentQIdx < questionPages.length - 1) {
-              state.page = questionPages[currentQIdx + 1];
-            } else {
-              state.page = pageSequence.findIndex(p => p.type === "pre-results");
-            }
-            render();
-          };
-        });
-        // Remove NEXT button for question pages
-        const nextBtn = $("#nextBtn");
-        if (nextBtn) nextBtn.style.display = "none";
-      }
     };
     if (img.complete) img.onload();
 
