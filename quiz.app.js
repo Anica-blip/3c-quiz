@@ -118,6 +118,67 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       };
     }
 
+    // Transparent clickable overlays for answers
+    // Call this right after blocks and overlay container are rendered
+    function renderQuizAnswerOverlays(blocks, overlayEl, questionIndex, showEnterBtnCallback) {
+      // Find answer blocks and codes
+      const answerBlocks = blocks.filter(b => b.type === "answer");
+      const answerCodes = answerBlocks.map(b => {
+        if (typeof b.resultType === "string" && b.resultType.length === 1)
+          return b.resultType.trim().toUpperCase();
+        let match = /^([A-D])\./.exec(b.text.trim());
+        if (match) return match[1];
+        let firstLetter = b.text.trim().charAt(0).toUpperCase();
+        if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
+        return '';
+      });
+      // Get overlay container dimensions
+      const rect = overlayEl.getBoundingClientRect();
+      const scaleX = rect.width / DESIGN_WIDTH;
+      const scaleY = rect.height / DESIGN_HEIGHT;
+      // Remove previous overlays
+      Array.from(overlayEl.querySelectorAll(".quiz-ans-overlay")).forEach(e => e.remove());
+      answerBlocks.forEach((block, idx) => {
+        let code = answerCodes[idx];
+        let overlay = document.createElement("div");
+        overlay.className = "quiz-ans-overlay";
+        overlay.setAttribute("data-answer", code);
+        overlay.setAttribute("data-idx", idx);
+        let leftPx = ((rect.width - (294 * scaleX * 0.97)) / 2);
+        let topPx = block.y !== undefined ? (block.y * scaleY * 0.97) : 0;
+        let widthPx = 294 * scaleX * 0.97;
+        let heightPx = block.height !== undefined ? (block.height * scaleY * 0.97) : 40;
+        overlay.style.position = "absolute";
+        overlay.style.left = leftPx + "px";
+        overlay.style.top = topPx + "px";
+        overlay.style.width = widthPx + "px";
+        overlay.style.height = heightPx + "px";
+        let overlayColor = "rgba(255,0,0,0.12)";
+        if (code === "B") overlayColor = "rgba(0,128,255,0.12)";
+        else if (code === "C") overlayColor = "rgba(0,200,0,0.12)";
+        else if (code === "D") overlayColor = "rgba(255,200,0,0.12)";
+        if (window.selectedAnswerIdx === idx) overlayColor = overlayColor.replace("0.12", "0.35");
+        overlay.style.background = overlayColor;
+        overlay.style.opacity = "0.7";
+        overlay.style.zIndex = "101";
+        overlay.style.cursor = "pointer";
+        overlay.style.borderRadius = "8px";
+        overlay.style.transition = "background 0.2s";
+        overlay.style.pointerEvents = "auto";
+        if (window.selectedAnswerIdx === idx) {
+          overlay.style.boxShadow = "0 0 0 2px #333";
+          overlay.style.outline = "2px solid #333";
+        }
+        overlay.onclick = () => {
+          window.selectedAnswerIdx = idx;
+          setAnswer(questionIndex, code);
+          renderQuizAnswerOverlays(blocks, overlayEl, questionIndex, showEnterBtnCallback);
+          if (typeof showEnterBtnCallback === "function") showEnterBtnCallback(true);
+        };
+        overlayEl.appendChild(overlay);
+      });
+    }
+
     // Attach robust workflow to quiz object, works for ALL quizzes
     return {
       pages,
@@ -129,7 +190,8 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       calculateResultType,
       getResultPageIndex,
       getThankYouPageIndex,
-      debugQuizAnswerLogic
+      debugQuizAnswerLogic,
+      renderQuizAnswerOverlays // <- exposes overlays logic
     };
   } catch (err) {
     return { error: err.message || "Unknown error during quiz fetch." };
@@ -159,6 +221,7 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
+window.selectedAnswerIdx = null;
 
 let state = {
   page: 0,
@@ -296,6 +359,7 @@ function render() {
   }
 
   let nextAction = () => {
+    window.selectedAnswerIdx = null;
     if (current.type === "pre-results") {
       if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
       else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
@@ -375,12 +439,12 @@ function render() {
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
         <div id="img-block-container" style="position:relative;overflow:visible;">
           <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
-          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
+          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:auto;"></div>
         </div>
       </div>
       <div class="fullscreen-bottom">
         ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="display:none">${nextLabel}</button>` : ""}
       </div>
     `;
     const img = $("#quiz-bg-img");
@@ -399,12 +463,29 @@ function render() {
       const scaleY = displayH / DESIGN_HEIGHT;
 
       overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
+
+      // Transparent overlays for answers: always present, clickable, reveal nextBtn only after selection
+      if (current.type === "question") {
+        // Find answer blocks and codes
+        const questionBlocks = current.blocks.filter(b => b.type === "answer");
+        if (window.quizData && typeof window.quizData.renderQuizAnswerOverlays === "function") {
+          window.quizData.renderQuizAnswerOverlays(
+            current.blocks,
+            overlay,
+            state.page,
+            (show) => {
+              if ($("#nextBtn")) $("#nextBtn").style.display = show ? "block" : "none";
+            }
+          );
+        }
+      }
     };
     if (img.complete) img.onload();
 
-    if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
-    if (showBack) {
+    if (current.type !== "thankyou" && $("#nextBtn")) $("#nextBtn").onclick = nextAction;
+    if (showBack && $("#backBtn")) {
       $("#backBtn").onclick = () => {
+        window.selectedAnswerIdx = null;
         if (
           current.type === "thankyou" ||
           current.type === "resultA" ||
@@ -429,3 +510,12 @@ function render() {
 
 render();
 window.addEventListener("resize", render);
+
+// Make quizData global for overlays logic
+window.quizData = null;
+const quizUrlParam = getQuizUrlParam();
+if (quizUrlParam) {
+  fetchQuizFromRepoByQuizUrl(quizUrlParam).then(config => {
+    window.quizData = config;
+  });
+}
