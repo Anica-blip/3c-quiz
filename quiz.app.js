@@ -107,19 +107,35 @@ function renderErrorScreen(extra = "") {
 }
 
 // --- Block rendering logic: fits overlay to the ACTUAL displayed image ONLY, per page ---
-// --- Uses ONLY the actual displayed image size for scaling blocks ---
-// --- Scales JSON coordinates and width/height strictly to the image ---
-// --- No override/alteration of JSON coordinates ---
-// --- Block width for text wrapping matches design intent after scaling ---
-// --- Keeps image and overlay in perfect aspect ratio sync ---
+// --- Fine-tune Text Block sizes according to page background image ---
+// --- Center block horizontally, and set width for wrapping, per your instructions ---
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
+  const currentBg = pageSequence[state.page]?.bg || "";
+
+  // Determine correct block width for this page
+  // 2.png, 5a.png, 5b.png, 5c.png, 5d.png, 6.png -> width 275
+  // 3a.png-3h.png, 4.png -> width 294
+  let blockWidthDesign = 294;
+  if (
+    [
+      "static/2.png",
+      "static/5a.png",
+      "static/5b.png",
+      "static/5c.png",
+      "static/5d.png",
+      "static/6.png"
+    ].includes(currentBg)
+  ) {
+    blockWidthDesign = 275;
+  }
+
+  // Only affect main text blocks
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    // Strictly scale JSON coordinates and size to the displayed image size
     if (
       type === "title" ||
       type === "description" ||
@@ -128,9 +144,15 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       type === "answer" ||
       type === "result"
     ) {
-      if (block.x !== undefined) style += `left: ${(block.x * scaleX * shrinkFactor).toFixed(2)}px;`;
+      // Calculate scaled block width
+      const img = $("#quiz-bg-img");
+      const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
+      const widthPx = blockWidthDesign * scaleX * shrinkFactor;
+      const leftPx = (imgW - widthPx) / 2;
+
+      style += `left: ${leftPx.toFixed(2)}px;`;
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      if (block.width !== undefined) style += `width: ${(block.width * scaleX * shrinkFactor).toFixed(2)}px;`;
+      style += `width: ${widthPx.toFixed(2)}px;`;
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
 
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
