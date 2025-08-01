@@ -205,6 +205,71 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
+// --------- Transparent overlays and answer logic ---------
+// This is the ONLY addition to the loader, app loader untouched!
+let selectedAnswerIdx = null;
+function renderAnswerOverlays(blocks, overlayEl, questionIndex, callback) {
+  // Find answer blocks and codes
+  const answerBlocks = blocks.filter(b => b.type === "answer");
+  const answerCodes = answerBlocks.map(b => {
+    if (typeof b.resultType === "string" && b.resultType.length === 1)
+      return b.resultType.trim().toUpperCase();
+    let match = /^([A-D])\./.exec(b.text.trim());
+    if (match) return match[1];
+    let firstLetter = b.text.trim().charAt(0).toUpperCase();
+    if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
+    return '';
+  });
+  // Get scaling based on overlay size
+  const rect = overlayEl.getBoundingClientRect();
+  const scaleX = rect.width / DESIGN_WIDTH;
+  const scaleY = rect.height / DESIGN_HEIGHT;
+  // Remove previous overlays
+  Array.from(overlayEl.querySelectorAll(".answer-overlay-div")).forEach(e => e.remove());
+  answerBlocks.forEach((block, idx) => {
+    let code = answerCodes[idx];
+    let overlay = document.createElement("div");
+    overlay.className = "answer-overlay-div";
+    overlay.setAttribute("data-answer", code);
+    overlay.setAttribute("data-idx", idx);
+    let leftPx = ((rect.width - (294 * scaleX * 0.97)) / 2);
+    let topPx = block.y !== undefined ? (block.y * scaleY * 0.97) : 0;
+    let widthPx = 294 * scaleX * 0.97;
+    let heightPx = block.height !== undefined ? (block.height * scaleY * 0.97) : 40;
+    overlay.style.position = "absolute";
+    overlay.style.left = leftPx + "px";
+    overlay.style.top = topPx + "px";
+    overlay.style.width = widthPx + "px";
+    overlay.style.height = heightPx + "px";
+    let overlayColor = "rgba(255,0,0,0.12)";
+    if (code === "B") overlayColor = "rgba(0,128,255,0.12)";
+    else if (code === "C") overlayColor = "rgba(0,200,0,0.12)";
+    else if (code === "D") overlayColor = "rgba(255,200,0,0.12)";
+    if (selectedAnswerIdx === idx) overlayColor = overlayColor.replace("0.12", "0.4");
+    overlay.style.background = overlayColor;
+    overlay.style.opacity = "0.7";
+    overlay.style.zIndex = "101";
+    overlay.style.cursor = "pointer";
+    overlay.style.borderRadius = "8px";
+    overlay.style.transition = "background 0.2s";
+    overlay.style.pointerEvents = "auto";
+    if (selectedAnswerIdx === idx) {
+      overlay.style.boxShadow = "0 0 0 2px #333";
+      overlay.style.outline = "2px solid #333";
+    }
+    overlay.onclick = () => {
+      selectedAnswerIdx = idx;
+      if (window.quizData && typeof window.quizData.setAnswer === "function") {
+        window.quizData.setAnswer(questionIndex, code);
+      }
+      renderAnswerOverlays(blocks, overlayEl, questionIndex, callback);
+      if (typeof callback === "function") callback(idx, code);
+    };
+    overlayEl.appendChild(overlay);
+  });
+}
+// --------------------------------------------------------
+
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
@@ -296,6 +361,7 @@ function render() {
   }
 
   let nextAction = () => {
+    selectedAnswerIdx = null;
     if (current.type === "pre-results") {
       if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
       else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
@@ -375,12 +441,12 @@ function render() {
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
         <div id="img-block-container" style="position:relative;overflow:visible;">
           <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
-          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
+          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:auto;"></div>
         </div>
       </div>
       <div class="fullscreen-bottom">
         ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="display:none">${nextLabel}</button>` : ""}
       </div>
     `;
     const img = $("#quiz-bg-img");
@@ -399,12 +465,25 @@ function render() {
       const scaleY = displayH / DESIGN_HEIGHT;
 
       overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
+
+      // Transparent overlays for answers: always present, clickable, reveal nextBtn only after selection
+      if (current.type === "question") {
+        renderAnswerOverlays(
+          current.blocks,
+          overlay,
+          state.page,
+          (idx, code) => {
+            if ($("#nextBtn")) $("#nextBtn").style.display = "block";
+          }
+        );
+      }
     };
     if (img.complete) img.onload();
 
     if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
     if (showBack) {
       $("#backBtn").onclick = () => {
+        selectedAnswerIdx = null;
         if (
           current.type === "thankyou" ||
           current.type === "resultA" ||
