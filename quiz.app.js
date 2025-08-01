@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic: FIXED to parse answers by letter for ALL quizzes ---
+// --- Loader logic: FIXED to robustly parse answers by letter for ALL quizzes ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -24,12 +24,13 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     if (Array.isArray(pages)) {
       questionPages = pages.map((p, idx) => {
         if (p.type === "question" && Array.isArray(p.blocks)) {
-          // Find answer blocks, extract code
+          // Find answer blocks, extract code robustly
           let answers = p.blocks
             .filter(b => b.type === "answer")
             .map(b => {
               // Try resultType if present
-              if (typeof b.resultType === "string" && b.resultType.length === 1) return b.resultType.trim().toUpperCase();
+              if (typeof b.resultType === "string" && b.resultType.length === 1)
+                return b.resultType.trim().toUpperCase();
               // Otherwise parse "A. ..." from start of text
               let match = /^([A-D])\./.exec(b.text.trim());
               if (match) return match[1];
