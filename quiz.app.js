@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- QUIZ LOADER LOGIC (untouched, but must support setAnswer etc.) ---
+// --- QUIZ LOADER LOGIC (unchanged, robust for answer selection) ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -109,7 +109,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   }
 }
 
-// --- Everything below is the app loader (UI layer): ONLY answer selection & navigation logic is changed ---
+// --- Everything below is your app loader logic, untouched except for transparent answer overlays ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -132,7 +132,7 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-let quizData = null; // store loaded quiz object
+let quizData = null;
 
 let state = {
   page: 0,
@@ -165,7 +165,7 @@ function autoFixPages(pages) {
   });
 }
 
-// --- CHANGED: Render answer blocks as buttons, auto-advance and record answer ---
+// --- Only change: transparent overlays for answer selection, using JSON coordinates ---
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageIndex = null) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
@@ -185,6 +185,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageI
     blockWidthDesign = 275;
   }
 
+  // First, render all blocks as usual
   blocks.forEach((block, idx) => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
@@ -194,26 +195,29 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageI
       type === "description" ||
       type === "desc" ||
       type === "question" ||
+      type === "answer" ||
       type === "result"
     ) {
       const img = $("#quiz-bg-img");
       const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-      const widthPx = blockWidthDesign * scaleX * shrinkFactor;
-      const leftPx = (imgW - widthPx) / 2;
+      const widthPx = (block.w ? block.w : blockWidthDesign) * scaleX * shrinkFactor;
+      const leftPx = (block.x !== undefined ? block.x : (imgW - widthPx) / 2) * scaleX * shrinkFactor;
+      const topPx = (block.y !== undefined ? block.y : 0) * scaleY * shrinkFactor;
+      const heightPx = (block.h !== undefined ? block.h : 35) * scaleY * shrinkFactor;
 
       style += `left: ${leftPx.toFixed(2)}px;`;
-      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      style += `top: ${topPx.toFixed(2)}px;`;
       style += `width: ${widthPx.toFixed(2)}px;`;
-      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+      style += `height: ${heightPx.toFixed(2)}px;`;
 
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
 
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
+      if (block.size) style += `font-size:${block.size * scaleY * shrinkFactor}px;`;
       if (block.color) style += `color:${block.color};`;
+      if (block.align) style += `text-align:${block.align};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.textAlign) style += `text-align:${block.textAlign};`;
       if (block.margin !== undefined) style += `margin:${block.margin};`;
       if (block.lineHeight) style += `line-height:${block.lineHeight};`;
 
@@ -221,34 +225,27 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageI
       if (type === "title") className = "block-title";
       else if (type === "description" || type === "desc") className = "block-desc";
       else if (type === "question") className = "block-question";
+      else if (type === "answer") className = "block-answer";
       else if (type === "result") className = "block-result";
 
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-    }
+      html += `<div class="${className}" style="${style}" data-block="${idx}">${block.text}</div>`;
 
-    // --- NEW: Render answer as button on question pages ---
-    if (type === "answer" && questionPageIndex !== null) {
-      // Find answer code (A/B/C/D)
-      let answerCode = '';
-      if (typeof block.resultType === "string" && /^[A-D]$/.test(block.resultType.trim().toUpperCase())) {
-        answerCode = block.resultType.trim().toUpperCase();
-      } else {
-        let match = /^([A-D])\./.exec(block.text.trim());
-        if (match) answerCode = match[1];
-        else {
-          let firstLetter = block.text.trim().charAt(0).toUpperCase();
-          if (['A', 'B', 'C', 'D'].includes(firstLetter)) answerCode = firstLetter;
+      // --- Transparent overlay for answer selection ---
+      if (type === "answer" && questionPageIndex !== null) {
+        // Find answer code (A/B/C/D)
+        let answerCode = '';
+        if (typeof block.resultType === "string" && /^[A-D]$/.test(block.resultType.trim().toUpperCase())) {
+          answerCode = block.resultType.trim().toUpperCase();
+        } else {
+          let match = /^([A-D])\./.exec(block.text.trim());
+          if (match) answerCode = match[1];
+          else {
+            let firstLetter = block.text.trim().charAt(0).toUpperCase();
+            if (['A', 'B', 'C', 'D'].includes(firstLetter)) answerCode = firstLetter;
+          }
         }
+        html += `<button class="answer-overlay-btn" data-question="${questionPageIndex}" data-answer="${answerCode}" style="position:absolute;left:${leftPx.toFixed(2)}px;top:${topPx.toFixed(2)}px;width:${widthPx.toFixed(2)}px;height:${heightPx.toFixed(2)}px;opacity:0;z-index:10;border:none;background:transparent;cursor:pointer;"></button>`;
       }
-
-      // Style for button
-      const img = $("#quiz-bg-img");
-      const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-      const widthPx = blockWidthDesign * scaleX * shrinkFactor;
-      const leftPx = (imgW - widthPx) / 2;
-      let topPx = block.y !== undefined ? (block.y * scaleY * shrinkFactor) : 0;
-
-      html += `<button class="main-btn block-answer-btn" style="position:absolute;left:${leftPx.toFixed(2)}px;top:${topPx.toFixed(2)}px;width:${widthPx.toFixed(2)}px;" data-question="${questionPageIndex}" data-answer="${answerCode}">${block.text}</button>`;
     }
   });
   return html;
@@ -281,7 +278,6 @@ function render() {
 
   let nextAction = () => {
     if (current.type === "pre-results") {
-      // Calculate and show correct result page
       SHOW_RESULT = quizData ? quizData.calculateResultType() : "A";
       let resultPageIdx = pageSequence.findIndex(p => p.type === "result" + SHOW_RESULT);
       if (resultPageIdx === -1) resultPageIdx = pageSequence.findIndex(p => p.type === "resultA");
@@ -330,7 +326,7 @@ function render() {
             pageSequence = config.pages;
             NUM_QUESTIONS = config.numQuestions;
             SHOW_RESULT = config.showResult || SHOW_RESULT;
-            quizData = config; // store loaded quiz object!
+            quizData = config;
             state.page = 1;
             state.quizLoaded = true;
             state.quizError = "";
@@ -354,11 +350,10 @@ function render() {
     return;
   }
 
-  // --- CHANGED: Answer selection logic for question pages ---
+  // --- CHANGED ONLY for transparent overlays ---
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
-    // Detect if this is a question page, get its index
     let questionPageIndex = null;
     if (quizData && current.type === "question" && quizData.pages) {
       questionPageIndex = quizData.pages
@@ -396,15 +391,14 @@ function render() {
 
       overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97, questionPageIndex);
 
-      // --- CHANGED: Make answer buttons interactive on question pages ---
+      // --- Make transparent overlays interactive for answer selection ---
       if (current.type === "question" && questionPageIndex !== null) {
-        overlay.querySelectorAll(".block-answer-btn").forEach((btn) => {
+        overlay.querySelectorAll(".answer-overlay-btn").forEach((btn) => {
           btn.onclick = (e) => {
             const answerCode = btn.getAttribute("data-answer");
             if (quizData && typeof quizData.setAnswer === "function") {
               quizData.setAnswer(questionPageIndex, answerCode);
             }
-            // Advance to next question or pre-results
             if (quizData && typeof quizData.getNextQuestionPageIndex === "function") {
               const nextIdx = quizData.getNextQuestionPageIndex(state.page);
               state.page = nextIdx;
@@ -412,9 +406,6 @@ function render() {
             }
           };
         });
-        // Remove NEXT button on question pages
-        const nextBtn = $("#nextBtn");
-        if (nextBtn) nextBtn.style.display = "none";
       }
     };
     if (img.complete) img.onload();
