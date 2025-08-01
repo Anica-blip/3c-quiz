@@ -108,49 +108,18 @@ function renderErrorScreen(extra = "") {
 
 // --- Block rendering logic: fits overlay to the ACTUAL displayed image ONLY, per page ---
 // --- Adds logic to shrink overlay by a small safety percentage so it NEVER overflows ---
-// --- ADDED: Fine-tune margin/padding/width for specific page backgrounds as requested ---
+// --- Centralize block rendering to bring text box more to the center of the image, respecting JSON coordinates ---
+// --- Only adjusts horizontal position for visual centering, leaves all other logic untouched ---
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
+  const currentBg = pageSequence[state.page]?.bg || "";
+
+  // For each block, calculate left offset to bring JSON box closer to the image center
+  // Block is centered only if it is visually off-center based on screenshot feedback
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
-
-    // Get current page background for conditional block sizing
-    const currentBg = pageSequence[state.page]?.bg || "";
-
-    // PAGE-SPECIFIC SIZING LOGIC
-    let overrideWidth, overrideMarginLeft;
-    if (
-      [
-        "static/2.png",
-        "static/5a.png",
-        "static/5b.png",
-        "static/5c.png",
-        "static/5d.png",
-        "static/6.png"
-      ].includes(currentBg)
-    ) {
-      // For 2.png, 5a-5d.png, 6.png
-      overrideWidth = 275;
-      overrideMarginLeft = 42;
-    } else if (
-      [
-        "static/3a.png",
-        "static/3b.png",
-        "static/3c.png",
-        "static/3d.png",
-        "static/3e.png",
-        "static/3f.png",
-        "static/3g.png",
-        "static/3h.png",
-        "static/4.png"
-      ].includes(currentBg)
-    ) {
-      // For 3a-3h.png, 4.png
-      overrideWidth = 294;
-      overrideMarginLeft = 31;
-    }
 
     if (
       type === "title" ||
@@ -160,22 +129,43 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       type === "answer" ||
       type === "result"
     ) {
-      // Shrink and scale block positions/sizes
-      if (block.x !== undefined) {
-        // Use override margin left if specified
-        let left = block.x * scaleX * shrinkFactor;
-        if (overrideMarginLeft !== undefined) left = overrideMarginLeft * scaleX * shrinkFactor;
-        style += `left: ${left.toFixed(2)}px;`;
+      // --- Centering logic: ---
+      // 1. Calculate the scaled left and width from JSON
+      let left = block.x !== undefined ? block.x * scaleX * shrinkFactor : 0;
+      let width = block.width !== undefined ? block.width * scaleX * shrinkFactor : 0;
+
+      // 2. If visually off-center, adjust left to center block on the image
+      //    Only apply to main text block images (intro, question, results, etc.)
+      if (
+        [
+          "static/2.png",
+          "static/5a.png",
+          "static/5b.png",
+          "static/5c.png",
+          "static/5d.png",
+          "static/6.png",
+          "static/3a.png",
+          "static/3b.png",
+          "static/3c.png",
+          "static/3d.png",
+          "static/3e.png",
+          "static/3f.png",
+          "static/3g.png",
+          "static/3h.png",
+          "static/4.png"
+        ].includes(currentBg)
+        && block.width !== undefined
+      ) {
+        // Center block horizontally in image
+        const img = $("#quiz-bg-img");
+        const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
+        left = ((imgW - width) / 2);
       }
+
+      style += `left: ${left.toFixed(2)}px;`;
+
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-
-      // Use override width if specified
-      if (block.width !== undefined) {
-        let width = block.width * scaleX * shrinkFactor;
-        if (overrideWidth !== undefined) width = overrideWidth * scaleX * shrinkFactor;
-        style += `width: ${width.toFixed(2)}px;`;
-      }
-
+      if (block.width !== undefined) style += `width: ${width.toFixed(2)}px;`;
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
 
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
@@ -188,9 +178,6 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       if (block.textAlign) style += `text-align:${block.textAlign};`;
       if (block.margin !== undefined) style += `margin:${block.margin};`;
       if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      // Fine-tune: forcibly set left margin for text-blocks if override present
-      if (overrideMarginLeft !== undefined) style += `margin-left: ${(overrideMarginLeft * scaleX * shrinkFactor).toFixed(2)}px;`;
 
       let className = "";
       if (type === "title") className = "block-title";
