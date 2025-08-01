@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic: FIXED to robustly parse answers by letter for ALL quizzes ---
+// --- Loader logic: FIXED to parse answers by letter for ALL quizzes ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -24,17 +24,19 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     if (Array.isArray(pages)) {
       questionPages = pages.map((p, idx) => {
         if (p.type === "question" && Array.isArray(p.blocks)) {
-          // Find answer blocks, extract code robustly
+          // Find answer blocks, extract code
           let answers = p.blocks
             .filter(b => b.type === "answer")
             .map(b => {
               // Try resultType if present
-              if (typeof b.resultType === "string" && b.resultType.length === 1)
-                return b.resultType.trim().toUpperCase();
+              if (typeof b.resultType === "string" && b.resultType.length === 1) return b.resultType.trim().toUpperCase();
+              // Otherwise parse "A. ..." from start of text
               let match = /^([A-D])\./.exec(b.text.trim());
               if (match) return match[1];
+              // Fallback: try first letter if it's A-D
               let firstLetter = b.text.trim().charAt(0).toUpperCase();
               if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
+              // Otherwise, error
               return '';
             });
           return { idx, answers };
@@ -48,22 +50,27 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     // --- Robust answer/result logic for ALL quizzes ---
     let userAnswers = [];
 
+    // Record an answer for a question index
     function setAnswer(questionIndex, answerValue) {
+      // Accept only A/B/C/D
       if (['A','B','C','D'].includes(answerValue)) {
         userAnswers[questionIndex] = answerValue;
       }
     }
 
+    // Returns the index of the next question page
     function getNextQuestionPageIndex(currentIndex) {
       let questionIdxs = questionPages.map(q => q.idx);
       let currentQ = questionIdxs.indexOf(currentIndex);
       if (currentQ < questionIdxs.length - 1) {
         return questionIdxs[currentQ + 1];
       } else {
+        // After last question, go to pre-results
         return pages.findIndex(p => p.type === "pre-results");
       }
     }
 
+    // Returns the correct result type (A/B/C/D) based on answers
     function calculateResultType() {
       const counts = { A: 0, B: 0, C: 0, D: 0 };
       userAnswers.forEach(ans => {
@@ -72,6 +79,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
           if (counts.hasOwnProperty(val)) counts[val]++;
         }
       });
+      // Find which answer has the highest count (A > B > C > D for ties)
       let max = Math.max(counts.A, counts.B, counts.C, counts.D);
       let maxTypes = [];
       for (let type of ["A", "B", "C", "D"]) {
@@ -79,12 +87,14 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
           maxTypes.push(type);
         }
       }
+      // If there is a tie, default to A > B > C > D priority
       for (let type of ["A", "B", "C", "D"]) {
         if (maxTypes.includes(type)) return type;
       }
       return "A";
     }
 
+    // Returns the result page index for correct mapping
     function getResultPageIndex() {
       const resultType = calculateResultType();
       let resultPageType = "result" + resultType;
@@ -93,10 +103,12 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       return pageIdx;
     }
 
+    // Returns the thank you page index for workflow mapping
     function getThankYouPageIndex() {
       return pages.findIndex(p => p.type === "thankyou");
     }
 
+    // For debugging: show quiz answer extraction logic
     function debugQuizAnswerLogic() {
       return {
         questionPages,
@@ -106,6 +118,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       };
     }
 
+    // Attach robust workflow to quiz object, works for ALL quizzes
     return {
       pages,
       numQuestions,
@@ -123,9 +136,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   }
 }
 
-// --- Everything below is the original app loader logic ---
-// Only ADD the transparent overlays to answers and ENTER button logic (no other code/layout changes)
-
+// --- Everything below is the original app loader logic (UNTOUCHED) ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -148,7 +159,6 @@ const defaultPageSequence = [
 let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
-let selectedAnswerIdx = null;
 
 let state = {
   page: 0,
@@ -195,8 +205,7 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- Render blocks with answer overlays and selection color ---
-function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageIndex = null, answerBlockCodes = [], selectedIdx = null) {
+function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   const currentBg = pageSequence[state.page]?.bg || "";
@@ -215,7 +224,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageI
     blockWidthDesign = 275;
   }
 
-  blocks.forEach((block, idx) => {
+  blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
@@ -256,30 +265,6 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageI
       else if (type === "result") className = "block-result";
 
       html += `<div class="${className}" style="${style}">${block.text}</div>`;
-
-      // Only for answer blocks: overlay transparent colored clickable div (ALWAYS present)
-      if (type === "answer" && questionPageIndex !== null && answerBlockCodes[idx]) {
-        let code = answerBlockCodes[idx];
-        let overlayColor = "rgba(255,0,0,0.12)"; // default A = light red
-        if (code === "B") overlayColor = "rgba(0,128,255,0.12)"; // B = light blue
-        else if (code === "C") overlayColor = "rgba(0,200,0,0.12)"; // C = light green
-        else if (code === "D") overlayColor = "rgba(255,200,0,0.12)"; // D = light yellow
-
-        // Highlight overlay if selected
-        let selectedStyle = "";
-        if (selectedIdx === idx) {
-          overlayColor = overlayColor.replace("0.12", "0.4");
-          selectedStyle = "box-shadow:0 0 0 3px #222;outline:2px solid #222;";
-        }
-
-        html += `<div class="answer-overlay-div" 
-          data-question="${questionPageIndex}" 
-          data-answer="${code}"
-          data-idx="${idx}"
-          style="position:absolute;left:${leftPx.toFixed(2)}px;${block.y !== undefined ? `top:${(block.y * scaleY * shrinkFactor).toFixed(2)}px;` : ""}width:${widthPx.toFixed(2)}px;${block.height !== undefined ? `height:${(block.height * scaleY * shrinkFactor).toFixed(2)}px;` : ""}
-          background:${overlayColor};opacity:0.7;z-index:20;cursor:pointer;${selectedStyle}">
-        </div>`;
-      }
     }
   });
   return html;
@@ -297,7 +282,6 @@ function render() {
     app.innerHTML = `<div style="color:red;">Invalid page data.</div>`;
     return;
   }
-
   let showBack = state.page > 0;
   let nextLabel = "Next";
   if (current.type === "cover") nextLabel = "Start";
@@ -311,26 +295,7 @@ function render() {
     nextLabel = "Finish";
   }
 
-  // For question pages, ENTER button only appears after answer selection
-  let showEnterBtn = true;
-  if (
-    current.type === "question" &&
-    [
-      "static/3a.png",
-      "static/3b.png",
-      "static/3c.png",
-      "static/3d.png",
-      "static/3e.png",
-      "static/3f.png",
-      "static/3g.png",
-      "static/3h.png"
-    ].includes(current.bg)
-  ) {
-    showEnterBtn = selectedAnswerIdx !== null;
-  }
-
   let nextAction = () => {
-    selectedAnswerIdx = null;
     if (current.type === "pre-results") {
       if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
       else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
@@ -402,36 +367,20 @@ function render() {
     return;
   }
 
+  // MAIN QUIZ PAGES: render as image+block overlay, fitted to image display and never overflowing
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
-    // For question pages, prepare answer codes for overlay logic
-    let questionPageIndex = null;
-    let answerBlockCodes = [];
-    if (current.type === "question") {
-      questionPageIndex = state.page;
-      let questionBlocks = current.blocks.filter(b => b.type === "answer");
-      answerBlockCodes = questionBlocks.map(b => {
-        if (typeof b.resultType === "string" && b.resultType.length === 1)
-          return b.resultType.trim().toUpperCase();
-        let match = /^([A-D])\./.exec(b.text.trim());
-        if (match) return match[1];
-        let firstLetter = b.text.trim().charAt(0).toUpperCase();
-        if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
-        return '';
-      });
-    }
-
     app.innerHTML = `
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
         <div id="img-block-container" style="position:relative;overflow:visible;">
           <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
-          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:auto;"></div>
+          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
         </div>
       </div>
       <div class="fullscreen-bottom">
         ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${showEnterBtn && current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
       </div>
     `;
     const img = $("#quiz-bg-img");
@@ -449,37 +398,13 @@ function render() {
       const scaleX = displayW / DESIGN_WIDTH;
       const scaleY = displayH / DESIGN_HEIGHT;
 
-      overlay.innerHTML = renderBlocks(
-        current.blocks,
-        scaleX,
-        scaleY,
-        0.97,
-        questionPageIndex,
-        answerBlockCodes,
-        selectedAnswerIdx
-      );
-
-      // Overlay answer blocks: always present, always clickable
-      if (current.type === "question" && questionPageIndex !== null && answerBlockCodes.length) {
-        overlay.querySelectorAll(".answer-overlay-div").forEach((div) => {
-          div.onclick = (e) => {
-            const answerCode = div.getAttribute("data-answer");
-            const idx = parseInt(div.getAttribute("data-idx"));
-            selectedAnswerIdx = idx;
-            if (window.quizData && typeof window.quizData.setAnswer === "function") {
-              window.quizData.setAnswer(questionPageIndex, answerCode);
-            }
-            render(); // to show ENTER button and highlight
-          };
-        });
-      }
+      overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
     };
     if (img.complete) img.onload();
 
-    if (showEnterBtn && current.type !== "thankyou" && $("#nextBtn")) $("#nextBtn").onclick = nextAction;
-    if (showBack && $("#backBtn")) {
+    if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
+    if (showBack) {
       $("#backBtn").onclick = () => {
-        selectedAnswerIdx = null;
         if (
           current.type === "thankyou" ||
           current.type === "resultA" ||
@@ -504,12 +429,3 @@ function render() {
 
 render();
 window.addEventListener("resize", render);
-
-// Make quizData global for overlays logic
-window.quizData = null;
-const quizUrlParam = getQuizUrlParam();
-if (quizUrlParam) {
-  fetchQuizFromRepoByQuizUrl(quizUrlParam).then(config => {
-    window.quizData = config;
-  });
-}
