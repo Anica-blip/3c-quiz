@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic ONLY touched here: answer/result logic added to quiz object ---
+// --- Loader logic: ONLY ADDING answer/result logic to quiz object ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -28,24 +28,35 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       }).length;
     }
 
-    // --- ADDED: answer tracking and result calculation logic ---
-    // This will be attached to the returned quiz config and used by the app loader
-
-    // Answers array (one per question, e.g. ["A","B","C",...])
+    // --- ADDED: answer/result logic for workflow mapping ---
+    // Stores the user's selected answers for each question
     let userAnswers = [];
 
-    // Utility: record an answer for a question index
+    // Call this to record an answer for a question index
     function setAnswer(questionIndex, answerValue) {
       userAnswers[questionIndex] = answerValue;
     }
 
-    // Utility: get result type by counting answers
+    // Returns the index of the next question page; advances workflow
+    function getNextQuestionPageIndex(currentIndex) {
+      let questionPages = pages
+        .map((p, idx) => (p.type === "question" ? idx : -1))
+        .filter(idx => idx >= 0);
+      let currentQ = questionPages.indexOf(currentIndex);
+      if (currentQ < questionPages.length - 1) {
+        return questionPages[currentQ + 1];
+      } else {
+        // After last question, go to pre-results
+        return pages.findIndex(p => p.type === "pre-results");
+      }
+    }
+
+    // Returns the correct result type (A/B/C/D) based on answers
     function calculateResultType() {
       const counts = { A: 0, B: 0, C: 0, D: 0 };
       userAnswers.forEach(ans => {
         if (counts.hasOwnProperty(ans)) counts[ans]++;
       });
-      // Find which answer has the highest count (A > B > C > D for ties)
       let max = -1;
       let resultType = "A";
       for (let type of ["A", "B", "C", "D"]) {
@@ -57,28 +68,39 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       return resultType;
     }
 
-    // Utility: get which result page to show based on user answers
-    function getResultPageType() {
-      const type = calculateResultType();
-      return "result" + type;
+    // Returns the result page index for workflow mapping
+    function getResultPageIndex() {
+      const resultType = calculateResultType();
+      let resultPageType = "result" + resultType;
+      let pageIdx = pages.findIndex(p => p.type === resultPageType);
+      if (pageIdx === -1) pageIdx = pages.findIndex(p => p.type === "resultA");
+      return pageIdx;
     }
 
-    // Attach the answer/result utilities to the quiz object
+    // Returns the thank you page index for workflow mapping
+    function getThankYouPageIndex() {
+      return pages.findIndex(p => p.type === "thankyou");
+    }
+
+    // The workflow mapping: how the quiz should advance
+    // cover -> intro -> questions (auto-advance on answer) -> pre-results (button) -> correct result page -> thank you
     return {
       pages,
       numQuestions,
       showResult: data.showResult || "A",
       userAnswers,
       setAnswer,
+      getNextQuestionPageIndex,
       calculateResultType,
-      getResultPageType
+      getResultPageIndex,
+      getThankYouPageIndex
     };
   } catch (err) {
     return { error: err.message || "Unknown error during quiz fetch." };
   }
 }
 
-// --- Everything below is the existing app loader logic (UNTOUCHED) ---
+// --- Everything below is the original app loader logic (UNTOUCHED) ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
