@@ -61,9 +61,6 @@ let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
 
-// --- Store user answers for result calculation ---
-let userAnswers = []; // Will hold "A", "B", "C", "D" for each question
-
 let state = {
   page: 0,
   quizLoaded: false,
@@ -182,33 +179,6 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   return html;
 }
 
-// Helper: get all question pages index
-function getQuestionPageIndexes() {
-  return pageSequence
-    .map((page, idx) => (page.type === "question" ? idx : -1))
-    .filter(idx => idx >= 0);
-}
-
-// Helper: calculate result type from answers
-function calculateResultType(answers) {
-  // Count each answer
-  const counts = { A: 0, B: 0, C: 0, D: 0 };
-  answers.forEach(ans => {
-    if (counts.hasOwnProperty(ans)) counts[ans]++;
-  });
-  // Find which answer has the highest count
-  // If tie, show first in order: A, B, C, D
-  let max = 0;
-  let resultType = "A";
-  for (let type of ["A", "B", "C", "D"]) {
-    if (counts[type] > max) {
-      max = counts[type];
-      resultType = type;
-    }
-  }
-  return resultType;
-}
-
 function render() {
   app.innerHTML = "";
   const current = pageSequence[state.page];
@@ -236,13 +206,10 @@ function render() {
 
   let nextAction = () => {
     if (current.type === "pre-results") {
-      // Calculate results from userAnswers!
-      const resultType = calculateResultType(userAnswers);
-      SHOW_RESULT = resultType;
-      // Jump to correct result page
-      let nextResultPage = pageSequence.findIndex(p => p.type === "result" + resultType);
-      if (nextResultPage === -1) nextResultPage = pageSequence.findIndex(p => p.type === "resultA");
-      state.page = nextResultPage;
+      if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
+      else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
+      else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
+      else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
       render();
       return;
     } else if (
@@ -257,7 +224,6 @@ function render() {
     } else if (current.type === "thankyou") {
       return;
     }
-    // Normal next
     state.page = Math.min(state.page + 1, pageSequence.length - 1);
     render();
   };
@@ -291,7 +257,6 @@ function render() {
             state.page = 1;
             state.quizLoaded = true;
             state.quizError = "";
-            userAnswers = []; // Reset answers
             render();
           } else {
             state.quizError = "No quiz data loaded from repository!";
@@ -305,7 +270,6 @@ function render() {
         state.page = 1;
         state.quizLoaded = true;
         state.quizError = "";
-        userAnswers = [];
         render();
       }
     };
@@ -347,42 +311,12 @@ function render() {
       const scaleY = displayH / DESIGN_HEIGHT;
 
       overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
-
-      // --- If this is a question page, add answer buttons below the image ---
-      if (current.type === "question") {
-        // Render answer buttons (A/B/C/D)
-        const btnWrapper = document.createElement("div");
-        btnWrapper.className = "answer-btn-row";
-        btnWrapper.style = "display:flex;justify-content:center;gap:12px;margin-top:20px;";
-        ["A", "B", "C", "D"].forEach((ansType, idx) => {
-          const btn = document.createElement("button");
-          btn.className = "main-btn";
-          btn.textContent = "ANSWER " + ansType;
-          btn.onclick = () => {
-            userAnswers[state.page - 2] = ansType; // Store answer by question index (assuming intro at 1, questions start at 2)
-            // Go to next question or pre-results
-            const questionPages = getQuestionPageIndexes();
-            const currentQIdx = questionPages.indexOf(state.page);
-            if (currentQIdx < questionPages.length - 1) {
-              state.page = questionPages[currentQIdx + 1];
-            } else {
-              // Go to pre-results
-              state.page = pageSequence.findIndex(p => p.type === "pre-results");
-            }
-            render();
-          };
-          btnWrapper.appendChild(btn);
-        });
-        // Insert buttons after image-block
-        $("#img-block-container").appendChild(btnWrapper);
-      }
     };
     if (img.complete) img.onload();
 
     if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
     if (showBack) {
       $("#backBtn").onclick = () => {
-        // For back navigation, restore previous answer page, or pre-results, etc.
         if (
           current.type === "thankyou" ||
           current.type === "resultA" ||
@@ -392,9 +326,9 @@ function render() {
         ) {
           state.page = pageSequence.findIndex(p => p.type === "pre-results");
         } else if (current.type === "pre-results") {
-          // Go to last question page
-          const questionPages = getQuestionPageIndexes();
-          state.page = questionPages[questionPages.length - 1];
+          state.page = pageSequence.findIndex(
+            (p, i) => p.type === "question" && i > 0 && i < pageSequence.length
+          ) + NUM_QUESTIONS - 1;
         } else {
           state.page = Math.max(state.page - 1, 0);
         }
