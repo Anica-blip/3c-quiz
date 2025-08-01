@@ -61,6 +61,9 @@ let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
 
+// --- ADDED: Track user answers ---
+let userAnswers = [];
+
 let state = {
   page: 0,
   quizLoaded: false,
@@ -175,8 +178,38 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
       html += `<div class="${className}" style="${style}">${block.text}</div>`;
     }
+    // --- ADDED: Detect answer block and make it interactive ---
+    if (type === "answer" && typeof block.text === "string") {
+      // Map answer text to answer code (A/B/C/D) by block.answer or block.code or index if available
+      let answerCode = block.code || block.answer || block.text.trim().charAt(block.text.trim().length - 1);
+      html += `<button class="main-btn block-answer-btn" style="position:absolute;left:${(block.x * scaleX * shrinkFactor).toFixed(2)}px;top:${(block.y * scaleY * shrinkFactor + 50).toFixed(2)}px;width:${widthPx.toFixed(2)}px;" data-answer="${answerCode}">${block.text}</button>`;
+    }
   });
   return html;
+}
+
+// --- ADDED: Get all question page indexes ---
+function getQuestionPageIndexes() {
+  return pageSequence
+    .map((page, idx) => (page.type === "question" ? idx : -1))
+    .filter(idx => idx >= 0);
+}
+
+// --- ADDED: Calculate most frequent answer ---
+function getQuizResultFromAnswers() {
+  const count = { A: 0, B: 0, C: 0, D: 0 };
+  userAnswers.forEach(a => {
+    if (count[a] !== undefined) count[a]++;
+  });
+  let max = -1;
+  let result = "A";
+  for (let k of ["A", "B", "C", "D"]) {
+    if (count[k] > max) {
+      max = count[k];
+      result = k;
+    }
+  }
+  return result;
 }
 
 function render() {
@@ -205,15 +238,9 @@ function render() {
   }
 
   let nextAction = () => {
-    // --- FIX: Sync result calculation with SHOW_RESULT and loader ---
-    // On pre-results, calculate SHOW_RESULT based on answers stored in blocks or state (NO UI CHANGES)
     if (current.type === "pre-results") {
-      // If using block answer storage, you should have a way to aggregate answers per question
-      // This is a placeholder for your actual logic that sets SHOW_RESULT from answers
-      // Example: let result = calculateShowResultFromAnswers();
-      // SHOW_RESULT = result; // <- this is the sync point
-
-      // If SHOW_RESULT is set correctly, only jump to correct result page:
+      // --- ADDED: Calculate result and show correct page ---
+      SHOW_RESULT = getQuizResultFromAnswers();
       let resultPageIdx = pageSequence.findIndex(p => p.type === "result" + SHOW_RESULT);
       if (resultPageIdx === -1) resultPageIdx = pageSequence.findIndex(p => p.type === "resultA");
       state.page = resultPageIdx;
@@ -264,6 +291,7 @@ function render() {
             state.page = 1;
             state.quizLoaded = true;
             state.quizError = "";
+            userAnswers = [];
             render();
           } else {
             state.quizError = "No quiz data loaded from repository!";
@@ -277,6 +305,7 @@ function render() {
         state.page = 1;
         state.quizLoaded = true;
         state.quizError = "";
+        userAnswers = [];
         render();
       }
     };
@@ -291,7 +320,7 @@ function render() {
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
         <div id="img-block-container" style="position:relative;overflow:visible;">
           <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
-          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
+          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:auto;"></div>
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -301,23 +330,42 @@ function render() {
     `;
     const img = $("#quiz-bg-img");
     img.onload = () => {
-      // 1. Measure image's actual displayed width and height
       const rect = img.getBoundingClientRect();
       const displayW = rect.width;
       const displayH = rect.height;
-
-      // 2. Align the overlay container to the image's true position and size
       const overlay = $("#block-overlay-layer");
       overlay.style.width = displayW + "px";
       overlay.style.height = displayH + "px";
       overlay.style.left = "0px";
       overlay.style.top = "0px";
-
-      // 3. For each block, use the PER-IMAGE scale factor and a shrink factor to guarantee no overflow
       const scaleX = displayW / DESIGN_WIDTH;
       const scaleY = displayH / DESIGN_HEIGHT;
 
       overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
+
+      // --- ADDED: Make answer buttons interactive, advance on click ---
+      if (current.type === "question") {
+        overlay.querySelectorAll(".block-answer-btn").forEach((btn, idx) => {
+          btn.onclick = (e) => {
+            // Record user answer
+            const answerCode = btn.getAttribute("data-answer").toUpperCase();
+            const questionPages = getQuestionPageIndexes();
+            const currentQIdx = questionPages.indexOf(state.page);
+            userAnswers[currentQIdx] = answerCode;
+
+            // Advance to next question or pre-results
+            if (currentQIdx < questionPages.length - 1) {
+              state.page = questionPages[currentQIdx + 1];
+            } else {
+              state.page = pageSequence.findIndex(p => p.type === "pre-results");
+            }
+            render();
+          };
+        });
+        // Remove NEXT button for question pages
+        const nextBtn = $("#nextBtn");
+        if (nextBtn) nextBtn.style.display = "none";
+      }
     };
     if (img.complete) img.onload();
 
