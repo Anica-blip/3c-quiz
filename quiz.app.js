@@ -108,12 +108,49 @@ function renderErrorScreen(extra = "") {
 
 // --- Block rendering logic: fits overlay to the ACTUAL displayed image ONLY, per page ---
 // --- Adds logic to shrink overlay by a small safety percentage so it NEVER overflows ---
+// --- ADDED: Fine-tune margin/padding/width for specific page backgrounds as requested ---
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   blocks.forEach(block => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
+
+    // Get current page background for conditional block sizing
+    const currentBg = pageSequence[state.page]?.bg || "";
+
+    // PAGE-SPECIFIC SIZING LOGIC
+    let overrideWidth, overrideMarginLeft;
+    if (
+      [
+        "static/2.png",
+        "static/5a.png",
+        "static/5b.png",
+        "static/5c.png",
+        "static/5d.png",
+        "static/6.png"
+      ].includes(currentBg)
+    ) {
+      // For 2.png, 5a-5d.png, 6.png
+      overrideWidth = 275;
+      overrideMarginLeft = 42;
+    } else if (
+      [
+        "static/3a.png",
+        "static/3b.png",
+        "static/3c.png",
+        "static/3d.png",
+        "static/3e.png",
+        "static/3f.png",
+        "static/3g.png",
+        "static/3h.png",
+        "static/4.png"
+      ].includes(currentBg)
+    ) {
+      // For 3a-3h.png, 4.png
+      overrideWidth = 294;
+      overrideMarginLeft = 31;
+    }
 
     if (
       type === "title" ||
@@ -123,20 +160,37 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       type === "answer" ||
       type === "result"
     ) {
-      // Multiply all X, Y, W, H by a shrink factor to avoid accidental overflow on the right
-      if (block.x !== undefined) style += `left: ${(block.x * scaleX * shrinkFactor).toFixed(2)}px;`;
+      // Shrink and scale block positions/sizes
+      if (block.x !== undefined) {
+        // Use override margin left if specified
+        let left = block.x * scaleX * shrinkFactor;
+        if (overrideMarginLeft !== undefined) left = overrideMarginLeft * scaleX * shrinkFactor;
+        style += `left: ${left.toFixed(2)}px;`;
+      }
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      if (block.width !== undefined) style += `width: ${(block.width * scaleX * shrinkFactor).toFixed(2)}px;`;
+
+      // Use override width if specified
+      if (block.width !== undefined) {
+        let width = block.width * scaleX * shrinkFactor;
+        if (overrideWidth !== undefined) width = overrideWidth * scaleX * shrinkFactor;
+        style += `width: ${width.toFixed(2)}px;`;
+      }
+
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+
       if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
       if (block.textAlign) style += `text-align:${block.textAlign};`;
       if (block.margin !== undefined) style += `margin:${block.margin};`;
       if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+
+      // Fine-tune: forcibly set left margin for text-blocks if override present
+      if (overrideMarginLeft !== undefined) style += `margin-left: ${(overrideMarginLeft * scaleX * shrinkFactor).toFixed(2)}px;`;
 
       let className = "";
       if (type === "title") className = "block-title";
