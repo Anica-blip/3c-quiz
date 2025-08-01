@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic: ONLY ADDING answer/result logic to quiz object ---
+// --- Loader logic: ONLY ADDING/FIXING answer/result calculation ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -28,16 +28,16 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       }).length;
     }
 
-    // --- ADDED: answer/result logic for workflow mapping ---
+    // --- FIXED: robust answer/result logic for correct mapping ---
     // Stores the user's selected answers for each question
     let userAnswers = [];
 
-    // Call this to record an answer for a question index
+    // Record an answer for a question index
     function setAnswer(questionIndex, answerValue) {
       userAnswers[questionIndex] = answerValue;
     }
 
-    // Returns the index of the next question page; advances workflow
+    // Returns the index of the next question page
     function getNextQuestionPageIndex(currentIndex) {
       let questionPages = pages
         .map((p, idx) => (p.type === "question" ? idx : -1))
@@ -55,17 +55,29 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     function calculateResultType() {
       const counts = { A: 0, B: 0, C: 0, D: 0 };
       userAnswers.forEach(ans => {
-        if (counts.hasOwnProperty(ans)) counts[ans]++;
+        if (typeof ans === "string") {
+          const val = ans.trim().toUpperCase();
+          if (counts.hasOwnProperty(val)) counts[val]++;
+        }
       });
+      // Find which answer has the highest count (A > B > C > D for ties)
       let max = -1;
-      let resultType = "A";
+      let maxTypes = [];
       for (let type of ["A", "B", "C", "D"]) {
         if (counts[type] > max) {
           max = counts[type];
-          resultType = type;
+          maxTypes = [type];
+        } else if (counts[type] === max && max > 0) {
+          maxTypes.push(type);
         }
       }
-      return resultType;
+      // If there is a tie, default to A > B > C > D priority
+      if (maxTypes.length > 1) {
+        for (let type of ["A", "B", "C", "D"]) {
+          if (maxTypes.includes(type)) return type;
+        }
+      }
+      return maxTypes.length > 0 ? maxTypes[0] : "A";
     }
 
     // Returns the result page index for workflow mapping
@@ -82,8 +94,25 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       return pages.findIndex(p => p.type === "thankyou");
     }
 
-    // The workflow mapping: how the quiz should advance
-    // cover -> intro -> questions (auto-advance on answer) -> pre-results (button) -> correct result page -> thank you
+    // DEBUGGING: Expose answer array and calculation for debugging purposes
+    function debugAnswersAndResult() {
+      return {
+        userAnswers: [...userAnswers],
+        counts: (() => {
+          const counts = { A: 0, B: 0, C: 0, D: 0 };
+          userAnswers.forEach(ans => {
+            if (typeof ans === "string") {
+              const val = ans.trim().toUpperCase();
+              if (counts.hasOwnProperty(val)) counts[val]++;
+            }
+          });
+          return counts;
+        })(),
+        resultType: calculateResultType(),
+        resultPageIndex: getResultPageIndex()
+      };
+    }
+
     return {
       pages,
       numQuestions,
@@ -93,7 +122,8 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       getNextQuestionPageIndex,
       calculateResultType,
       getResultPageIndex,
-      getThankYouPageIndex
+      getThankYouPageIndex,
+      debugAnswersAndResult // <-- for debugging
     };
   } catch (err) {
     return { error: err.message || "Unknown error during quiz fetch." };
