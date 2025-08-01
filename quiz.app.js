@@ -61,7 +61,7 @@ let pageSequence = [...defaultPageSequence];
 let NUM_QUESTIONS = 8;
 let SHOW_RESULT = "A";
 
-// --- ADDED: Track user answers ---
+// --- ADDED: answers storage ---
 let userAnswers = [];
 
 let state = {
@@ -134,8 +134,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     blockWidthDesign = 275;
   }
 
-  // Only affect main text blocks
-  blocks.forEach(block => {
+  blocks.forEach((block, idx) => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
@@ -178,38 +177,39 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
       html += `<div class="${className}" style="${style}">${block.text}</div>`;
     }
-    // --- ADDED: Detect answer block and make it interactive ---
-    if (type === "answer" && typeof block.text === "string") {
-      // Map answer text to answer code (A/B/C/D) by block.answer or block.code or index if available
-      let answerCode = block.code || block.answer || block.text.trim().charAt(block.text.trim().length - 1);
-      html += `<button class="main-btn block-answer-btn" style="position:absolute;left:${(block.x * scaleX * shrinkFactor).toFixed(2)}px;top:${(block.y * scaleY * shrinkFactor + 50).toFixed(2)}px;width:${widthPx.toFixed(2)}px;" data-answer="${answerCode}">${block.text}</button>`;
+
+    // --- ADDED: Make answer blocks interactive for selection ---
+    if (type === "answer") {
+      let answerCode = block.code || block.answer || block.text.trim().charAt(block.text.trim().length - 1).toUpperCase();
+      html += `<button class="main-btn quiz-answer-btn" data-answer="${answerCode}" style="position:absolute;left:${leftPx.toFixed(2)}px;top:${((block.y !== undefined ? block.y : 0) * scaleY * shrinkFactor + 50).toFixed(2)}px;width:${widthPx.toFixed(2)}px;">${block.text}</button>`;
     }
   });
   return html;
 }
 
-// --- ADDED: Get all question page indexes ---
+// --- ADDED: Get question page indexes ---
 function getQuestionPageIndexes() {
   return pageSequence
     .map((page, idx) => (page.type === "question" ? idx : -1))
     .filter(idx => idx >= 0);
 }
 
-// --- ADDED: Calculate most frequent answer ---
-function getQuizResultFromAnswers() {
-  const count = { A: 0, B: 0, C: 0, D: 0 };
-  userAnswers.forEach(a => {
-    if (count[a] !== undefined) count[a]++;
+// --- ADDED: Calculate result from userAnswers ---
+function calculateResultType(answers) {
+  const counts = { A: 0, B: 0, C: 0, D: 0 };
+  answers.forEach(ans => {
+    if (counts.hasOwnProperty(ans)) counts[ans]++;
   });
+  // Find which answer has the highest count
   let max = -1;
-  let result = "A";
-  for (let k of ["A", "B", "C", "D"]) {
-    if (count[k] > max) {
-      max = count[k];
-      result = k;
+  let resultType = "A";
+  for (let type of ["A", "B", "C", "D"]) {
+    if (counts[type] > max) {
+      max = counts[type];
+      resultType = type;
     }
   }
-  return result;
+  return resultType;
 }
 
 function render() {
@@ -239,8 +239,8 @@ function render() {
 
   let nextAction = () => {
     if (current.type === "pre-results") {
-      // --- ADDED: Calculate result and show correct page ---
-      SHOW_RESULT = getQuizResultFromAnswers();
+      // --- ADDED: Calculate and show correct result page
+      SHOW_RESULT = calculateResultType(userAnswers);
       let resultPageIdx = pageSequence.findIndex(p => p.type === "result" + SHOW_RESULT);
       if (resultPageIdx === -1) resultPageIdx = pageSequence.findIndex(p => p.type === "resultA");
       state.page = resultPageIdx;
@@ -333,11 +333,13 @@ function render() {
       const rect = img.getBoundingClientRect();
       const displayW = rect.width;
       const displayH = rect.height;
+
       const overlay = $("#block-overlay-layer");
       overlay.style.width = displayW + "px";
       overlay.style.height = displayH + "px";
       overlay.style.left = "0px";
       overlay.style.top = "0px";
+
       const scaleX = displayW / DESIGN_WIDTH;
       const scaleY = displayH / DESIGN_HEIGHT;
 
@@ -345,9 +347,9 @@ function render() {
 
       // --- ADDED: Make answer buttons interactive, advance on click ---
       if (current.type === "question") {
-        overlay.querySelectorAll(".block-answer-btn").forEach((btn, idx) => {
+        overlay.querySelectorAll(".quiz-answer-btn").forEach((btn, idx) => {
           btn.onclick = (e) => {
-            // Record user answer
+            // Record answer for this question index
             const answerCode = btn.getAttribute("data-answer").toUpperCase();
             const questionPages = getQuestionPageIndexes();
             const currentQIdx = questionPages.indexOf(state.page);
