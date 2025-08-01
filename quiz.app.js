@@ -31,10 +31,8 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
               // Try resultType if present
               if (typeof b.resultType === "string" && b.resultType.length === 1)
                 return b.resultType.trim().toUpperCase();
-              // Otherwise parse "A. ..." from start of text
               let match = /^([A-D])\./.exec(b.text.trim());
               if (match) return match[1];
-              // Fallback: try first letter if it's A-D
               let firstLetter = b.text.trim().charAt(0).toUpperCase();
               if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
               return '';
@@ -461,7 +459,7 @@ function render() {
         selectedAnswerIdx
       );
 
-      // Always wire up answer overlays (divs)
+      // Overlay answer blocks: always present, always clickable
       if (current.type === "question" && questionPageIndex !== null && answerBlockCodes.length) {
         overlay.querySelectorAll(".answer-overlay-div").forEach((div) => {
           div.onclick = (e) => {
