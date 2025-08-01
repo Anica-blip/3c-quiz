@@ -137,7 +137,8 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   }
 }
 
-// --- Everything below is the original app loader logic (UNTOUCHED) ---
+// --- Everything below is the original app loader logic ---
+// Only ADD the transparent overlays to answers (no other code/layout changes)
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -206,7 +207,9 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
+// --- Only the next function is CHANGED: overlays for each answer block, transparent but colored ---
+// Other code untouched!
+function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97, questionPageIndex = null, answerBlockCodes = []) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   const currentBg = pageSequence[state.page]?.bg || "";
@@ -225,7 +228,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     blockWidthDesign = 275;
   }
 
-  blocks.forEach(block => {
+  blocks.forEach((block, idx) => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
@@ -266,6 +269,23 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       else if (type === "result") className = "block-result";
 
       html += `<div class="${className}" style="${style}">${block.text}</div>`;
+
+      // Only for answer blocks: overlay transparent but colored clickable button
+      if (type === "answer" && questionPageIndex !== null && answerBlockCodes[idx]) {
+        // Use color per code
+        let code = answerBlockCodes[idx];
+        let overlayColor = "rgba(255,0,0,0.12)"; // default A = light red
+        if (code === "B") overlayColor = "rgba(0,128,255,0.12)"; // B = light blue
+        else if (code === "C") overlayColor = "rgba(0,200,0,0.12)"; // C = light green
+        else if (code === "D") overlayColor = "rgba(255,200,0,0.12)"; // D = light yellow
+
+        html += `<button class="answer-overlay-btn" 
+          data-question="${questionPageIndex}" 
+          data-answer="${code}"
+          style="position:absolute;left:${leftPx.toFixed(2)}px;${block.y !== undefined ? `top:${(block.y * scaleY * shrinkFactor).toFixed(2)}px;` : ""}width:${widthPx.toFixed(2)}px;${block.height !== undefined ? `height:${(block.height * scaleY * shrinkFactor).toFixed(2)}px;` : ""}
+          background:${overlayColor};opacity:0.7;z-index:10;border:none;cursor:pointer;">
+        </button>`;
+      }
     }
   });
   return html;
@@ -372,11 +392,33 @@ function render() {
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
+    // For question pages, prepare answer codes for overlay logic
+    let questionPageIndex = null;
+    let answerBlockCodes = [];
+    if (current.type === "question") {
+      const quizUrlParam = getQuizUrlParam();
+      // If loader logic loaded, extract answer codes for overlays
+      if (window.quizData && Array.isArray(window.quizData.pages)) {
+        questionPageIndex = state.page;
+        let questionBlocks = current.blocks.filter(b => b.type === "answer");
+        answerBlockCodes = questionBlocks.map(b => {
+          // Use loader logic to robustly extract code
+          if (typeof b.resultType === "string" && b.resultType.length === 1)
+            return b.resultType.trim().toUpperCase();
+          let match = /^([A-D])\./.exec(b.text.trim());
+          if (match) return match[1];
+          let firstLetter = b.text.trim().charAt(0).toUpperCase();
+          if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
+          return '';
+        });
+      }
+    }
+
     app.innerHTML = `
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
         <div id="img-block-container" style="position:relative;overflow:visible;">
           <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
-          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
+          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:auto;"></div>
         </div>
       </div>
       <div class="fullscreen-bottom">
@@ -399,7 +441,33 @@ function render() {
       const scaleX = displayW / DESIGN_WIDTH;
       const scaleY = displayH / DESIGN_HEIGHT;
 
-      overlay.innerHTML = renderBlocks(current.blocks, scaleX, scaleY, 0.97);
+      overlay.innerHTML = renderBlocks(
+        current.blocks,
+        scaleX,
+        scaleY,
+        0.97,
+        questionPageIndex,
+        answerBlockCodes
+      );
+
+      // Only for question pages: wire up answer overlays
+      if (current.type === "question" && questionPageIndex !== null && answerBlockCodes.length) {
+        overlay.querySelectorAll(".answer-overlay-btn").forEach((btn) => {
+          btn.onclick = (e) => {
+            const answerCode = btn.getAttribute("data-answer");
+            if (window.quizData && typeof window.quizData.setAnswer === "function") {
+              // Find the correct answer index (relative to question page index)
+              window.quizData.setAnswer(questionPageIndex, answerCode);
+              // Advance to next question (use loader logic)
+              if (typeof window.quizData.getNextQuestionPageIndex === "function") {
+                const nextIdx = window.quizData.getNextQuestionPageIndex(state.page);
+                state.page = nextIdx;
+                render();
+              }
+            }
+          };
+        });
+      }
     };
     if (img.complete) img.onload();
 
@@ -430,3 +498,12 @@ function render() {
 
 render();
 window.addEventListener("resize", render);
+
+// Make quizData global for overlays logic
+window.quizData = null;
+const quizUrlParam = getQuizUrlParam();
+if (quizUrlParam) {
+  fetchQuizFromRepoByQuizUrl(quizUrlParam).then(config => {
+    window.quizData = config;
+  });
+}
