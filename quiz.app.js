@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic: FIXED to parse answers by letter for ALL quizzes ---
+// --- QUIZ LOADER LOGIC: Only this part is changed/fixed ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -19,24 +19,22 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     if (typeof pages === "string") pages = JSON.parse(pages);
     else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) pages = Object.values(pages);
 
-    // Find all question pages and their answer buttons
+    // Extract question page indexes and answer codes for ALL quizzes
     let questionPages = [];
     if (Array.isArray(pages)) {
       questionPages = pages.map((p, idx) => {
         if (p.type === "question" && Array.isArray(p.blocks)) {
-          // Find answer blocks, extract code
           let answers = p.blocks
             .filter(b => b.type === "answer")
             .map(b => {
-              // Try resultType if present
-              if (typeof b.resultType === "string" && b.resultType.length === 1) return b.resultType.trim().toUpperCase();
-              // Otherwise parse "A. ..." from start of text
+              // Use resultType if present, else parse from text
+              if (typeof b.resultType === "string" && /^[A-D]$/.test(b.resultType.trim().toUpperCase())) {
+                return b.resultType.trim().toUpperCase();
+              }
               let match = /^([A-D])\./.exec(b.text.trim());
               if (match) return match[1];
-              // Fallback: try first letter if it's A-D
               let firstLetter = b.text.trim().charAt(0).toUpperCase();
               if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
-              // Otherwise, error
               return '';
             });
           return { idx, answers };
@@ -46,31 +44,27 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     }
 
     let numQuestions = questionPages.length;
-
-    // --- Robust answer/result logic for ALL quizzes ---
     let userAnswers = [];
 
-    // Record an answer for a question index
+    // --- RECORD the user's answer ---
     function setAnswer(questionIndex, answerValue) {
-      // Accept only A/B/C/D
       if (['A','B','C','D'].includes(answerValue)) {
         userAnswers[questionIndex] = answerValue;
       }
     }
 
-    // Returns the index of the next question page
+    // --- GET next question or pre-results ---
     function getNextQuestionPageIndex(currentIndex) {
       let questionIdxs = questionPages.map(q => q.idx);
       let currentQ = questionIdxs.indexOf(currentIndex);
       if (currentQ < questionIdxs.length - 1) {
         return questionIdxs[currentQ + 1];
       } else {
-        // After last question, go to pre-results
         return pages.findIndex(p => p.type === "pre-results");
       }
     }
 
-    // Returns the correct result type (A/B/C/D) based on answers
+    // --- COUNT answers and pick result ---
     function calculateResultType() {
       const counts = { A: 0, B: 0, C: 0, D: 0 };
       userAnswers.forEach(ans => {
@@ -79,7 +73,6 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
           if (counts.hasOwnProperty(val)) counts[val]++;
         }
       });
-      // Find which answer has the highest count (A > B > C > D for ties)
       let max = Math.max(counts.A, counts.B, counts.C, counts.D);
       let maxTypes = [];
       for (let type of ["A", "B", "C", "D"]) {
@@ -87,14 +80,13 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
           maxTypes.push(type);
         }
       }
-      // If there is a tie, default to A > B > C > D priority
+      // Tie-breaker: A > B > C > D
       for (let type of ["A", "B", "C", "D"]) {
         if (maxTypes.includes(type)) return type;
       }
       return "A";
     }
 
-    // Returns the result page index for correct mapping
     function getResultPageIndex() {
       const resultType = calculateResultType();
       let resultPageType = "result" + resultType;
@@ -103,12 +95,11 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       return pageIdx;
     }
 
-    // Returns the thank you page index for workflow mapping
     function getThankYouPageIndex() {
       return pages.findIndex(p => p.type === "thankyou");
     }
 
-    // For debugging: show quiz answer extraction logic
+    // For debugging
     function debugQuizAnswerLogic() {
       return {
         questionPages,
@@ -118,7 +109,6 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       };
     }
 
-    // Attach robust workflow to quiz object, works for ALL quizzes
     return {
       pages,
       numQuestions,
@@ -367,7 +357,6 @@ function render() {
     return;
   }
 
-  // MAIN QUIZ PAGES: render as image+block overlay, fitted to image display and never overflowing
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
