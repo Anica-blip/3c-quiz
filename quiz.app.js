@@ -5,7 +5,7 @@ const app = $("#app");
 const DESIGN_WIDTH = 375;
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic: FIXED to parse answers by letter for ALL quizzes, NO margin/layout changes ---
+// --- Loader logic: FIXED to parse answers by letter for ALL quizzes ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -136,7 +136,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   }
 }
 
-// --- Everything below is the original app loader logic (UNTOUCHED, NO margin changes) ---
+// --- Everything below is the original app loader logic (UNTOUCHED) ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
