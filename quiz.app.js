@@ -13,7 +13,7 @@ function ensureApp() {
   return true;
 }
 
-const DESIGN_WIDTH = 375;
+const DESIGN_WIDTH = 350; // Updated to match image context
 const DESIGN_HEIGHT = 600;
 
 // --- Loader logic ---
@@ -201,14 +201,13 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- FIXED SECTION: Render answer blocks as colored transparent buttons ---
+// --- FIXED SECTION: Render answer blocks as colored transparent buttons with proper coordinates ---
 function getAnswerColor(letter) {
-  // Primary colors for A, B, C, D
   switch (letter) {
-    case "A": return "rgba(52, 152, 219, 0.40)"; // blue
-    case "B": return "rgba(46, 204, 113, 0.40)"; // green
-    case "C": return "rgba(231, 76, 60, 0.40)"; // red
-    case "D": return "rgba(241, 196, 15, 0.40)"; // yellow
+    case "A": return "rgba(52, 152, 219, 0.35)"; // blue
+    case "B": return "rgba(46, 204, 113, 0.35)"; // green
+    case "C": return "rgba(231, 76, 60, 0.35)"; // red
+    case "D": return "rgba(241, 196, 15, 0.35)"; // yellow
     default: return "rgba(255,255,255,0.2)";
   }
 }
@@ -223,30 +222,25 @@ function getAnswerBorderColor(letter) {
   }
 }
 
+// Button geometry constants per your message
+const BUTTON_W = 294;
+const BUTTON_X = 31;
+const BUTTON_H_SINGLE = 35;
+const BUTTON_H_DOUBLE = 55;
+const BUTTON_Y_START = 180;
+const BUTTON_Y_GAP = 60; // vertical gap between buttons
+
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
-  const currentBg = pageSequence[state.page]?.bg || "";
-  let blockWidthDesign = 294;
-  if (
-    [
-      "static/2.png",
-      "static/5a.png",
-      "static/5b.png",
-      "static/5c.png",
-      "static/5d.png",
-      "static/6.png"
-    ].includes(currentBg)
-  ) {
-    blockWidthDesign = 275;
-  }
-
   let isQuestion = pageSequence[state.page] && pageSequence[state.page].type === "question";
   let questionIndex = null;
   if (isQuestion && quizConfig && quizConfig.questionPages) {
     const questionPages = quizConfig.questionPages;
     questionIndex = questionPages.findIndex(q => q.idx === state.page);
   }
+
+  let answerBlockIdx = 0;
 
   blocks.forEach((block, idx) => {
     let type = (block.type || "").trim().toLowerCase();
@@ -258,11 +252,11 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       type === "desc" ||
       type === "question"
     ) {
+      // Use block's coordinates if present, otherwise default to centered
       const img = $("#quiz-bg-img");
       const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-      const widthPx = blockWidthDesign * scaleX * shrinkFactor;
+      const widthPx = (block.width !== undefined ? block.width : imgW) * scaleX * shrinkFactor;
       const leftPx = (imgW - widthPx) / 2;
-
       style += `left: ${leftPx.toFixed(2)}px;`;
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
       style += `width: ${widthPx.toFixed(2)}px;`;
@@ -286,22 +280,9 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
       html += `<div class="${className}" style="${style}">${block.text}</div>`;
     }
-    // FIX: Render answer blocks as colored transparent buttons
+    // FIXED: Render answer blocks as colored transparent buttons at correct coordinates, expanding for text
     else if (type === "answer") {
-      const img = $("#quiz-bg-img");
-      const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-      const widthPx = blockWidthDesign * scaleX * shrinkFactor;
-      const leftPx = (imgW - widthPx) / 2;
-      style += `left: ${leftPx.toFixed(2)}px;`;
-      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      style += `width: ${widthPx.toFixed(2)}px;`;
-      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-
-      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-      style += "display:flex;align-items:center;justify-content:center;";
-      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      style += "padding:2px;";
-
+      // Calculate color and border by answer
       let answerLetter = "";
       if (typeof block.resultType === "string" && block.resultType.length === 1) answerLetter = block.resultType.trim().toUpperCase();
       else {
@@ -312,7 +293,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
           if (['A', 'B', 'C', 'D'].includes(firstLetter)) answerLetter = firstLetter;
         }
       }
-      // Show selected answer
+
       let isSelected = false;
       if (questionIndex !== null && quizConfig && quizConfig.userAnswers) {
         isSelected = quizConfig.userAnswers[questionIndex] === answerLetter;
@@ -321,21 +302,30 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       let btnClass = "block-answer-btn";
       if (isSelected) btnClass += " selected";
 
-      // Colors
       let btnColor = getAnswerColor(answerLetter);
       let borderColor = getAnswerBorderColor(answerLetter);
 
-      // Button style
+      // Measure if answer needs double height
+      let textLines = block.text.split('\n').length;
+      let isDouble = block.text.length > 60 || textLines > 1;
+      let btnH = isDouble ? BUTTON_H_DOUBLE : BUTTON_H_SINGLE;
+
+      // Calculate position as per spec
+      let leftPx = BUTTON_X * scaleX * shrinkFactor;
+      let topPx = (BUTTON_Y_START + (answerBlockIdx * BUTTON_Y_GAP)) * scaleY * shrinkFactor;
+      let widthPx = BUTTON_W * scaleX * shrinkFactor;
+      let heightPx = btnH * scaleY * shrinkFactor;
+
       let btnStyle = `
+        position:absolute;
+        left:${leftPx}px;top:${topPx}px;
+        width:${widthPx}px;height:${heightPx}px;
         background:${btnColor};
         border:2.5px solid ${borderColor};
-        border-radius:14px;
+        border-radius:18px;
         color:#fff;
-        font-size:1.1em;
-        width:100%;
-        height:100%;
+        font-size:1.13em;
         cursor:pointer;
-        transition:background 0.2s,border 0.2s;
         font-weight:700;
         box-shadow:0 2px 12px rgba(0,0,0,0.08);
         outline:none;
@@ -343,21 +333,24 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
         display:flex;
         align-items:center;
         justify-content:center;
-        opacity:0.96;
-        padding:10px 8px;
+        opacity:0.97;
+        transition:background 0.18s,border 0.18s;
+        padding:0px 10px;
+        text-align:center;
+        white-space:pre-line;word-break:break-word;overflow-wrap:break-word;
       `;
       if (isSelected) {
-        btnStyle += `box-shadow:0 0 0 4px ${borderColor};`;
-        btnStyle += `background:${btnColor.replace('0.40','0.80')};`;
+        btnStyle += `box-shadow:0 0 0 4px ${borderColor};background:${btnColor.replace('0.35','0.80')};`;
       }
 
-      // Only show the answer text in white above the button
-      html += `<button type="button" class="${btnClass}" style="${style + btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
+      html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
+
+      answerBlockIdx++;
     }
     else if (type === "result") {
       const img = $("#quiz-bg-img");
       const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-      const widthPx = blockWidthDesign * scaleX * shrinkFactor;
+      const widthPx = imgW * scaleX * shrinkFactor;
       const leftPx = (imgW - widthPx) / 2;
       style += `left: ${leftPx.toFixed(2)}px;`;
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
@@ -522,7 +515,6 @@ function render() {
             let answerLetter = btn.getAttribute("data-answer");
             let questionIndex = parseInt(btn.getAttribute("data-question-index"));
             quizConfig.setAnswer(questionIndex, answerLetter);
-            // Visually highlight selection
             answerBtns.forEach(b => b.classList.remove("selected"));
             btn.classList.add("selected");
           };
@@ -579,9 +571,9 @@ window.addEventListener("resize", render);
 
 .block-answer-btn {
   border: 2.5px solid #888;
-  border-radius: 14px;
+  border-radius: 18px;
   color: #fff;
-  font-size: 1.15em;
+  font-size: 1.13em;
   width: 100%;
   cursor: pointer;
   outline: none;
