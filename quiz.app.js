@@ -1,5 +1,19 @@
 const $ = (sel) => document.querySelector(sel);
-const app = $("#app");
+
+// Wait for DOM before grabbing #app (fixes button issue)
+let app;
+function ensureApp() {
+  app = $("#app");
+  if (!app) {
+    // If #app is not yet present, wait for DOMContentLoaded
+    document.addEventListener("DOMContentLoaded", () => {
+      app = $("#app");
+      render();
+    });
+    return false;
+  }
+  return true;
+}
 
 // Editor grid reference for all block coordinates (update if your admin/editor changed)
 const DESIGN_WIDTH = 375;
@@ -192,6 +206,7 @@ function autoFixPages(pages) {
 }
 
 function renderErrorScreen(extra = "") {
+  if (!ensureApp()) return;
   app.innerHTML = `
     <div style="background-color:#111;min-height:100vh;width:100vw;"></div>
     <div style="position:fixed;top:20vh;left:10vw;width:80vw;z-index:10;color:#fff;">
@@ -271,6 +286,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 }
 
 function render() {
+  if (!ensureApp()) return;
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
@@ -328,42 +344,48 @@ function render() {
         </div>
       </div>
     `;
-    $("#startBtn").onclick = async () => {
-      $("#startBtn").disabled = true;
-      const quizUrlParam = getQuizUrlParam();
-      if (quizUrlParam) {
-        try {
-          const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
+    // Wait for DOM and then attach event listener properly
+    setTimeout(() => {
+      const startBtn = $("#startBtn");
+      if (startBtn) {
+        startBtn.onclick = async () => {
+          startBtn.disabled = true;
+          const quizUrlParam = getQuizUrlParam();
+          if (quizUrlParam) {
+            try {
+              const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
 
-          if (config && config.error) {
-            state.quizError = config.error;
-            render();
-            return;
-          }
-          if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-            config.pages = autoFixPages(config.pages);
-            pageSequence = config.pages;
-            NUM_QUESTIONS = config.numQuestions;
-            SHOW_RESULT = config.showResult || SHOW_RESULT;
+              if (config && config.error) {
+                state.quizError = config.error;
+                render();
+                return;
+              }
+              if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+                config.pages = autoFixPages(config.pages);
+                pageSequence = config.pages;
+                NUM_QUESTIONS = config.numQuestions;
+                SHOW_RESULT = config.showResult || SHOW_RESULT;
+                state.page = 1;
+                state.quizLoaded = true;
+                state.quizError = "";
+                render();
+              } else {
+                state.quizError = "No quiz data loaded from repository!";
+                render();
+              }
+            } catch (err) {
+              state.quizError = err.message || "Error loading quiz from repository.";
+              render();
+            }
+          } else {
             state.page = 1;
             state.quizLoaded = true;
             state.quizError = "";
             render();
-          } else {
-            state.quizError = "No quiz data loaded from repository!";
-            render();
           }
-        } catch (err) {
-          state.quizError = err.message || "Error loading quiz from repository.";
-          render();
-        }
-      } else {
-        state.page = 1;
-        state.quizLoaded = true;
-        state.quizError = "";
-        render();
+        };
       }
-    };
+    }, 0);
     return;
   }
 
@@ -402,30 +424,48 @@ function render() {
     };
     if (img.complete) img.onload();
 
-    if (current.type !== "thankyou") $("#nextBtn").onclick = nextAction;
-    if (showBack) {
-      $("#backBtn").onclick = () => {
-        if (
-          current.type === "thankyou" ||
-          current.type === "resultA" ||
-          current.type === "resultB" ||
-          current.type === "resultC" ||
-          current.type === "resultD"
-        ) {
-          state.page = pageSequence.findIndex(p => p.type === "pre-results");
-        } else if (current.type === "pre-results") {
-          state.page = pageSequence.findIndex(
-            (p, i) => p.type === "question" && i > 0 && i < pageSequence.length
-          ) + NUM_QUESTIONS - 1;
-        } else {
-          state.page = Math.max(state.page - 1, 0);
+    // Attach event listeners after DOM update
+    setTimeout(() => {
+      if (current.type !== "thankyou") {
+        const nextBtn = $("#nextBtn");
+        if (nextBtn) nextBtn.onclick = nextAction;
+      }
+      if (showBack) {
+        const backBtn = $("#backBtn");
+        if (backBtn) {
+          backBtn.onclick = () => {
+            if (
+              current.type === "thankyou" ||
+              current.type === "resultA" ||
+              current.type === "resultB" ||
+              current.type === "resultC" ||
+              current.type === "resultD"
+            ) {
+              state.page = pageSequence.findIndex(p => p.type === "pre-results");
+            } else if (current.type === "pre-results") {
+              state.page = pageSequence.findIndex(
+                (p, i) => p.type === "question" && i > 0 && i < pageSequence.length
+              ) + NUM_QUESTIONS - 1;
+            } else {
+              state.page = Math.max(state.page - 1, 0);
+            }
+            render();
+          };
         }
-        render();
-      };
-    }
+      }
+    }, 0);
     return;
   }
 }
 
-render();
+// Ensure #app exists before rendering initially
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    ensureApp();
+    render();
+  });
+} else {
+  ensureApp();
+  render();
+}
 window.addEventListener("resize", render);
