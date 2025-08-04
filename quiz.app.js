@@ -17,7 +17,7 @@ function ensureApp() {
 const QA_DESIGN_WIDTH = 350;
 const QA_DESIGN_HEIGHT = 600;
 
-// Other pages (2.png, 5a.png, 5b.png, 5c.png, 5d.png, 6.png) design size
+// Other pages (2.png, 5a.png, 5b.png, 5c.png, 5d.png, 6.png) block geometry
 const OTHER_BLOCK_WIDTH = 275;
 const OTHER_LEFT_MARGIN = 42;
 
@@ -228,8 +228,7 @@ function getAnswerBorderColor(letter) {
 // Q&A button geometry constants
 const QA_BUTTON_W = 294;
 const QA_BUTTON_X = 31;
-const QA_BUTTON_H_SINGLE = 35;
-const QA_BUTTON_H_DOUBLE = 55;
+const QA_BUTTON_H = 60; // Always H 60 as requested
 const QA_BUTTON_Y_START = 180;
 const QA_BUTTON_Y_GAP = 60;
 
@@ -237,11 +236,23 @@ function isQAPage(bg) {
   return /^static\/3[a-h]\.png$/.test(bg) || bg === "static/4.png";
 }
 
+function isOtherBlockPage(bg) {
+  return (
+    bg === "static/2.png" ||
+    bg === "static/5a.png" ||
+    bg === "static/5b.png" ||
+    bg === "static/5c.png" ||
+    bg === "static/5d.png" ||
+    bg === "static/6.png"
+  );
+}
+
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
   const currentBg = pageSequence[state.page]?.bg || "";
-  let isQA = isQAPage(currentBg);
+  const isQA = isQAPage(currentBg);
+  const isOtherBlock = isOtherBlockPage(currentBg);
 
   let isQuestion = pageSequence[state.page] && pageSequence[state.page].type === "question";
   let questionIndex = null;
@@ -250,24 +261,39 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     questionIndex = questionPages.findIndex(q => q.idx === state.page);
   }
 
+  // For answer blocks, sort by letter A, B, C, D
+  let answerBlocks = [];
+  if (isQA && isQuestion) {
+    answerBlocks = blocks
+      .filter(b => (b.type || "").trim().toLowerCase() === "answer")
+      .map(b => {
+        let letter = "";
+        if (typeof b.resultType === "string" && b.resultType.length === 1) letter = b.resultType.trim().toUpperCase();
+        else {
+          let match = /^([A-D])\./.exec(b.text.trim());
+          if (match) letter = match[1];
+          else {
+            let firstLetter = b.text.trim().charAt(0).toUpperCase();
+            if (['A', 'B', 'C', 'D'].includes(firstLetter)) letter = firstLetter;
+          }
+        }
+        return { block: b, letter };
+      })
+      .sort((a, b) => a.letter.localeCompare(b.letter));
+  }
+
   let answerBlockIdx = 0;
 
   blocks.forEach((block, idx) => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    // For Q&A pages, special button positioning and left-aligned text
-    if (isQA && type === "answer") {
-      let answerLetter = "";
-      if (typeof block.resultType === "string" && block.resultType.length === 1) answerLetter = block.resultType.trim().toUpperCase();
-      else {
-        let match = /^([A-D])\./.exec(block.text.trim());
-        if (match) answerLetter = match[1];
-        else {
-          let firstLetter = block.text.trim().charAt(0).toUpperCase();
-          if (['A', 'B', 'C', 'D'].includes(firstLetter)) answerLetter = firstLetter;
-        }
-      }
+    // Q&A PAGE: ANSWERS ONLY
+    if (isQA && type === "answer" && isQuestion) {
+      // Use sorted order (A, B, C, D)
+      let sorted = answerBlocks[answerBlockIdx];
+      block = sorted.block;
+      let answerLetter = sorted.letter;
 
       let isSelected = false;
       if (questionIndex !== null && quizConfig && quizConfig.userAnswers) {
@@ -280,14 +306,10 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       let btnColor = getAnswerColor(answerLetter);
       let borderColor = getAnswerBorderColor(answerLetter);
 
-      let textLines = block.text.split('\n').length;
-      let isDouble = block.text.length > 60 || textLines > 1;
-      let btnH = isDouble ? QA_BUTTON_H_DOUBLE : QA_BUTTON_H_SINGLE;
-
       let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
       let topPx = (QA_BUTTON_Y_START + (answerBlockIdx * QA_BUTTON_Y_GAP)) * scaleY * shrinkFactor;
       let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
-      let heightPx = btnH * scaleY * shrinkFactor;
+      let heightPx = QA_BUTTON_H * scaleY * shrinkFactor;
 
       let btnStyle = `
         position:absolute;
@@ -323,8 +345,8 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       return;
     }
 
-    // For Q&A pages, all non-answer blocks: left-aligned, use QA geometry
-    if (isQA) {
+    // Q&A PAGE: NON-ANSWER BLOCKS (left-aligned, Q&A geometry)
+    if (isQA && type !== "answer") {
       let imgW = QA_DESIGN_WIDTH;
       let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
       let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
@@ -355,10 +377,44 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       return;
     }
 
-    // For NON-Q&A pages (2.png, 5x.png, 6.png): untouched except blockWidth and left margin
-    let imgW = OTHER_BLOCK_WIDTH;
-    let widthPx = OTHER_BLOCK_WIDTH * scaleX * shrinkFactor;
-    let leftPx = OTHER_LEFT_MARGIN * scaleX * shrinkFactor;
+    // OTHER PAGES: ONLY FIX BLOCK WIDTH/MARGIN, DO NOT CENTER TEXT
+    if (isOtherBlock) {
+      let imgW = OTHER_BLOCK_WIDTH;
+      let widthPx = OTHER_BLOCK_WIDTH * scaleX * shrinkFactor;
+      let leftPx = OTHER_LEFT_MARGIN * scaleX * shrinkFactor;
+
+      style += `left: ${leftPx.toFixed(2)}px;`;
+      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      style += `width: ${widthPx.toFixed(2)}px;`;
+      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+
+      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
+      style += "display:block;";
+      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+      style += "text-align:left;";
+
+      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
+      if (block.color) style += `color:${block.color};`;
+      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+      if (block.margin !== undefined) style += `margin:${block.margin};`;
+      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+
+      let className = "";
+      if (type === "title") className = "block-title";
+      else if (type === "description" || type === "desc") className = "block-desc";
+      else if (type === "question") className = "block-question";
+      else if (type === "result") className = "block-result";
+
+      html += `<div class="${className}" style="${style}">${block.text}</div>`;
+      return;
+    }
+
+    // ALL OTHER PAGES: untouched original logic
+    let img = $("#quiz-bg-img");
+    let imgW = img ? img.getBoundingClientRect().width : QA_DESIGN_WIDTH;
+    let blockWidthDesign = imgW;
+    let widthPx = blockWidthDesign * scaleX * shrinkFactor;
+    let leftPx = (imgW - widthPx) / 2;
 
     style += `left: ${leftPx.toFixed(2)}px;`;
     if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
@@ -497,9 +553,9 @@ function render() {
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
-    // Set correct design width/height for Q&A pages
     const isQA = isQAPage(current.bg);
-    const designW = isQA ? QA_DESIGN_WIDTH : OTHER_BLOCK_WIDTH;
+    const isOtherBlock = isOtherBlockPage(current.bg);
+    const designW = isQA ? QA_DESIGN_WIDTH : (isOtherBlock ? OTHER_BLOCK_WIDTH : QA_DESIGN_WIDTH);
     const designH = isQA ? QA_DESIGN_HEIGHT : 600;
 
     app.innerHTML = `
@@ -520,7 +576,7 @@ function render() {
       const displayW = rect.width;
       const displayH = rect.height;
 
-      const overlay = $("#block-overlay-layer");
+      overlay = $("#block-overlay-layer");
       overlay.style.width = displayW + "px";
       overlay.style.height = displayH + "px";
       overlay.style.left = "0px";
