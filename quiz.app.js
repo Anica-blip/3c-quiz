@@ -229,11 +229,9 @@ const BLOCK_X = 42;
 // Q&A button geometry
 const QA_BUTTON_W = 294;
 const QA_BUTTON_X = 31;
-const QA_BUTTON_H = 60; // Height for ALL buttons
-const QA_BUTTON_Y_START = 180;
-const QA_BUTTON_Y_GAP = 70; // vertical gap between buttons
+const QA_BUTTON_H = 60;
+const QA_BUTTON_Y = [180, 232, 285, 339]; // Button A, B, C, D
 
-// Helper functions for color
 function getAnswerColor(letter) {
   switch (letter) {
     case "A": return "rgba(52, 152, 219, 0.35)";
@@ -243,19 +241,9 @@ function getAnswerColor(letter) {
     default: return "rgba(255,255,255,0.2)";
   }
 }
-function getAnswerBorderColor(letter) {
-  switch (letter) {
-    case "A": return "#3498db";
-    case "B": return "#27ae60";
-    case "C": return "#c0392b";
-    case "D": return "#f1c40f";
-    default: return "#888";
-  }
-}
 
-// Utility for identifying page type
 function isQAPage(bg) {
-  return /^static\/3[a-h]\.png$/.test(bg) || bg === "static/4.png";
+  return /^static\/3[a-h]\.png$/.test(bg);
 }
 function isOtherBlockPage(bg) {
   return (
@@ -282,7 +270,6 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     questionIndex = questionPages.findIndex(q => q.idx === state.page);
   }
 
-  // Sort answer blocks by letter for Q&A pages
   let answerBlocks = [];
   if (isQA && isQuestion) {
     answerBlocks = blocks
@@ -311,7 +298,6 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
     // Q&A PAGE: ANSWERS ONLY
     if (isQA && type === "answer" && isQuestion) {
-      // Use sorted order (A, B, C, D)
       let sorted = answerBlocks[answerBlockIdx];
       block = sorted.block;
       let answerLetter = sorted.letter;
@@ -325,10 +311,9 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       if (isSelected) btnClass += " selected";
 
       let btnColor = getAnswerColor(answerLetter);
-      let borderColor = getAnswerBorderColor(answerLetter);
 
       let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
-      let topPx = (QA_BUTTON_Y_START + (answerBlockIdx * QA_BUTTON_Y_GAP)) * scaleY * shrinkFactor;
+      let topPx = QA_BUTTON_Y[answerBlockIdx] * scaleY * shrinkFactor;
       let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
       let heightPx = QA_BUTTON_H * scaleY * shrinkFactor;
 
@@ -337,7 +322,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
         left:${leftPx}px;top:${topPx}px;
         width:${widthPx}px;height:${heightPx}px;
         background:${btnColor};
-        border:2.5px solid ${borderColor};
+        border:none;
         border-radius:18px;
         color:#fff;
         font-size:1.13em;
@@ -348,17 +333,15 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
         z-index:10;
         display:flex;
         align-items:center;
-        justify-content:flex-start;
+        justify-content:center;
         opacity:0.97;
-        transition:background 0.18s,border 0.18s;
+        transition:background 0.18s;
         padding-left:18px;
         padding-right:10px;
-        text-align:left;
+        text-align:center;
         white-space:pre-line;word-break:break-word;overflow-wrap:break-word;
+        margin-bottom:18px;
       `;
-      if (isSelected) {
-        btnStyle += `box-shadow:0 0 0 4px ${borderColor};background:${btnColor.replace('0.35','0.80')};`;
-      }
 
       html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
       answerBlockIdx++;
@@ -394,13 +377,22 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       return;
     }
 
-    // OTHER PAGES: ONLY FIX BLOCK WIDTH/MARGIN, DO NOT CENTER TEXT
+    // OTHER PAGES: ONLY FIX BLOCK WIDTH/MARGIN/Y for description, DO NOT CENTER TEXT
     if (isOtherBlock) {
       let widthPx = BLOCK_W * scaleX * shrinkFactor;
       let leftPx = BLOCK_X * scaleX * shrinkFactor;
 
-      style += `left: ${leftPx.toFixed(2)}px;`;
-      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      // Title: W 275 & X 42, Description: W 275 & X 42 x Y 283
+      if (type === "title") {
+        style += `left: ${leftPx.toFixed(2)}px;top: 0px;`;
+      }
+      else if (type === "description" || type === "desc") {
+        style += `left: ${leftPx.toFixed(2)}px;top: ${(283 * scaleY * shrinkFactor)}px;`;
+      }
+      else {
+        style += `left: ${leftPx.toFixed(2)}px;`;
+        if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      }
       style += `width: ${widthPx.toFixed(2)}px;`;
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
 
@@ -568,8 +560,8 @@ function render() {
   ) {
     const isQA = isQAPage(current.bg);
     const isOtherBlock = isOtherBlockPage(current.bg);
-    const designW = isQA ? QA_DESIGN_WIDTH : (isOtherBlock ? BLOCK_W : DESIGN_WIDTH);
-    const designH = isQA ? QA_DESIGN_HEIGHT : DESIGN_HEIGHT;
+    const designW = isQA ? QA_BUTTON_W : (isOtherBlock ? BLOCK_W : DESIGN_WIDTH);
+    const designH = isQA ? DESIGN_HEIGHT : DESIGN_HEIGHT;
 
     app.innerHTML = `
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
@@ -652,32 +644,28 @@ window.addEventListener("resize", render);
 /* Add these styles to your CSS:
 
 .block-answer-btn {
-  border: 2.5px solid #888;
+  border: none;
   border-radius: 18px;
   color: #fff;
   font-size: 1.13em;
   width: 100%;
   cursor: pointer;
   outline: none;
-  margin-bottom: 14px; /* increased space between buttons */
+  margin-bottom: 18px; /* increased space between buttons */
   font-weight: 700;
-  transition: background 0.2s, border 0.2s;
+  transition: background 0.2s;
   background: rgba(255,255,255,0.05);
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .block-answer-btn.selected {
   box-shadow: 0 0 0 4px #fff;
   opacity: 1.0 !important;
 }
-*/
-
-/*
-Button coordinates for Q&A pages (3a-h.png, 4.png):
-- Button A: left=31px, top=180px, width=294px, height=60px
-- Button B: left=31px, top=250px, width=294px, height=60px
-- Button C: left=31px, top=320px, width=294px, height=60px
-- Button D: left=31px, top=390px, width=294px, height=60px
-
-(Each button starts at top = 180 + 70*(order-1), order is 1 for A, 2 for B, 3 for C, 4 for D)
 */
