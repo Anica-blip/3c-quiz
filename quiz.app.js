@@ -1,157 +1,59 @@
 const $ = (sel) => document.querySelector(sel);
+const app = $("#app");
 
-let app;
-function ensureApp() {
-  app = $("#app");
-  if (!app) {
-    document.addEventListener("DOMContentLoaded", () => {
-      app = $("#app");
-      render();
-    });
-    return false;
-  }
-  return true;
+// --- SUPABASE INITIALIZATION ---
+const SUPABASE_URL = "https://cgxjqsbrditbteqhdyus.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneGpxc2JyZGl0YnRlcWhkeXVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMTY1ODEsImV4cCI6MjA2NjY5MjU4MX0.xUDy5ic-r52kmRtocdcW8Np9-lczjMZ6YKPXc03rIG4";
+
+function loadSupabaseClient() {
+  if (window.supabase) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
 }
 
-// --- DO NOT TOUCH LOADER LOGIC ---
-// --- All code below from loader to pageSequence, getQuizUrlParam, autoFixPages, renderErrorScreen is UNCHANGED ---
+let supabase;
+async function initSupabase() {
+  await loadSupabaseClient();
+  if (!window.supabase) throw new Error('Supabase JS failed to load');
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
 
-// Editor grid reference for all block coordinates (update if your admin/editor changed)
-const DESIGN_WIDTH = 375;
-const DESIGN_HEIGHT = 600;
-
-// --- Loader logic: FIXED to parse answers by letter for ALL quizzes ---
-async function fetchQuizFromRepoByQuizUrl(quizUrl) {
-  const repoBase = window.location.origin + "/3c-quiz/quizzes/";
-  const url = `${repoBase}${quizUrl}.json`;
-
+// --- ONLY use quiz_app_url column for fetch ---
+async function fetchQuizFromSupabaseByAppUrl(quizAppUrl) {
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Quiz file not found at: ${url}`);
-    const data = await response.json();
+    await initSupabase();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .eq('quiz_app_url', quizAppUrl)
+      .limit(1)
+      .maybeSingle();
+
+    if (!data) return null;
 
     let pages = data.pages;
-    if (typeof pages === "string") pages = JSON.parse(pages);
-    else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) pages = Object.values(pages);
-
-    // Find all question pages and their answer buttons
-    let questionPages = [];
-    if (Array.isArray(pages)) {
-      questionPages = pages.map((p, idx) => {
-        if (p.type === "question" && Array.isArray(p.blocks)) {
-          // Find answer blocks, extract code
-          let answers = p.blocks
-            .filter(b => b.type === "answer")
-            .map(b => {
-              // Try resultType if present
-              if (typeof b.resultType === "string" && b.resultType.length === 1) return b.resultType.trim().toUpperCase();
-              // Otherwise parse "A. ..." from start of text
-              let match = /^([A-D])\./.exec(b.text.trim());
-              if (match) return match[1];
-              // Fallback: try first letter if it's A-D
-              let firstLetter = b.text.trim().charAt(0).toUpperCase();
-              if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
-              // Otherwise, error
-              return '';
-            });
-          return { idx, answers };
-        }
-        return null;
-      }).filter(p => p !== null);
-    }
-
-    let numQuestions = questionPages.length;
-
-    // --- Robust answer/result logic for ALL quizzes ---
-    let userAnswers = [];
-
-    // Record an answer for a question index
-    function setAnswer(questionIndex, answerValue) {
-      // Accept only A/B/C/D
-      if (['A','B','C','D'].includes(answerValue)) {
-        userAnswers[questionIndex] = answerValue;
+    if (typeof pages === "string") {
+      try {
+        pages = JSON.parse(pages);
+      } catch (e) {
+        throw new Error("Quiz 'pages' column is not valid JSON.");
       }
     }
-
-    // Returns the index of the next question page
-    function getNextQuestionPageIndex(currentIndex) {
-      let questionIdxs = questionPages.map(q => q.idx);
-      let currentQ = questionIdxs.indexOf(currentIndex);
-      if (currentQ < questionIdxs.length - 1) {
-        return questionIdxs[currentQ + 1];
-      } else {
-        // After last question, go to pre-results
-        return pages.findIndex(p => p.type === "pre-results");
-      }
-    }
-
-    // Returns the correct result type (A/B/C/D) based on answers
-    function calculateResultType() {
-      const counts = { A: 0, B: 0, C: 0, D: 0 };
-      userAnswers.forEach(ans => {
-        if (typeof ans === "string") {
-          const val = ans.trim().toUpperCase();
-          if (counts.hasOwnProperty(val)) counts[val]++;
-        }
-      });
-      // Find which answer has the highest count (A > B > C > D for ties)
-      let max = Math.max(counts.A, counts.B, counts.C, counts.D);
-      let maxTypes = [];
-      for (let type of ["A", "B", "C", "D"]) {
-        if (counts[type] === max && max > 0) {
-          maxTypes.push(type);
-        }
-      }
-      // If there is a tie, default to A > B > C > D priority
-      for (let type of ["A", "B", "C", "D"]) {
-        if (maxTypes.includes(type)) return type;
-      }
-      return "A";
-    }
-
-    // Returns the result page index for correct mapping
-    function getResultPageIndex() {
-      const resultType = calculateResultType();
-      let resultPageType = "result" + resultType;
-      let pageIdx = pages.findIndex(p => p.type === resultPageType);
-      if (pageIdx === -1) pageIdx = pages.findIndex(p => p.type === "resultA");
-      return pageIdx;
-    }
-
-    // Returns the thank you page index for workflow mapping
-    function getThankYouPageIndex() {
-      return pages.findIndex(p => p.type === "thankyou");
-    }
-
-    // For debugging: show quiz answer extraction logic
-    function debugQuizAnswerLogic() {
-      return {
-        questionPages,
-        userAnswers,
-        resultType: calculateResultType(),
-        resultPageIndex: getResultPageIndex()
-      };
-    }
-
-    // Attach robust workflow to quiz object, works for ALL quizzes
     return {
       pages,
-      numQuestions,
-      showResult: data.showResult || "A",
-      userAnswers,
-      setAnswer,
-      getNextQuestionPageIndex,
-      calculateResultType,
-      getResultPageIndex,
-      getThankYouPageIndex,
-      debugQuizAnswerLogic
+      numQuestions: Array.isArray(pages) ? pages.filter(p => p.type === "question").length : 0,
+      showResult: "A",
     };
   } catch (err) {
-    return { error: err.message || "Unknown error during quiz fetch." };
+    return { error: err.message || "Unknown error during Supabase fetch." };
   }
 }
 
-// --- DO NOT TOUCH PAGE SEQUENCE, STATE, ETC ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -181,9 +83,10 @@ let state = {
   quizError: ""
 };
 
-function getQuizUrlParam() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("quizUrl");
+// --- Loader: ONLY fetch from Supabase if quizUrl param is present ---
+function getQuizAppUrl() {
+  const quizAppUrl = window.location.href;
+  return quizAppUrl;
 }
 
 function autoFixPages(pages) {
@@ -208,267 +111,71 @@ function autoFixPages(pages) {
 
 function renderErrorScreen(extra = "") {
   app.innerHTML = `
-    <div style="background-color:#111;min-height:100vh;width:100vw;"></div>
-    <div style="position:fixed;top:20vh;left:10vw;width:80vw;z-index:10;color:#fff;">
-      <h2>Error: No page data</h2>
-      <p>The quiz could not be loaded or is empty or the page is malformed. Please check your quiz data.</p>
-      ${extra}
-      <div style="margin-top:2em;">
-        <button class="main-btn" onclick="window.location.reload()">Reload</button>
+    <div class="fullscreen-bg" style="background-color:#111"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        <h2>Error: No page data</h2>
+        <p>The quiz could not be loaded or is empty or the page is malformed. Please check your Supabase data.</p>
+        ${extra}
+        <div class="fullscreen-bottom">
+          <button class="main-btn" onclick="window.location.reload()">Reload</button>
+        </div>
       </div>
     </div>
   `;
 }
 
-// --- ONLY TOUCH RENDERBLOCKS AND CSS FOR BUTTONS AND BLOCKS ---
-
-// Block geometry for text pages
-const BLOCK_W = 275;
-const BLOCK_X = 42;
-
-// Q&A button geometry
-const QA_BUTTON_W = 294;
-const QA_BUTTON_X = 31;
-const QA_BUTTON_H = 60; // Height for ALL buttons
-const QA_BUTTON_Y_START = 180;
-const QA_BUTTON_Y_GAP = 70; // vertical gap between buttons
-
-// Helper functions for color
-function getAnswerColor(letter) {
-  switch (letter) {
-    case "A": return "rgba(52, 152, 219, 0.35)";
-    case "B": return "rgba(46, 204, 113, 0.35)";
-    case "C": return "rgba(231, 76, 60, 0.35)";
-    case "D": return "rgba(241, 196, 15, 0.35)";
-    default: return "rgba(255,255,255,0.2)";
+function renderFullscreenBgPage({ bg, button, showBack }) {
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${bg}');"></div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      ${button ? `<button class="main-btn" id="${button.id}">${button.label}</button>` : ""}
+    </div>
+  `;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      state.page = Math.max(0, state.page - 1);
+      render();
+    };
   }
-}
-function getAnswerBorderColor(letter) {
-  switch (letter) {
-    case "A": return "#3498db";
-    case "B": return "#27ae60";
-    case "C": return "#c0392b";
-    case "D": return "#f1c40f";
-    default: return "#888";
+  if (button) {
+    $(`#${button.id}`).onclick = button.onClick;
   }
-}
-
-// Utility for identifying page type
-function isQAPage(bg) {
-  return /^static\/3[a-h]\.png$/.test(bg) || bg === "static/4.png";
-}
-function isOtherBlockPage(bg) {
-  return (
-    bg === "static/2.png" ||
-    bg === "static/5a.png" ||
-    bg === "static/5b.png" ||
-    bg === "static/5c.png" ||
-    bg === "static/5d.png" ||
-    bg === "static/6.png"
-  );
-}
-
-function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
-  if (!Array.isArray(blocks)) return "";
-  let html = "";
-  const currentBg = pageSequence[state.page]?.bg || "";
-  const isQA = isQAPage(currentBg);
-  const isOtherBlock = isOtherBlockPage(currentBg);
-
-  let isQuestion = pageSequence[state.page] && pageSequence[state.page].type === "question";
-  let questionIndex = null;
-  if (isQuestion && window.quizConfig && window.quizConfig.questionPages) {
-    const questionPages = window.quizConfig.questionPages;
-    questionIndex = questionPages.findIndex(q => q.idx === state.page);
-  }
-
-  // Sort answer blocks by letter for Q&A pages
-  let answerBlocks = [];
-  if (isQA && isQuestion) {
-    answerBlocks = blocks
-      .filter(b => (b.type || "").trim().toLowerCase() === "answer")
-      .map(b => {
-        let letter = "";
-        if (typeof b.resultType === "string" && b.resultType.length === 1) letter = b.resultType.trim().toUpperCase();
-        else {
-          let match = /^([A-D])\./.exec(b.text.trim());
-          if (match) letter = match[1];
-          else {
-            let firstLetter = b.text.trim().charAt(0).toUpperCase();
-            if (['A', 'B', 'C', 'D'].includes(firstLetter)) letter = firstLetter;
-          }
-        }
-        return { block: b, letter };
-      })
-      .sort((a, b) => a.letter.localeCompare(b.letter));
-  }
-
-  let answerBlockIdx = 0;
-
-  blocks.forEach((block, idx) => {
-    let type = (block.type || "").trim().toLowerCase();
-    let style = "";
-
-    // Q&A PAGE: ANSWERS ONLY
-    if (isQA && type === "answer" && isQuestion) {
-      // Use sorted order (A, B, C, D)
-      let sorted = answerBlocks[answerBlockIdx];
-      block = sorted.block;
-      let answerLetter = sorted.letter;
-
-      let isSelected = false;
-      if (questionIndex !== null && window.quizConfig && window.quizConfig.userAnswers) {
-        isSelected = window.quizConfig.userAnswers[questionIndex] === answerLetter;
-      }
-
-      let btnClass = "block-answer-btn";
-      if (isSelected) btnClass += " selected";
-
-      let btnColor = getAnswerColor(answerLetter);
-      let borderColor = getAnswerBorderColor(answerLetter);
-
-      let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
-      let topPx = (QA_BUTTON_Y_START + (answerBlockIdx * QA_BUTTON_Y_GAP)) * scaleY * shrinkFactor;
-      let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
-      let heightPx = QA_BUTTON_H * scaleY * shrinkFactor;
-
-      let btnStyle = `
-        position:absolute;
-        left:${leftPx}px;top:${topPx}px;
-        width:${widthPx}px;height:${heightPx}px;
-        background:${btnColor};
-        border:2.5px solid ${borderColor};
-        border-radius:18px;
-        color:#fff;
-        font-size:1.13em;
-        cursor:pointer;
-        font-weight:700;
-        box-shadow:0 2px 12px rgba(0,0,0,0.08);
-        outline:none;
-        z-index:10;
-        display:flex;
-        align-items:center;
-        justify-content:flex-start;
-        opacity:0.97;
-        transition:background 0.18s,border 0.18s;
-        padding-left:18px;
-        padding-right:10px;
-        text-align:left;
-        white-space:pre-line;word-break:break-word;overflow-wrap:break-word;
-      `;
-      if (isSelected) {
-        btnStyle += `box-shadow:0 0 0 4px ${borderColor};background:${btnColor.replace('0.35','0.80')};`;
-      }
-
-      html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
-      answerBlockIdx++;
-      return;
-    }
-
-    // Q&A PAGE: NON-ANSWER BLOCKS (left-aligned, Q&A geometry)
-    if (isQA && type !== "answer") {
-      let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
-      let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
-
-      style += `left: ${leftPx.toFixed(2)}px;`;
-      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      style += `width: ${widthPx.toFixed(2)}px;`;
-      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-      style += "display:block;";
-      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      style += "text-align:left;";
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
-      if (block.color) style += `color:${block.color};`;
-      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.margin !== undefined) style += `margin:${block.margin};`;
-      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      let className = "";
-      if (type === "title") className = "block-title";
-      else if (type === "description" || type === "desc") className = "block-desc";
-      else if (type === "question") className = "block-question";
-      else if (type === "result") className = "block-result";
-
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-      return;
-    }
-
-    // OTHER PAGES: ONLY FIX BLOCK WIDTH/MARGIN, DO NOT CENTER TEXT
-    if (isOtherBlock) {
-      let widthPx = BLOCK_W * scaleX * shrinkFactor;
-      let leftPx = BLOCK_X * scaleX * shrinkFactor;
-
-      style += `left: ${leftPx.toFixed(2)}px;`;
-      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      style += `width: ${widthPx.toFixed(2)}px;`;
-      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-
-      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-      style += "display:block;";
-      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      style += "text-align:left;";
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
-      if (block.color) style += `color:${block.color};`;
-      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.margin !== undefined) style += `margin:${block.margin};`;
-      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      let className = "";
-      if (type === "title") className = "block-title";
-      else if (type === "description" || type === "desc") className = "block-desc";
-      else if (type === "question") className = "block-question";
-      else if (type === "result") className = "block-result";
-
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-      return;
-    }
-
-    // ALL OTHER PAGES: untouched original logic
-    let img = $("#quiz-bg-img");
-    let imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-    let blockWidthDesign = imgW;
-    let widthPx = blockWidthDesign * scaleX * shrinkFactor;
-    let leftPx = (imgW - widthPx) / 2;
-
-    style += `left: ${leftPx.toFixed(2)}px;`;
-    if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-    style += `width: ${widthPx.toFixed(2)}px;`;
-    if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-    style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-    style += "display:block;";
-    style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-    if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
-    if (block.color) style += `color:${block.color};`;
-    if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-    if (block.textAlign) style += `text-align:${block.textAlign};`;
-    if (block.margin !== undefined) style += `margin:${block.margin};`;
-    if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-    let className = "";
-    if (type === "title") className = "block-title";
-    else if (type === "description" || type === "desc") className = "block-desc";
-    else if (type === "question") className = "block-question";
-    else if (type === "result") className = "block-result";
-
-    html += `<div class="${className}" style="${style}">${block.text}</div>`;
-  });
-  return html;
 }
 
 function render() {
-  ensureApp();
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
+  // --- If fetch failed, show error screen and prevent navigation ---
   if (state.quizError) {
     renderErrorScreen(`<div style="color:#f00"><strong>${state.quizError}</strong></div>`);
     return;
   }
+
   if (!current || typeof current.type !== "string") {
-    app.innerHTML = `<div style="color:red;">Invalid page data.</div>`;
+    let pageNum = state.page + 1;
+    renderErrorScreen(`<p>Bad page at index <b>${state.page}</b> (page #${pageNum}).<br/>Try navigating next or back.<br/>Page data:<br/><pre>${JSON.stringify(current, null, 2)}</pre></p>
+      <div class="fullscreen-bottom">
+        <button class="main-btn" id="nextBtn">Next</button>
+        <button class="main-btn" id="backBtn">Back</button>
+      </div>
+    `);
+
+    const next = () => {
+      state.page = Math.min(state.page + 1, pageSequence.length - 1);
+      render();
+    };
+    const back = () => {
+      state.page = Math.max(state.page - 1, 0);
+      render();
+    };
+    document.getElementById("nextBtn").onclick = next;
+    document.getElementById("backBtn").onclick = back;
     return;
   }
+
   let showBack = state.page > 0;
   let nextLabel = "Next";
   if (current.type === "cover") nextLabel = "Start";
@@ -484,9 +191,6 @@ function render() {
 
   let nextAction = () => {
     if (current.type === "pre-results") {
-      if (window.quizConfig) {
-        SHOW_RESULT = window.quizConfig.calculateResultType();
-      }
       if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
       else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
       else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
@@ -518,166 +222,115 @@ function render() {
         </div>
       </div>
     `;
-    setTimeout(() => {
-      const startBtn = $("#startBtn");
-      if (startBtn) {
-        startBtn.onclick = async () => {
-          startBtn.disabled = true;
-          const quizUrlParam = getQuizUrlParam();
-          if (quizUrlParam) {
-            try {
-              const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
-
-              if (config && config.error) {
-                state.quizError = config.error;
-                render();
-                return;
-              }
-              if (config && Array.isArray(config.pages) && config.pages.length > 0) {
-                config.pages = autoFixPages(config.pages);
-                pageSequence = config.pages;
-                NUM_QUESTIONS = config.numQuestions;
-                SHOW_RESULT = config.showResult || SHOW_RESULT;
-                state.page = 1;
-                state.quizLoaded = true;
-                state.quizError = "";
-                window.quizConfig = config;
-                render();
-              } else {
-                state.quizError = "No quiz data loaded from repository!";
-                render();
-              }
-            } catch (err) {
-              state.quizError = err.message || "Error loading quiz from repository.";
-              render();
-            }
-          } else {
-            state.page = 1;
+    // --- Loader triggers ONLY on Start button ---
+    $("#startBtn").onclick = async () => {
+      $("#startBtn").disabled = true;
+      // If quizUrl param exists, try Supabase fetch
+      if (window.location.search.includes("quizUrl=")) {
+        let quizAppUrl = getQuizAppUrl();
+        try {
+          const config = await fetchQuizFromSupabaseByAppUrl(quizAppUrl);
+          if (config && config.error) {
+            state.quizError = config.error;
+            render();
+            return;
+          }
+          if (config && Array.isArray(config.pages) && config.pages.length > 0) {
+            config.pages = autoFixPages(config.pages);
+            pageSequence = config.pages;
+            NUM_QUESTIONS = config.pages.filter(p => p.type === "question").length;
+            SHOW_RESULT = config.showResult || SHOW_RESULT;
+            state.page = 1; // Move to first real page after cover
             state.quizLoaded = true;
             state.quizError = "";
             render();
+          } else {
+            state.quizError = "No quiz data loaded from Supabase!";
+            render();
           }
-        };
+        } catch (err) {
+          state.quizError = err.message || "Error loading quiz from Supabase.";
+          render();
+        }
+      } else {
+        // No quizUrl param, proceed with original hardcoded quiz
+        state.page = 1; // Go to intro of original quiz
+        state.quizLoaded = true;
+        state.quizError = "";
+        render();
       }
-    }, 0);
+    };
     return;
   }
 
-  if (
-    ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
-  ) {
-    const isQA = isQAPage(current.bg);
-    const isOtherBlock = isOtherBlockPage(current.bg);
-    const designW = isQA ? QA_DESIGN_WIDTH : (isOtherBlock ? BLOCK_W : DESIGN_WIDTH);
-    const designH = isQA ? QA_DESIGN_HEIGHT : DESIGN_HEIGHT;
+  if (current.type === "intro") {
+    renderFullscreenBgPage({
+      bg: current.bg,
+      button: { label: "Continue", id: "mainBtn", onClick: () => {
+        state.page++;
+        render();
+      }},
+      showBack: true
+    });
+    return;
+  }
 
+  if (current.type === "thankyou") {
     app.innerHTML = `
-      <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
-        <div id="img-block-container" style="position:relative;overflow:visible;">
-          <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" />
-          <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
+      <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+      <div class="page-content">
+        <div class="content-inner">
+          <h2>${current.type.toUpperCase()}</h2>
+          <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
         </div>
       </div>
       <div class="fullscreen-bottom">
         ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
       </div>
     `;
-    const img = $("#quiz-bg-img");
-    img.onload = () => {
-      const rect = img.getBoundingClientRect();
-      const displayW = rect.width;
-      const displayH = rect.height;
-
-      const overlay = $("#block-overlay-layer");
-      overlay.style.width = displayW + "px";
-      overlay.style.height = displayH + "px";
-      overlay.style.left = "0px";
-      overlay.style.top = "0px";
-
-      overlay.innerHTML = renderBlocks(current.blocks, displayW / designW, displayH / designH, 0.97);
-
-      // Attach answer button listeners for question pages (Q&A only)
-      if (isQA && current.type === "question" && window.quizConfig) {
-        const answerBtns = overlay.querySelectorAll(".block-answer-btn");
-        answerBtns.forEach(btn => {
-          btn.onclick = () => {
-            let answerLetter = btn.getAttribute("data-answer");
-            let questionIndex = parseInt(btn.getAttribute("data-question-index"));
-            window.quizConfig.setAnswer(questionIndex, answerLetter);
-            answerBtns.forEach(b => b.classList.remove("selected"));
-            btn.classList.add("selected");
-          };
-        });
-      }
-    };
-    if (img.complete) img.onload();
-
-    setTimeout(() => {
-      if (current.type !== "thankyou") {
-        const nextBtn = $("#nextBtn");
-        if (nextBtn) nextBtn.onclick = nextAction;
-      }
-      if (showBack) {
-        const backBtn = $("#backBtn");
-        if (backBtn) {
-          backBtn.onclick = () => {
-            if (
-              current.type === "thankyou" ||
-              current.type === "resultA" ||
-              current.type === "resultB" ||
-              current.type === "resultC" ||
-              current.type === "resultD"
-            ) {
-              state.page = pageSequence.findIndex(p => p.type === "pre-results");
-            } else if (current.type === "pre-results") {
-              state.page = pageSequence.findIndex(
-                (p, i) => p.type === "question" && i > 0 && i < pageSequence.length
-              ) + NUM_QUESTIONS - 1;
-            } else {
-              state.page = Math.max(state.page - 1, 0);
-            }
-            render();
-          };
-        }
-      }
-    }, 0);
+    if (showBack) {
+      $("#backBtn").onclick = () => {
+        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+        render();
+      };
+    }
     return;
+  }
+
+  app.innerHTML = `
+    <div class="fullscreen-bg" style="background-image:url('${current.bg}');"></div>
+    <div class="page-content">
+      <div class="content-inner">
+        <h2>${current.type.toUpperCase()}</h2>
+        <p>Insert text/content here for: <strong>${current.type}</strong> (admin app will fill this)</p>
+      </div>
+    </div>
+    <div class="fullscreen-bottom">
+      ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back">&#8592;</button>` : ""}
+      <button class="main-btn" id="nextBtn">${nextLabel}</button>
+    </div>
+  `;
+
+  $("#nextBtn").onclick = nextAction;
+  if (showBack) {
+    $("#backBtn").onclick = () => {
+      if (
+        current.type === "thankyou" ||
+        current.type === "resultA" ||
+        current.type === "resultB" ||
+        current.type === "resultC" ||
+        current.type === "resultD"
+      ) {
+        state.page = pageSequence.findIndex(p => p.type === "pre-results");
+      } else if (current.type === "pre-results") {
+        state.page = pageSequence.findIndex((p, i) => p.type === "question" && i > 0 && i < pageSequence.length) + NUM_QUESTIONS - 1;
+      } else {
+        state.page = Math.max(state.page - 1, 0);
+      }
+      render();
+    };
   }
 }
 
+// --- Start by showing the cover page ---
 render();
-window.addEventListener("resize", render);
-
-/* Add these styles to your CSS:
-
-.block-answer-btn {
-  border: 2.5px solid #888;
-  border-radius: 18px;
-  color: #fff;
-  font-size: 1.13em;
-  width: 100%;
-  cursor: pointer;
-  outline: none;
-  margin-bottom: 14px; /* increased space between buttons */
-  font-weight: 700;
-  transition: background 0.2s, border 0.2s;
-  background: rgba(255,255,255,0.05);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-}
-
-.block-answer-btn.selected {
-  box-shadow: 0 0 0 4px #fff;
-  opacity: 1.0 !important;
-}
-*/
-
-/*
-Button coordinates for Q&A pages (3a-h.png, 4.png):
-- Button A: left=31px, top=180px, width=294px, height=60px
-- Button B: left=31px, top=250px, width=294px, height=60px
-- Button C: left=31px, top=320px, width=294px, height=60px
-- Button D: left=31px, top=390px, width=294px, height=60px
-
-(Each button starts at top = 180 + 70*(order-1), order is 1 for A, 2 for B, 3 for C, 4 for D)
-*/
