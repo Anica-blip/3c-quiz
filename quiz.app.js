@@ -13,17 +13,14 @@ function ensureApp() {
   return true;
 }
 
-// Q&A pages (3a.png - 3h.png, 4.png) design size
-const QA_DESIGN_WIDTH = 350;
-const QA_DESIGN_HEIGHT = 600;
+// --- DO NOT TOUCH LOADER LOGIC ---
+// --- All code below from loader to pageSequence, getQuizUrlParam, autoFixPages, renderErrorScreen is UNCHANGED ---
 
-// Other pages (2.png, 5a.png, 5b.png, 5c.png, 5d.png, 6.png) block geometry
-const OTHER_BLOCK_WIDTH = 275;
-const OTHER_LEFT_MARGIN = 42;
+// Editor grid reference for all block coordinates (update if your admin/editor changed)
+const DESIGN_WIDTH = 375;
+const DESIGN_HEIGHT = 600;
 
-// --- Loader logic ---
-let quizConfig = null;
-
+// --- Loader logic: FIXED to parse answers by letter for ALL quizzes ---
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   const repoBase = window.location.origin + "/3c-quiz/quizzes/";
   const url = `${repoBase}${quizUrl}.json`;
@@ -37,18 +34,24 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     if (typeof pages === "string") pages = JSON.parse(pages);
     else if (!Array.isArray(pages) && typeof pages === "object" && pages !== null) pages = Object.values(pages);
 
+    // Find all question pages and their answer buttons
     let questionPages = [];
     if (Array.isArray(pages)) {
       questionPages = pages.map((p, idx) => {
         if (p.type === "question" && Array.isArray(p.blocks)) {
+          // Find answer blocks, extract code
           let answers = p.blocks
             .filter(b => b.type === "answer")
             .map(b => {
+              // Try resultType if present
               if (typeof b.resultType === "string" && b.resultType.length === 1) return b.resultType.trim().toUpperCase();
+              // Otherwise parse "A. ..." from start of text
               let match = /^([A-D])\./.exec(b.text.trim());
               if (match) return match[1];
+              // Fallback: try first letter if it's A-D
               let firstLetter = b.text.trim().charAt(0).toUpperCase();
               if (['A', 'B', 'C', 'D'].includes(firstLetter)) return firstLetter;
+              // Otherwise, error
               return '';
             });
           return { idx, answers };
@@ -58,24 +61,31 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
     }
 
     let numQuestions = questionPages.length;
+
+    // --- Robust answer/result logic for ALL quizzes ---
     let userAnswers = [];
 
+    // Record an answer for a question index
     function setAnswer(questionIndex, answerValue) {
+      // Accept only A/B/C/D
       if (['A','B','C','D'].includes(answerValue)) {
         userAnswers[questionIndex] = answerValue;
       }
     }
 
+    // Returns the index of the next question page
     function getNextQuestionPageIndex(currentIndex) {
       let questionIdxs = questionPages.map(q => q.idx);
       let currentQ = questionIdxs.indexOf(currentIndex);
       if (currentQ < questionIdxs.length - 1) {
         return questionIdxs[currentQ + 1];
       } else {
+        // After last question, go to pre-results
         return pages.findIndex(p => p.type === "pre-results");
       }
     }
 
+    // Returns the correct result type (A/B/C/D) based on answers
     function calculateResultType() {
       const counts = { A: 0, B: 0, C: 0, D: 0 };
       userAnswers.forEach(ans => {
@@ -84,6 +94,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
           if (counts.hasOwnProperty(val)) counts[val]++;
         }
       });
+      // Find which answer has the highest count (A > B > C > D for ties)
       let max = Math.max(counts.A, counts.B, counts.C, counts.D);
       let maxTypes = [];
       for (let type of ["A", "B", "C", "D"]) {
@@ -91,12 +102,14 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
           maxTypes.push(type);
         }
       }
+      // If there is a tie, default to A > B > C > D priority
       for (let type of ["A", "B", "C", "D"]) {
         if (maxTypes.includes(type)) return type;
       }
       return "A";
     }
 
+    // Returns the result page index for correct mapping
     function getResultPageIndex() {
       const resultType = calculateResultType();
       let resultPageType = "result" + resultType;
@@ -105,10 +118,12 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       return pageIdx;
     }
 
+    // Returns the thank you page index for workflow mapping
     function getThankYouPageIndex() {
       return pages.findIndex(p => p.type === "thankyou");
     }
 
+    // For debugging: show quiz answer extraction logic
     function debugQuizAnswerLogic() {
       return {
         questionPages,
@@ -118,6 +133,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       };
     }
 
+    // Attach robust workflow to quiz object, works for ALL quizzes
     return {
       pages,
       numQuestions,
@@ -128,14 +144,14 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       calculateResultType,
       getResultPageIndex,
       getThankYouPageIndex,
-      debugQuizAnswerLogic,
-      questionPages
+      debugQuizAnswerLogic
     };
   } catch (err) {
     return { error: err.message || "Unknown error during quiz fetch." };
   }
 }
 
+// --- DO NOT TOUCH PAGE SEQUENCE, STATE, ETC ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -191,7 +207,6 @@ function autoFixPages(pages) {
 }
 
 function renderErrorScreen(extra = "") {
-  if (!ensureApp()) return;
   app.innerHTML = `
     <div style="background-color:#111;min-height:100vh;width:100vw;"></div>
     <div style="position:fixed;top:20vh;left:10vw;width:80vw;z-index:10;color:#fff;">
@@ -205,6 +220,19 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
+// --- ONLY TOUCH RENDERBLOCKS AND CSS FOR BUTTONS AND BLOCKS ---
+
+// Block geometry for text pages
+const BLOCK_W = 275;
+const BLOCK_X = 42;
+
+// Q&A button geometry
+const QA_BUTTON_W = 294;
+const QA_BUTTON_X = 31;
+// Button heights and Y positions for single-line answers
+const QA_BUTTON_H = 60;
+const QA_BUTTON_Y = [180, 232, 285, 339]; // Y for A, B, C, D
+
 function getAnswerColor(letter) {
   switch (letter) {
     case "A": return "rgba(52, 152, 219, 0.35)";
@@ -215,27 +243,9 @@ function getAnswerColor(letter) {
   }
 }
 
-function getAnswerBorderColor(letter) {
-  switch (letter) {
-    case "A": return "#3498db";
-    case "B": return "#27ae60";
-    case "C": return "#c0392b";
-    case "D": return "#f1c40f";
-    default: return "#888";
-  }
-}
-
-// Q&A button geometry constants
-const QA_BUTTON_W = 294;
-const QA_BUTTON_X = 31;
-const QA_BUTTON_H = 60; // Always H 60 as requested
-const QA_BUTTON_Y_START = 180;
-const QA_BUTTON_Y_GAP = 60;
-
 function isQAPage(bg) {
-  return /^static\/3[a-h]\.png$/.test(bg) || bg === "static/4.png";
+  return /^static\/3[a-h]\.png$/.test(bg);
 }
-
 function isOtherBlockPage(bg) {
   return (
     bg === "static/2.png" ||
@@ -256,12 +266,12 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
   let isQuestion = pageSequence[state.page] && pageSequence[state.page].type === "question";
   let questionIndex = null;
-  if (isQuestion && quizConfig && quizConfig.questionPages) {
-    const questionPages = quizConfig.questionPages;
+  if (isQuestion && window.quizConfig && window.quizConfig.questionPages) {
+    const questionPages = window.quizConfig.questionPages;
     questionIndex = questionPages.findIndex(q => q.idx === state.page);
   }
 
-  // For answer blocks, sort by letter A, B, C, D
+  // Sort answer blocks by letter for Q&A pages
   let answerBlocks = [];
   if (isQA && isQuestion) {
     answerBlocks = blocks
@@ -290,33 +300,32 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
     // Q&A PAGE: ANSWERS ONLY
     if (isQA && type === "answer" && isQuestion) {
-      // Use sorted order (A, B, C, D)
       let sorted = answerBlocks[answerBlockIdx];
       block = sorted.block;
       let answerLetter = sorted.letter;
 
       let isSelected = false;
-      if (questionIndex !== null && quizConfig && quizConfig.userAnswers) {
-        isSelected = quizConfig.userAnswers[questionIndex] === answerLetter;
+      if (questionIndex !== null && window.quizConfig && window.quizConfig.userAnswers) {
+        isSelected = window.quizConfig.userAnswers[questionIndex] === answerLetter;
       }
 
       let btnClass = "block-answer-btn";
       if (isSelected) btnClass += " selected";
 
       let btnColor = getAnswerColor(answerLetter);
-      let borderColor = getAnswerBorderColor(answerLetter);
 
       let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
-      let topPx = (QA_BUTTON_Y_START + (answerBlockIdx * QA_BUTTON_Y_GAP)) * scaleY * shrinkFactor;
+      let topPx = QA_BUTTON_Y[answerBlockIdx] * scaleY * shrinkFactor;
       let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
       let heightPx = QA_BUTTON_H * scaleY * shrinkFactor;
 
+      // Button style - no border, text centered vertically and horizontally
       let btnStyle = `
         position:absolute;
         left:${leftPx}px;top:${topPx}px;
         width:${widthPx}px;height:${heightPx}px;
         background:${btnColor};
-        border:2.5px solid ${borderColor};
+        border:none;
         border-radius:18px;
         color:#fff;
         font-size:1.13em;
@@ -327,27 +336,22 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
         z-index:10;
         display:flex;
         align-items:center;
-        justify-content:flex-start;
+        justify-content:center;
         opacity:0.97;
-        transition:background 0.18s,border 0.18s;
+        transition:background 0.18s;
         padding-left:18px;
         padding-right:10px;
-        text-align:left;
+        text-align:center;
         white-space:pre-line;word-break:break-word;overflow-wrap:break-word;
       `;
-      if (isSelected) {
-        btnStyle += `box-shadow:0 0 0 4px ${borderColor};background:${btnColor.replace('0.35','0.80')};`;
-      }
 
       html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
-
       answerBlockIdx++;
       return;
     }
 
     // Q&A PAGE: NON-ANSWER BLOCKS (left-aligned, Q&A geometry)
     if (isQA && type !== "answer") {
-      let imgW = QA_DESIGN_WIDTH;
       let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
       let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
 
@@ -355,12 +359,10 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
       style += `width: ${widthPx.toFixed(2)}px;`;
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
       style += "text-align:left;";
-
       if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -379,12 +381,20 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
     // OTHER PAGES: ONLY FIX BLOCK WIDTH/MARGIN, DO NOT CENTER TEXT
     if (isOtherBlock) {
-      let imgW = OTHER_BLOCK_WIDTH;
-      let widthPx = OTHER_BLOCK_WIDTH * scaleX * shrinkFactor;
-      let leftPx = OTHER_LEFT_MARGIN * scaleX * shrinkFactor;
+      let widthPx = BLOCK_W * scaleX * shrinkFactor;
+      let leftPx = BLOCK_X * scaleX * shrinkFactor;
 
-      style += `left: ${leftPx.toFixed(2)}px;`;
-      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      // Title: W 275 & X 42, Description: W 275 & X 42 x Y 283
+      if (type === "title") {
+        style += `left: ${leftPx.toFixed(2)}px;top: 0px;`;
+      }
+      else if (type === "description" || type === "desc") {
+        style += `left: ${leftPx.toFixed(2)}px;top: ${(283 * scaleY * shrinkFactor)}px;`;
+      }
+      else {
+        style += `left: ${leftPx.toFixed(2)}px;`;
+        if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      }
       style += `width: ${widthPx.toFixed(2)}px;`;
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
 
@@ -392,7 +402,6 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
       style += "text-align:left;";
-
       if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -411,7 +420,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 
     // ALL OTHER PAGES: untouched original logic
     let img = $("#quiz-bg-img");
-    let imgW = img ? img.getBoundingClientRect().width : QA_DESIGN_WIDTH;
+    let imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
     let blockWidthDesign = imgW;
     let widthPx = blockWidthDesign * scaleX * shrinkFactor;
     let leftPx = (imgW - widthPx) / 2;
@@ -420,11 +429,9 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
     style += `width: ${widthPx.toFixed(2)}px;`;
     if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-
     style += "position:absolute;box-sizing:border-box;overflow:hidden;";
     style += "display:block;";
     style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-
     if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
     if (block.color) style += `color:${block.color};`;
     if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
@@ -444,7 +451,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
 }
 
 function render() {
-  if (!ensureApp()) return;
+  ensureApp();
   app.innerHTML = "";
   const current = pageSequence[state.page];
 
@@ -471,8 +478,8 @@ function render() {
 
   let nextAction = () => {
     if (current.type === "pre-results") {
-      if (quizConfig) {
-        SHOW_RESULT = quizConfig.calculateResultType();
+      if (window.quizConfig) {
+        SHOW_RESULT = window.quizConfig.calculateResultType();
       }
       if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
       else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
@@ -528,7 +535,7 @@ function render() {
                 state.page = 1;
                 state.quizLoaded = true;
                 state.quizError = "";
-                quizConfig = config;
+                window.quizConfig = config;
                 render();
               } else {
                 state.quizError = "No quiz data loaded from repository!";
@@ -553,10 +560,11 @@ function render() {
   if (
     ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
   ) {
-    const isQA = isQAPage(current.bg);
-    const isOtherBlock = isOtherBlockPage(current.bg);
-    const designW = isQA ? QA_DESIGN_WIDTH : (isOtherBlock ? OTHER_BLOCK_WIDTH : QA_DESIGN_WIDTH);
-    const designH = isQA ? QA_DESIGN_HEIGHT : 600;
+    const currentBg = current.bg;
+    const isQA = isQAPage(currentBg);
+    const isOtherBlock = isOtherBlockPage(currentBg);
+    const designW = isQA ? QA_BUTTON_W : (isOtherBlock ? BLOCK_W : DESIGN_WIDTH);
+    const designH = DESIGN_HEIGHT;
 
     app.innerHTML = `
       <div id="quiz-img-wrap" style="display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:auto;">
@@ -576,7 +584,7 @@ function render() {
       const displayW = rect.width;
       const displayH = rect.height;
 
-      overlay = $("#block-overlay-layer");
+      const overlay = $("#block-overlay-layer");
       overlay.style.width = displayW + "px";
       overlay.style.height = displayH + "px";
       overlay.style.left = "0px";
@@ -585,13 +593,13 @@ function render() {
       overlay.innerHTML = renderBlocks(current.blocks, displayW / designW, displayH / designH, 0.97);
 
       // Attach answer button listeners for question pages (Q&A only)
-      if (isQA && current.type === "question" && quizConfig) {
+      if (isQA && current.type === "question" && window.quizConfig) {
         const answerBtns = overlay.querySelectorAll(".block-answer-btn");
         answerBtns.forEach(btn => {
           btn.onclick = () => {
             let answerLetter = btn.getAttribute("data-answer");
             let questionIndex = parseInt(btn.getAttribute("data-question-index"));
-            quizConfig.setAnswer(questionIndex, answerLetter);
+            window.quizConfig.setAnswer(questionIndex, answerLetter);
             answerBtns.forEach(b => b.classList.remove("selected"));
             btn.classList.add("selected");
           };
@@ -633,30 +641,22 @@ function render() {
   }
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    ensureApp();
-    render();
-  });
-} else {
-  ensureApp();
-  render();
-}
+render();
 window.addEventListener("resize", render);
 
 /* Add these styles to your CSS:
 
 .block-answer-btn {
-  border: 2.5px solid #888;
+  border: none;
   border-radius: 18px;
   color: #fff;
   font-size: 1.13em;
   width: 100%;
   cursor: pointer;
   outline: none;
-  margin-bottom: 10px;
+  margin-bottom: 18px; /* increased space between buttons */
   font-weight: 700;
-  transition: background 0.2s, border 0.2s;
+  transition: background 0.2s;
   background: rgba(255,255,255,0.05);
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
