@@ -230,7 +230,7 @@ const QA_BUTTON_W = 294;
 const QA_BUTTON_X = 31;
 const QA_BUTTON_H = 60; // Always H 60 as requested
 const QA_BUTTON_Y_START = 180;
-const QA_BUTTON_Y_GAP = 60;
+const QA_BUTTON_Y_GAP = 70; // More vertical gap between buttons
 
 function isQAPage(bg) {
   return /^static\/3[a-h]\.png$/.test(bg) || bg === "static/4.png";
@@ -282,6 +282,7 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       .sort((a, b) => a.letter.localeCompare(b.letter));
   }
 
+  // Button positioning calculation
   let answerBlockIdx = 0;
 
   blocks.forEach((block, idx) => {
@@ -340,6 +341,9 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       }
 
       html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
+
+      // Output coordinates for reference (for admin/editor)
+      // console.log(`Button ${answerLetter}: left=${leftPx}px, top=${topPx}px, width=${widthPx}px, height=${heightPx}px`);
 
       answerBlockIdx++;
       return;
@@ -654,7 +658,7 @@ window.addEventListener("resize", render);
   width: 100%;
   cursor: pointer;
   outline: none;
-  margin-bottom: 10px;
+  margin-bottom: 14px; /* increased space between buttons */
   font-weight: 700;
   transition: background 0.2s, border 0.2s;
   background: rgba(255,255,255,0.05);
@@ -665,4 +669,14 @@ window.addEventListener("resize", render);
   box-shadow: 0 0 0 4px #fff;
   opacity: 1.0 !important;
 }
+*/
+
+/*
+Button coordinates for Q&A pages (3a-h.png, 4.png):
+- Button A: left=31px, top=180px, width=294px, height=60px
+- Button B: left=31px, top=250px, width=294px, height=60px
+- Button C: left=31px, top=320px, width=294px, height=60px
+- Button D: left=31px, top=390px, width=294px, height=60px
+
+(Each button starts at top = 180 + 70*(order-1), order is 1 for A, 2 for B, 3 for C, 4 for D)
 */
