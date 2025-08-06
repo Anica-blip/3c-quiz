@@ -13,10 +13,10 @@ function ensureApp() {
   return true;
 }
 
-const DESIGN_WIDTH = 350;
+const DESIGN_WIDTH = 350; // Updated to match image context
 const DESIGN_HEIGHT = 600;
 
-// --- Loader logic (UNTOUCHED) ---
+// --- Loader logic ---
 let quizConfig = null;
 
 async function fetchQuizFromRepoByQuizUrl(quizUrl) {
@@ -104,6 +104,15 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       return pages.findIndex(p => p.type === "thankyou");
     }
 
+    function debugQuizAnswerLogic() {
+      return {
+        questionPages,
+        userAnswers,
+        resultType: calculateResultType(),
+        resultPageIndex: getResultPageIndex()
+      };
+    }
+
     return {
       pages,
       numQuestions,
@@ -114,6 +123,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       calculateResultType,
       getResultPageIndex,
       getThankYouPageIndex,
+      debugQuizAnswerLogic,
       questionPages
     };
   } catch (err) {
@@ -121,7 +131,7 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
   }
 }
 
-// --- Everything below is original app loader logic (UNTOUCHED) ---
+// --- Everything below is the original app loader logic (UNTOUCHED) ---
 const defaultPageSequence = [
   { type: "cover", bg: "static/1.png" },
   { type: "intro", bg: "static/2.png" },
@@ -191,49 +201,38 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- Geometry constants ---
-const BLOCK_W = 275;
-const BLOCK_X = 42;
-const BLOCK_DESC_Y = 283;
-
-const QA_BUTTON_W = 294;
-const QA_BUTTON_X = 31;
-const QA_BUTTON_H = 60;
-const QA_BUTTON_Y_START = 180;
-const QA_BUTTON_GAP = 18; // vertical gap between buttons
-
-function isQAPage(bg) {
-  return /^static\/3[a-h]\.png$/.test(bg);
-}
-function isOtherBlockPage(bg) {
-  return (
-    bg === "static/2.png" ||
-    bg === "static/5a.png" ||
-    bg === "static/5b.png" ||
-    bg === "static/5c.png" ||
-    bg === "static/5d.png" ||
-    bg === "static/6.png"
-  );
-}
-
+// --- FIXED SECTION: Render answer blocks as colored transparent buttons with proper coordinates ---
 function getAnswerColor(letter) {
   switch (letter) {
-    case "A": return "rgba(52, 152, 219, 0.35)";
-    case "B": return "rgba(46, 204, 113, 0.35)";
-    case "C": return "rgba(231, 76, 60, 0.35)";
-    case "D": return "rgba(241, 196, 15, 0.35)";
+    case "A": return "rgba(52, 152, 219, 0.35)"; // blue
+    case "B": return "rgba(46, 204, 113, 0.35)"; // green
+    case "C": return "rgba(231, 76, 60, 0.35)"; // red
+    case "D": return "rgba(241, 196, 15, 0.35)"; // yellow
     default: return "rgba(255,255,255,0.2)";
   }
 }
 
-// --- DOM rendering ---
+function getAnswerBorderColor(letter) {
+  switch (letter) {
+    case "A": return "#3498db";
+    case "B": return "#27ae60";
+    case "C": return "#c0392b";
+    case "D": return "#f1c40f";
+    default: return "#888";
+  }
+}
+
+// Button geometry constants per your message
+const BUTTON_W = 294;
+const BUTTON_X = 31;
+const BUTTON_H_SINGLE = 35;
+const BUTTON_H_DOUBLE = 55;
+const BUTTON_Y_START = 180;
+const BUTTON_Y_GAP = 60; // vertical gap between buttons
+
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
-  const currentBg = pageSequence[state.page]?.bg || "";
-  const isQA = isQAPage(currentBg);
-  const isOtherBlock = isOtherBlockPage(currentBg);
-
   let isQuestion = pageSequence[state.page] && pageSequence[state.page].type === "question";
   let questionIndex = null;
   if (isQuestion && quizConfig && quizConfig.questionPages) {
@@ -241,37 +240,118 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     questionIndex = questionPages.findIndex(q => q.idx === state.page);
   }
 
-  // For Q&A page, collect answer blocks sorted by answer letter
-  let answerBlocks = [];
-  if (isQA && isQuestion) {
-    answerBlocks = blocks
-      .filter(b => (b.type || "").trim().toLowerCase() === "answer")
-      .map(b => {
-        let letter = "";
-        if (typeof b.resultType === "string" && b.resultType.length === 1) letter = b.resultType.trim().toUpperCase();
-        else {
-          let match = /^([A-D])\./.exec(b.text.trim());
-          if (match) letter = match[1];
-          else {
-            let firstLetter = b.text.trim().charAt(0).toUpperCase();
-            if (['A', 'B', 'C', 'D'].includes(firstLetter)) letter = firstLetter;
-          }
-        }
-        return { block: b, letter };
-      })
-      .sort((a, b) => a.letter.localeCompare(b.letter));
-  }
+  let answerBlockIdx = 0;
 
-  // --- Render non-answer blocks (for Q&A and info/result pages) ---
   blocks.forEach((block, idx) => {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    // Q&A PAGE: NON-ANSWER BLOCKS (left-aligned, Q&A geometry)
-    if (isQA && type !== "answer") {
-      let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
-      let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
+    if (
+      type === "title" ||
+      type === "description" ||
+      type === "desc" ||
+      type === "question"
+    ) {
+      // Use block's coordinates if present, otherwise default to centered
+      const img = $("#quiz-bg-img");
+      const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
+      const widthPx = (block.width !== undefined ? block.width : imgW) * scaleX * shrinkFactor;
+      const leftPx = (imgW - widthPx) / 2;
+      style += `left: ${leftPx.toFixed(2)}px;`;
+      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      style += `width: ${widthPx.toFixed(2)}px;`;
+      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
 
+      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
+      style += "display:block;";
+      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+
+      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
+      if (block.color) style += `color:${block.color};`;
+      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+      if (block.textAlign) style += `text-align:${block.textAlign};`;
+      if (block.margin !== undefined) style += `margin:${block.margin};`;
+      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+
+      let className = "";
+      if (type === "title") className = "block-title";
+      else if (type === "description" || type === "desc") className = "block-desc";
+      else if (type === "question") className = "block-question";
+
+      html += `<div class="${className}" style="${style}">${block.text}</div>`;
+    }
+    // FIXED: Render answer blocks as colored transparent buttons at correct coordinates, expanding for text
+    else if (type === "answer") {
+      // Calculate color and border by answer
+      let answerLetter = "";
+      if (typeof block.resultType === "string" && block.resultType.length === 1) answerLetter = block.resultType.trim().toUpperCase();
+      else {
+        let match = /^([A-D])\./.exec(block.text.trim());
+        if (match) answerLetter = match[1];
+        else {
+          let firstLetter = block.text.trim().charAt(0).toUpperCase();
+          if (['A', 'B', 'C', 'D'].includes(firstLetter)) answerLetter = firstLetter;
+        }
+      }
+
+      let isSelected = false;
+      if (questionIndex !== null && quizConfig && quizConfig.userAnswers) {
+        isSelected = quizConfig.userAnswers[questionIndex] === answerLetter;
+      }
+
+      let btnClass = "block-answer-btn";
+      if (isSelected) btnClass += " selected";
+
+      let btnColor = getAnswerColor(answerLetter);
+      let borderColor = getAnswerBorderColor(answerLetter);
+
+      // Measure if answer needs double height
+      let textLines = block.text.split('\n').length;
+      let isDouble = block.text.length > 60 || textLines > 1;
+      let btnH = isDouble ? BUTTON_H_DOUBLE : BUTTON_H_SINGLE;
+
+      // Calculate position as per spec
+      let leftPx = BUTTON_X * scaleX * shrinkFactor;
+      let topPx = (BUTTON_Y_START + (answerBlockIdx * BUTTON_Y_GAP)) * scaleY * shrinkFactor;
+      let widthPx = BUTTON_W * scaleX * shrinkFactor;
+      let heightPx = btnH * scaleY * shrinkFactor;
+
+      let btnStyle = `
+        position:absolute;
+        left:${leftPx}px;top:${topPx}px;
+        width:${widthPx}px;height:${heightPx}px;
+        background:${btnColor};
+        border:2.5px solid ${borderColor};
+        border-radius:18px;
+        color:#fff;
+        font-size:1.13em;
+        cursor:pointer;
+        font-weight:700;
+        box-shadow:0 2px 12px rgba(0,0,0,0.08);
+        outline:none;
+        z-index:10;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        opacity:0.97;
+        transition:background 0.18s,border 0.18s;
+        padding:0px 10px;
+        text-align:center;
+        white-space:pre-line;word-break:break-word;overflow-wrap:break-word;
+      `;
+      if (isSelected) {
+        btnStyle += `box-shadow:0 0 0 4px ${borderColor};background:${btnColor.replace('0.35','0.80')};`;
+      }
+
+      html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
+
+      answerBlockIdx++;
+    }
+    else if (type === "result") {
+      const img = $("#quiz-bg-img");
+      const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
+      const widthPx = imgW * scaleX * shrinkFactor;
+      const leftPx = (imgW - widthPx) / 2;
       style += `left: ${leftPx.toFixed(2)}px;`;
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
       style += `width: ${widthPx.toFixed(2)}px;`;
@@ -279,68 +359,15 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      style += "text-align:left;";
       if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+      if (block.textAlign) style += `text-align:${block.textAlign};`;
       if (block.margin !== undefined) style += `margin:${block.margin};`;
       if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      let className = "";
-      if (type === "title") className = "block-title";
-      else if (type === "description" || type === "desc") className = "block-desc";
-      else if (type === "question") className = "block-question";
-      else if (type === "result") className = "block-result";
-
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-      return;
-    }
-
-    // --- Render info/result blocks ---
-    if (isOtherBlock) {
-      let widthPx = BLOCK_W * scaleX * shrinkFactor;
-      let leftPx = BLOCK_X * scaleX * shrinkFactor;
-
-      if (type === "title") {
-        style += `left: ${leftPx.toFixed(2)}px;top: 0px;`;
-      }
-      else if (type === "description" || type === "desc") {
-        style += `left: ${leftPx.toFixed(2)}px;top: ${(BLOCK_DESC_Y * scaleY * shrinkFactor)}px;`;
-      }
-      else {
-        style += `left: ${leftPx.toFixed(2)}px;`;
-        if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      }
-      style += `width: ${widthPx.toFixed(2)}px;`;
-      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-
-      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-      style += "display:block;";
-      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      style += "text-align:left;";
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
-      if (block.color) style += `color:${block.color};`;
-      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.margin !== undefined) style += `margin:${block.margin};`;
-      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      let className = "";
-      if (type === "title") className = "block-title";
-      else if (type === "description" || type === "desc") className = "block-desc";
-      else if (type === "question") className = "block-question";
-      else if (type === "result") className = "block-result";
-
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-      return;
+      html += `<div class="block-result" style="${style}">${block.text}</div>`;
     }
   });
-
-  // --- Render answer buttons for Q&A page ---
-  if (isQA && isQuestion) {
-    // We'll render a placeholder for each button, and after DOM is built, we'll position them dynamically
-    html += `<div id="dynamic-answer-buttons"></div>`;
-  }
-
   return html;
 }
 
@@ -480,101 +507,18 @@ function render() {
 
       overlay.innerHTML = renderBlocks(current.blocks, displayW / DESIGN_WIDTH, displayH / DESIGN_HEIGHT, 0.97);
 
-      // --- Dynamic Q&A answer button rendering ---
-      if (isQAPage(current.bg) && current.type === "question" && quizConfig) {
-        // Gather answer blocks
-        let blocks = current.blocks.filter(b => (b.type || "").trim().toLowerCase() === "answer")
-          .map(b => {
-            let letter = "";
-            if (typeof b.resultType === "string" && b.resultType.length === 1) letter = b.resultType.trim().toUpperCase();
-            else {
-              let match = /^([A-D])\./.exec(b.text.trim());
-              if (match) letter = match[1];
-              else {
-                let firstLetter = b.text.trim().charAt(0).toUpperCase();
-                if (['A', 'B', 'C', 'D'].includes(firstLetter)) letter = firstLetter;
-              }
-            }
-            return { block: b, letter };
-          })
-          .sort((a, b) => a.letter.localeCompare(b.letter));
-
-        let questionPages = quizConfig.questionPages;
-        let questionIndex = questionPages.findIndex(q => q.idx === state.page);
-
-        const answerLayer = overlay.querySelector("#dynamic-answer-buttons");
-        answerLayer.innerHTML = "";
-
-        // Place buttons dynamically
-        let yCurrent = QA_BUTTON_Y_START * (displayH / DESIGN_HEIGHT) * 0.97;
-        let btnGap = QA_BUTTON_GAP * (displayH / DESIGN_HEIGHT) * 0.97;
-        let btnW = QA_BUTTON_W * (displayW / DESIGN_WIDTH) * 0.97;
-        let btnX = QA_BUTTON_X * (displayW / DESIGN_WIDTH) * 0.97;
-
-        blocks.forEach((answer, idx) => {
-          let isSelected = quizConfig.userAnswers[questionIndex] === answer.letter;
-          let btnColor = getAnswerColor(answer.letter);
-
-          // Create button element
-          let btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "block-answer-btn" + (isSelected ? " selected" : "");
-          btn.setAttribute("data-answer", answer.letter);
-          btn.setAttribute("data-question-index", questionIndex);
-
-          btn.style.position = "absolute";
-          btn.style.left = btnX + "px";
-          btn.style.top = yCurrent + "px";
-          btn.style.width = btnW + "px";
-          btn.style.background = btnColor;
-          btn.style.border = "none";
-          btn.style.borderRadius = "18px";
-          btn.style.color = "#fff";
-          btn.style.fontSize = "1.13em";
-          btn.style.cursor = "pointer";
-          btn.style.fontWeight = "700";
-          btn.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)";
-          btn.style.outline = "none";
-          btn.style.zIndex = "10";
-          btn.style.display = "flex";
-          btn.style.alignItems = "center";
-          btn.style.justifyContent = "flex-start";
-          btn.style.opacity = "0.97";
-          btn.style.transition = "background 0.18s";
-          btn.style.paddingLeft = "18px";
-          btn.style.paddingRight = "10px";
-          btn.style.marginBottom = btnGap + "px";
-          btn.style.textAlign = "left";
-          btn.style.whiteSpace = "pre-line";
-          btn.style.wordBreak = "break-word";
-          btn.style.overflowWrap = "break-word";
-
-          btn.innerHTML = answer.block.text;
-
-          answerLayer.appendChild(btn);
-
-          // After adding, measure height and increment yCurrent
-          let btnHeight = QA_BUTTON_H * (displayH / DESIGN_HEIGHT) * 0.97;
-          // Use actual rendered height if text wraps
-          setTimeout(() => {
-            let actualHeight = btn.getBoundingClientRect().height;
-            yCurrent += actualHeight + btnGap;
-          }, 0);
+      // Attach answer button listeners for question pages
+      if (current.type === "question" && quizConfig) {
+        const answerBtns = overlay.querySelectorAll(".block-answer-btn");
+        answerBtns.forEach(btn => {
+          btn.onclick = () => {
+            let answerLetter = btn.getAttribute("data-answer");
+            let questionIndex = parseInt(btn.getAttribute("data-question-index"));
+            quizConfig.setAnswer(questionIndex, answerLetter);
+            answerBtns.forEach(b => b.classList.remove("selected"));
+            btn.classList.add("selected");
+          };
         });
-
-        // Attach listeners
-        setTimeout(() => {
-          const answerBtns = answerLayer.querySelectorAll(".block-answer-btn");
-          answerBtns.forEach(btn => {
-            btn.onclick = () => {
-              let answerLetter = btn.getAttribute("data-answer");
-              let questionIndex = parseInt(btn.getAttribute("data-question-index"));
-              quizConfig.setAnswer(questionIndex, answerLetter);
-              answerBtns.forEach(b => b.classList.remove("selected"));
-              btn.classList.add("selected");
-            };
-          });
-        }, 0);
       }
     };
     if (img.complete) img.onload();
@@ -626,37 +570,22 @@ window.addEventListener("resize", render);
 /* Add these styles to your CSS:
 
 .block-answer-btn {
-  border: none;
+  border: 2.5px solid #888;
   border-radius: 18px;
   color: #fff;
   font-size: 1.13em;
   width: 100%;
-  min-height: 60px;
   cursor: pointer;
   outline: none;
+  margin-bottom: 10px;
   font-weight: 700;
-  transition: background 0.2s;
+  transition: background 0.2s, border 0.2s;
   background: rgba(255,255,255,0.05);
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  text-align: left;
-  white-space: pre-line;
-  word-break: break-word;
-  overflow-wrap: break-word;
 }
 
 .block-answer-btn.selected {
   box-shadow: 0 0 0 4px #fff;
   opacity: 1.0 !important;
-}
-
-/* Desktop/mobile tweaks */
-@media (max-width: 700px) {
-  .block-answer-btn {
-    font-size: 1em;
-    min-height: 48px;
-  }
 }
 */
