@@ -255,17 +255,17 @@ const PAGE_LAYOUTS = {
   // Intro page (2.png) and Result pages (5a-5d.png)
   intro_result: {
     title: { x: 42, y: 212, width: 275, height: 28 },
-    description: { x: 42, y: 239, width: 275, height: 28 }
+    description: { x: 42, y: 283, width: 275, height: 28 }
   },
   
   // Question pages (3a-3h.png)
   question: {
     question: { x: 31, y: 109, width: 294, height: 60 },
     answers: {
-      A: { x: 31, y: 189, width: 294, height: 35 },
-      B: { x: 31, y: 232, width: 294, height: 35 },
-      C: { x: 31, y: 275, width: 294, height: 35 },
-      D: { x: 31, y: 318, width: 294, height: 35 }
+      A: { x: 31, y: 189, width: 294, height: 40 },
+      B: { x: 31, y: 237, width: 294, height: 40 },
+      C: { x: 31, y: 285, width: 294, height: 40 },
+      D: { x: 31, y: 333, width: 294, height: 40 }
     }
   },
   
@@ -618,8 +618,19 @@ function render() {
 
         let questionIndex = 0;
         if (quizConfig && quizConfig.questionPages) {
-          questionIndex = quizConfig.questionPages.findIndex(q => q.idx === state.page);
-          if (questionIndex === -1) questionIndex = 0;
+          let currentQuestionPageIndex = quizConfig.questionPages.findIndex(q => q.idx === state.page);
+          if (currentQuestionPageIndex !== -1) {
+            questionIndex = currentQuestionPageIndex;
+          } else {
+            // Fallback: count question pages from beginning
+            let questionCount = 0;
+            for (let i = 0; i < state.page; i++) {
+              if (pageSequence[i] && pageSequence[i].type === "question") {
+                questionCount++;
+              }
+            }
+            questionIndex = questionCount;
+          }
         }
 
         console.log("Answer blocks found:", answerBlocks);
@@ -641,7 +652,7 @@ function render() {
             }
 
             let isSelected = false;
-            if (quizConfig && quizConfig.userAnswers) {
+            if (quizConfig && quizConfig.userAnswers && questionIndex >= 0) {
               isSelected = quizConfig.userAnswers[questionIndex] === answer.letter;
             }
             let btnColor = getAnswerColor(answer.letter);
@@ -672,15 +683,15 @@ function render() {
             btn.style.outline = "none";
             btn.style.zIndex = "10";
             
-            // Layout - center text in button
+            // Layout - left align text in button
             btn.style.display = "flex";
             btn.style.alignItems = "center";
-            btn.style.justifyContent = "center";
-            btn.style.textAlign = "center";
+            btn.style.justifyContent = "flex-start";
+            btn.style.textAlign = "left";
             
             btn.style.opacity = isSelected ? "1.0" : "0.9";
             btn.style.transition = "all 0.2s ease";
-            btn.style.padding = Math.max(6, 8 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            btn.style.padding = Math.max(6, 8 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px " + Math.max(12, 16 * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
             
             // Text handling for line wrapping
             btn.style.whiteSpace = "pre-line";
