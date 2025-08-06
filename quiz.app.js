@@ -614,10 +614,9 @@ window.addEventListener("resize", render);
 }
 
 /* Desktop/mobile tweaks */
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .block-answer-btn {
     font-size: 1em;
     min-height: 48px;
   }
 }
-*/
