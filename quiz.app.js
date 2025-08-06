@@ -584,7 +584,7 @@ if (document.readyState === "loading") {
 }
 window.addEventListener("resize", render);
 
-/* Add these styles to your CSS: */
+/* Add these styles to your CSS:
 
 .block-answer-btn {
   border: none;
