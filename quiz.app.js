@@ -618,5 +618,5 @@ window.addEventListener("resize", render);
   .block-answer-btn {
     font-size: 1em;
     min-height: 48px;
-  }
 }
+*/
