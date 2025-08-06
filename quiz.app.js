@@ -612,4 +612,12 @@ window.addEventListener("resize", render);
   box-shadow: 0 0 0 4px #fff;
   opacity: 1.0 !important;
 }
+
+/* Desktop/mobile tweaks */
+@media (max-width: 600px) {
+  .block-answer-btn {
+    font-size: 1em;
+    min-height: 48px;
+  }
+}
 */
