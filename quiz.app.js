@@ -13,7 +13,7 @@ function ensureApp() {
   return true;
 }
 
-const DESIGN_WIDTH = 350; // Updated to match image context
+const DESIGN_WIDTH = 350; // Fixed design reference
 const DESIGN_HEIGHT = 600;
 
 // --- Loader logic ---
@@ -104,15 +104,6 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       return pages.findIndex(p => p.type === "thankyou");
     }
 
-    function debugQuizAnswerLogic() {
-      return {
-        questionPages,
-        userAnswers,
-        resultType: calculateResultType(),
-        resultPageIndex: getResultPageIndex()
-      };
-    }
-
     return {
       pages,
       numQuestions,
@@ -123,7 +114,6 @@ async function fetchQuizFromRepoByQuizUrl(quizUrl) {
       calculateResultType,
       getResultPageIndex,
       getThankYouPageIndex,
-      debugQuizAnswerLogic,
       questionPages
     };
   } catch (err) {
@@ -201,43 +191,71 @@ function renderErrorScreen(extra = "") {
   `;
 }
 
-// --- FIXED SECTION: Render answer blocks as colored transparent buttons with proper coordinates ---
+// --- Geometry constants ---
+const BLOCK_W = 275;
+const BLOCK_X = 42;
+const BLOCK_DESC_Y = 283;
+const QA_BUTTON_W = 294;
+const QA_BUTTON_X = 31;
+const QA_BUTTON_H = 60;
+const QA_BUTTON_Y = [180, 232, 285, 339];
+
+function isQAPage(bg) {
+  return /^static\/3[a-h]\.png$/.test(bg);
+}
+function isOtherBlockPage(bg) {
+  return (
+    bg === "static/2.png" ||
+    bg === "static/5a.png" ||
+    bg === "static/5b.png" ||
+    bg === "static/5c.png" ||
+    bg === "static/5d.png" ||
+    bg === "static/6.png"
+  );
+}
+
 function getAnswerColor(letter) {
   switch (letter) {
-    case "A": return "rgba(52, 152, 219, 0.35)"; // blue
-    case "B": return "rgba(46, 204, 113, 0.35)"; // green
-    case "C": return "rgba(231, 76, 60, 0.35)"; // red
-    case "D": return "rgba(241, 196, 15, 0.35)"; // yellow
+    case "A": return "rgba(52, 152, 219, 0.35)";
+    case "B": return "rgba(46, 204, 113, 0.35)";
+    case "C": return "rgba(231, 76, 60, 0.35)";
+    case "D": return "rgba(241, 196, 15, 0.35)";
     default: return "rgba(255,255,255,0.2)";
   }
 }
 
-function getAnswerBorderColor(letter) {
-  switch (letter) {
-    case "A": return "#3498db";
-    case "B": return "#27ae60";
-    case "C": return "#c0392b";
-    case "D": return "#f1c40f";
-    default: return "#888";
-  }
-}
-
-// Button geometry constants per your message
-const BUTTON_W = 294;
-const BUTTON_X = 31;
-const BUTTON_H_SINGLE = 35;
-const BUTTON_H_DOUBLE = 55;
-const BUTTON_Y_START = 180;
-const BUTTON_Y_GAP = 60; // vertical gap between buttons
-
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
+  const currentBg = pageSequence[state.page]?.bg || "";
+  const isQA = isQAPage(currentBg);
+  const isOtherBlock = isOtherBlockPage(currentBg);
+
   let isQuestion = pageSequence[state.page] && pageSequence[state.page].type === "question";
   let questionIndex = null;
   if (isQuestion && quizConfig && quizConfig.questionPages) {
     const questionPages = quizConfig.questionPages;
     questionIndex = questionPages.findIndex(q => q.idx === state.page);
+  }
+
+  let answerBlocks = [];
+  if (isQA && isQuestion) {
+    answerBlocks = blocks
+      .filter(b => (b.type || "").trim().toLowerCase() === "answer")
+      .map(b => {
+        let letter = "";
+        if (typeof b.resultType === "string" && b.resultType.length === 1) letter = b.resultType.trim().toUpperCase();
+        else {
+          let match = /^([A-D])\./.exec(b.text.trim());
+          if (match) letter = match[1];
+          else {
+            let firstLetter = b.text.trim().charAt(0).toUpperCase();
+            if (['A', 'B', 'C', 'D'].includes(firstLetter)) letter = firstLetter;
+          }
+        }
+        return { block: b, letter };
+      })
+      .sort((a, b) => a.letter.localeCompare(b.letter));
   }
 
   let answerBlockIdx = 0;
@@ -246,53 +264,11 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     let type = (block.type || "").trim().toLowerCase();
     let style = "";
 
-    if (
-      type === "title" ||
-      type === "description" ||
-      type === "desc" ||
-      type === "question"
-    ) {
-      // Use block's coordinates if present, otherwise default to centered
-      const img = $("#quiz-bg-img");
-      const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-      const widthPx = (block.width !== undefined ? block.width : imgW) * scaleX * shrinkFactor;
-      const leftPx = (imgW - widthPx) / 2;
-      style += `left: ${leftPx.toFixed(2)}px;`;
-      if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      style += `width: ${widthPx.toFixed(2)}px;`;
-      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-
-      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-      style += "display:block;";
-      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
-      if (block.color) style += `color:${block.color};`;
-      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.textAlign) style += `text-align:${block.textAlign};`;
-      if (block.margin !== undefined) style += `margin:${block.margin};`;
-      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      let className = "";
-      if (type === "title") className = "block-title";
-      else if (type === "description" || type === "desc") className = "block-desc";
-      else if (type === "question") className = "block-question";
-
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-    }
-    // FIXED: Render answer blocks as colored transparent buttons at correct coordinates, expanding for text
-    else if (type === "answer") {
-      // Calculate color and border by answer
-      let answerLetter = "";
-      if (typeof block.resultType === "string" && block.resultType.length === 1) answerLetter = block.resultType.trim().toUpperCase();
-      else {
-        let match = /^([A-D])\./.exec(block.text.trim());
-        if (match) answerLetter = match[1];
-        else {
-          let firstLetter = block.text.trim().charAt(0).toUpperCase();
-          if (['A', 'B', 'C', 'D'].includes(firstLetter)) answerLetter = firstLetter;
-        }
-      }
+    // Q&A PAGE: ANSWERS ONLY (3a-h.png)
+    if (isQA && type === "answer" && isQuestion) {
+      let sorted = answerBlocks[answerBlockIdx];
+      block = sorted.block;
+      let answerLetter = sorted.letter;
 
       let isSelected = false;
       if (questionIndex !== null && quizConfig && quizConfig.userAnswers) {
@@ -303,25 +279,19 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       if (isSelected) btnClass += " selected";
 
       let btnColor = getAnswerColor(answerLetter);
-      let borderColor = getAnswerBorderColor(answerLetter);
 
-      // Measure if answer needs double height
-      let textLines = block.text.split('\n').length;
-      let isDouble = block.text.length > 60 || textLines > 1;
-      let btnH = isDouble ? BUTTON_H_DOUBLE : BUTTON_H_SINGLE;
+      let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
+      let topPx = QA_BUTTON_Y[answerBlockIdx] * scaleY * shrinkFactor;
+      let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
+      let heightPx = QA_BUTTON_H * scaleY * shrinkFactor;
 
-      // Calculate position as per spec
-      let leftPx = BUTTON_X * scaleX * shrinkFactor;
-      let topPx = (BUTTON_Y_START + (answerBlockIdx * BUTTON_Y_GAP)) * scaleY * shrinkFactor;
-      let widthPx = BUTTON_W * scaleX * shrinkFactor;
-      let heightPx = btnH * scaleY * shrinkFactor;
-
+      // Use flexbox for perfect centering
       let btnStyle = `
         position:absolute;
         left:${leftPx}px;top:${topPx}px;
         width:${widthPx}px;height:${heightPx}px;
         background:${btnColor};
-        border:2.5px solid ${borderColor};
+        border:none;
         border-radius:18px;
         color:#fff;
         font-size:1.13em;
@@ -334,24 +304,24 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
         align-items:center;
         justify-content:center;
         opacity:0.97;
-        transition:background 0.18s,border 0.18s;
-        padding:0px 10px;
+        transition:background 0.18s;
+        padding-left:10px;
+        padding-right:10px;
+        margin-bottom:18px;
         text-align:center;
         white-space:pre-line;word-break:break-word;overflow-wrap:break-word;
       `;
-      if (isSelected) {
-        btnStyle += `box-shadow:0 0 0 4px ${borderColor};background:${btnColor.replace('0.35','0.80')};`;
-      }
 
-      html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}">${block.text}</button>`;
-
+      html += `<button type="button" class="${btnClass}" style="${btnStyle}" data-answer="${answerLetter}" data-question-index="${questionIndex !== null ? questionIndex : ''}"><span style="width:100%;text-align:center;display:inline-block;">${block.text}</span></button>`;
       answerBlockIdx++;
+      return;
     }
-    else if (type === "result") {
-      const img = $("#quiz-bg-img");
-      const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
-      const widthPx = imgW * scaleX * shrinkFactor;
-      const leftPx = (imgW - widthPx) / 2;
+
+    // Q&A PAGE: NON-ANSWER BLOCKS (left-aligned, Q&A geometry)
+    if (isQA && type !== "answer") {
+      let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
+      let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
+
       style += `left: ${leftPx.toFixed(2)}px;`;
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
       style += `width: ${widthPx.toFixed(2)}px;`;
@@ -359,14 +329,90 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
       style += "position:absolute;box-sizing:border-box;overflow:hidden;";
       style += "display:block;";
       style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+      style += "text-align:left;";
       if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
       if (block.color) style += `color:${block.color};`;
       if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.textAlign) style += `text-align:${block.textAlign};`;
       if (block.margin !== undefined) style += `margin:${block.margin};`;
       if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-      html += `<div class="block-result" style="${style}">${block.text}</div>`;
+
+      let className = "";
+      if (type === "title") className = "block-title";
+      else if (type === "description" || type === "desc") className = "block-desc";
+      else if (type === "question") className = "block-question";
+      else if (type === "result") className = "block-result";
+
+      html += `<div class="${className}" style="${style}">${block.text}</div>`;
+      return;
     }
+
+    // OTHER PAGES: FIXED block geometry for 2.png, 5a-d.png, 6.png
+    if (isOtherBlock) {
+      let widthPx = BLOCK_W * scaleX * shrinkFactor;
+      let leftPx = BLOCK_X * scaleX * shrinkFactor;
+
+      // Title: W 275 & X 42, Description: W 275 & X 42 x Y 283
+      if (type === "title") {
+        style += `left: ${leftPx.toFixed(2)}px;top: 0px;`;
+      }
+      else if (type === "description" || type === "desc") {
+        style += `left: ${leftPx.toFixed(2)}px;top: ${(BLOCK_DESC_Y * scaleY * shrinkFactor)}px;`;
+      }
+      else {
+        style += `left: ${leftPx.toFixed(2)}px;`;
+        if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      }
+      style += `width: ${widthPx.toFixed(2)}px;`;
+      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+
+      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
+      style += "display:block;";
+      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+      style += "text-align:left;";
+      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
+      if (block.color) style += `color:${block.color};`;
+      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+      if (block.margin !== undefined) style += `margin:${block.margin};`;
+      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+
+      let className = "";
+      if (type === "title") className = "block-title";
+      else if (type === "description" || type === "desc") className = "block-desc";
+      else if (type === "question") className = "block-question";
+      else if (type === "result") className = "block-result";
+
+      html += `<div class="${className}" style="${style}">${block.text}</div>`;
+      return;
+    }
+
+    // ALL OTHER PAGES: untouched original logic
+    const img = $("#quiz-bg-img");
+    const imgW = img ? img.getBoundingClientRect().width : DESIGN_WIDTH;
+    const blockWidthDesign = imgW;
+    const widthPx = blockWidthDesign * scaleX * shrinkFactor;
+    const leftPx = (imgW - widthPx) / 2;
+
+    style += `left: ${leftPx.toFixed(2)}px;`;
+    if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+    style += `width: ${widthPx.toFixed(2)}px;`;
+    if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+    style += "position:absolute;box-sizing:border-box;overflow:hidden;";
+    style += "display:block;";
+    style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+    if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
+    if (block.color) style += `color:${block.color};`;
+    if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+    if (block.textAlign) style += `text-align:${block.textAlign};`;
+    if (block.margin !== undefined) style += `margin:${block.margin};`;
+    if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+
+    let className = "";
+    if (type === "title") className = "block-title";
+    else if (type === "description" || type === "desc") className = "block-desc";
+    else if (type === "question") className = "block-question";
+    else if (type === "result") className = "block-result";
+
+    html += `<div class="${className}" style="${style}">${block.text}</div>`;
   });
   return html;
 }
@@ -507,8 +553,8 @@ function render() {
 
       overlay.innerHTML = renderBlocks(current.blocks, displayW / DESIGN_WIDTH, displayH / DESIGN_HEIGHT, 0.97);
 
-      // Attach answer button listeners for question pages
-      if (current.type === "question" && quizConfig) {
+      // Attach answer button listeners for question pages (Q&A only)
+      if (isQAPage(current.bg) && current.type === "question" && quizConfig) {
         const answerBtns = overlay.querySelectorAll(".block-answer-btn");
         answerBtns.forEach(btn => {
           btn.onclick = () => {
@@ -570,22 +616,39 @@ window.addEventListener("resize", render);
 /* Add these styles to your CSS:
 
 .block-answer-btn {
-  border: 2.5px solid #888;
+  border: none;
   border-radius: 18px;
   color: #fff;
   font-size: 1.13em;
   width: 100%;
+  height: 60px;
   cursor: pointer;
   outline: none;
-  margin-bottom: 10px;
+  margin-bottom: 18px;
   font-weight: 700;
-  transition: background 0.2s, border 0.2s;
+  transition: background 0.2s;
   background: rgba(255,255,255,0.05);
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .block-answer-btn.selected {
   box-shadow: 0 0 0 4px #fff;
   opacity: 1.0 !important;
 }
+
+/* For desktop/mobile scaling, optionally add: */
+@media (max-width: 700px) {
+  .block-answer-btn {
+    font-size: 1em;
+    height: 48px;
+  }
+}
 */
+
