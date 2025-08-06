@@ -222,13 +222,30 @@ function getAnswerBorderColor(letter) {
   }
 }
 
-// Button geometry constants per your message
-const BUTTON_W = 294;
-const BUTTON_X = 31;
-const BUTTON_H_SINGLE = 35;
-const BUTTON_H_DOUBLE = 55;
-const BUTTON_Y_START = 180;
-const BUTTON_Y_GAP = 60; // vertical gap between buttons
+// --- Geometry constants ---
+const BLOCK_W = 275;
+const BLOCK_X = 42;
+const BLOCK_DESC_Y = 283;
+
+const QA_BUTTON_W = 294;
+const QA_BUTTON_X = 31;
+const QA_BUTTON_H = 60;
+const QA_BUTTON_Y_START = 180;
+const QA_BUTTON_GAP = 18; // vertical gap between buttons
+
+function isQAPage(bg) {
+  return /^static\/3[a-h]\.png$/.test(bg);
+}
+function isOtherBlockPage(bg) {
+  return (
+    bg === "static/2.png" ||
+    bg === "static/5a.png" ||
+    bg === "static/5b.png" ||
+    bg === "static/5c.png" ||
+    bg === "static/5d.png" ||
+    bg === "static/6.png"
+  );
+}
 
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
@@ -570,22 +587,37 @@ window.addEventListener("resize", render);
 /* Add these styles to your CSS:
 
 .block-answer-btn {
-  border: 2.5px solid #888;
+  border: none;
   border-radius: 18px;
   color: #fff;
   font-size: 1.13em;
   width: 100%;
+  min-height: 60px;
   cursor: pointer;
   outline: none;
-  margin-bottom: 10px;
   font-weight: 700;
-  transition: background 0.2s, border 0.2s;
+  transition: background 0.2s;
   background: rgba(255,255,255,0.05);
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: pre-line;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .block-answer-btn.selected {
   box-shadow: 0 0 0 4px #fff;
   opacity: 1.0 !important;
+}
+
+/* Desktop/mobile tweaks */
+@media (max-width: 700px) {
+  .block-answer-btn {
+    font-size: 1em;
+    min-height: 48px;
+  }
 }
 */
