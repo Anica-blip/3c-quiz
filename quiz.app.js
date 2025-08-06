@@ -655,4 +655,235 @@ function render() {
 
             // Position using fixed coordinates from layout
             btn.style.position = "absolute";
-            btn.style.left = (answerPos.x * (displayW /
+            btn.style.left = (answerPos.x * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
+            btn.style.top = (answerPos.y * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            btn.style.width = (answerPos.width * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
+            btn.style.minHeight = (answerPos.height * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            
+            // Button styling
+            btn.style.background = btnColor;
+            btn.style.border = "none";
+            btn.style.borderRadius = Math.max(8, 12 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            btn.style.color = "#fff";
+            btn.style.fontSize = Math.max(11, 14 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            btn.style.cursor = "pointer";
+            btn.style.fontWeight = "600";
+            btn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+            btn.style.outline = "none";
+            btn.style.zIndex = "10";
+            
+            // Layout - center text in button
+            btn.style.display = "flex";
+            btn.style.alignItems = "center";
+            btn.style.justifyContent = "center";
+            btn.style.textAlign = "center";
+            
+            btn.style.opacity = isSelected ? "1.0" : "0.9";
+            btn.style.transition = "all 0.2s ease";
+            btn.style.padding = Math.max(6, 8 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            
+            // Text handling for line wrapping
+            btn.style.whiteSpace = "pre-line";
+            btn.style.wordBreak = "break-word";
+            btn.style.overflowWrap = "break-word";
+            btn.style.lineHeight = "1.2";
+
+            // Set button text
+            btn.innerHTML = answer.block.text || '';
+
+            // Selection styling
+            if (isSelected) {
+              btn.style.boxShadow = "0 0 0 2px #fff, 0 2px 12px rgba(0,0,0,0.2)";
+              btn.style.transform = "translateY(-1px)";
+            }
+
+            // Add hover effects
+            btn.onmouseenter = () => {
+              if (!btn.classList.contains('selected')) {
+                btn.style.opacity = "1";
+                btn.style.transform = "translateY(-1px)";
+                btn.style.boxShadow = "0 2px 12px rgba(0,0,0,0.25)";
+              }
+            };
+            btn.onmouseleave = () => {
+              if (!btn.classList.contains('selected')) {
+                btn.style.opacity = "0.9";
+                btn.style.transform = "translateY(0)";
+                btn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+              } else {
+                btn.style.transform = "translateY(-1px)";
+              }
+            };
+
+            answerLayer.appendChild(btn);
+            
+            console.log(`Button ${answer.letter} positioned at X:${answerPos.x} Y:${answerPos.y} W:${answerPos.width} H:${answerPos.height}`);
+          });
+
+          // Attach click listeners after all buttons are created
+          setTimeout(() => {
+            const answerBtns = answerLayer.querySelectorAll(".block-answer-btn");
+            answerBtns.forEach(btn => {
+              btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                let answerLetter = btn.getAttribute("data-answer");
+                let questionIndex = parseInt(btn.getAttribute("data-question-index"));
+                
+                console.log(`Answer clicked: ${answerLetter} for question ${questionIndex}`);
+                
+                // Set answer in quiz config
+                if (quizConfig && quizConfig.setAnswer) {
+                  quizConfig.setAnswer(questionIndex, answerLetter);
+                  console.log("Current answers:", quizConfig.userAnswers);
+                }
+                
+                // Update visual selection
+                answerBtns.forEach(b => {
+                  b.classList.remove("selected");
+                  b.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+                  b.style.opacity = "0.9";
+                  b.style.transform = "translateY(0)";
+                });
+                
+                btn.classList.add("selected");
+                btn.style.boxShadow = "0 0 0 2px #fff, 0 2px 12px rgba(0,0,0,0.2)";
+                btn.style.opacity = "1.0";
+                btn.style.transform = "translateY(-1px)";
+              };
+            });
+          }, 20);
+        }
+      }
+    };
+
+    img.onload = handleImageLoad;
+    if (img.complete) handleImageLoad();
+
+    // Attach navigation button listeners
+    setTimeout(() => {
+      if (current.type !== "thankyou") {
+        const nextBtn = $("#nextBtn");
+        if (nextBtn) {
+          nextBtn.onmouseenter = () => {
+            nextBtn.style.background = "#0056b3";
+            nextBtn.style.transform = "translateY(-2px)";
+          };
+          nextBtn.onmouseleave = () => {
+            nextBtn.style.background = "#007bff";
+            nextBtn.style.transform = "translateY(0)";
+          };
+          nextBtn.onclick = nextAction;
+        }
+      }
+      
+      if (showBack) {
+        const backBtn = $("#backBtn");
+        if (backBtn) {
+          backBtn.onmouseenter = () => {
+            backBtn.style.background = "rgba(255,255,255,0.2)";
+          };
+          backBtn.onmouseleave = () => {
+            backBtn.style.background = "rgba(255,255,255,0.1)";
+          };
+          backBtn.onclick = () => {
+            if (
+              current.type === "thankyou" ||
+              current.type === "resultA" ||
+              current.type === "resultB" ||
+              current.type === "resultC" ||
+              current.type === "resultD"
+            ) {
+              state.page = pageSequence.findIndex(p => p.type === "pre-results");
+            } else if (current.type === "pre-results") {
+              // Go back to last question
+              let lastQuestionIdx = -1;
+              for (let i = pageSequence.length - 1; i >= 0; i--) {
+                if (pageSequence[i].type === "question") {
+                  lastQuestionIdx = i;
+                  break;
+                }
+              }
+              if (lastQuestionIdx !== -1) {
+                state.page = lastQuestionIdx;
+              } else {
+                state.page = Math.max(state.page - 1, 0);
+              }
+            } else {
+              state.page = Math.max(state.page - 1, 0);
+            }
+            render();
+          };
+        }
+      }
+    }, 0);
+    return;
+  }
+}
+
+// Initialize the app
+function initializeApp() {
+  console.log("Initializing quiz app...");
+  
+  // Create default quiz config for fallback
+  if (!quizConfig) {
+    quizConfig = {
+      pages: [...defaultPageSequence],
+      numQuestions: 2, // Updated to match default questions
+      showResult: "A",
+      userAnswers: [],
+      questionPages: [
+        { idx: 2, answers: ['A', 'B', 'C', 'D'] }, // First question page
+        { idx: 3, answers: ['A', 'B', 'C', 'D'] }  // Second question page
+      ],
+      setAnswer: function(questionIndex, answerValue) {
+        if (['A','B','C','D'].includes(answerValue)) {
+          this.userAnswers[questionIndex] = answerValue;
+          console.log(`Answer set: Q${questionIndex} = ${answerValue}`);
+        }
+      },
+      calculateResultType: function() {
+        const counts = { A: 0, B: 0, C: 0, D: 0 };
+        this.userAnswers.forEach(ans => {
+          if (typeof ans === "string") {
+            const val = ans.trim().toUpperCase();
+            if (counts.hasOwnProperty(val)) counts[val]++;
+          }
+        });
+        let max = Math.max(counts.A, counts.B, counts.C, counts.D);
+        let maxTypes = [];
+        for (let type of ["A", "B", "C", "D"]) {
+          if (counts[type] === max && max > 0) {
+            maxTypes.push(type);
+          }
+        }
+        // Return first max type found
+        for (let type of ["A", "B", "C", "D"]) {
+          if (maxTypes.includes(type)) return type;
+        }
+        return "A";
+      }
+    };
+  }
+  
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      ensureApp();
+      render();
+    });
+  } else {
+    ensureApp();
+    render();
+  }
+}
+
+// Handle window resize
+window.addEventListener("resize", () => {
+  if (!state.isLoading && !state.quizError) {
+    render();
+  }
+});
+
+// Start the app
+initializeApp();
