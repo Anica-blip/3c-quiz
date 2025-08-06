@@ -589,3 +589,8 @@ window.addEventListener("resize", render);
   opacity: 1.0 !important;
 }
 */
+.block-answer-btn.selected {
+  box-shadow: 0 0 0 4px #fff;
+  opacity: 1.0 !important;
+}
+*/
