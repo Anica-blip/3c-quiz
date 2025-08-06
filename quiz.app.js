@@ -1,4 +1,25 @@
-const $ = (sel) => document.querySelector(sel);
+calculateResultType: function() {
+        const counts = { A: 0, B: 0, C: 0, D: 0 };
+        
+        console.log("Calculating results from answers:", this.userAnswers);
+        
+        this.userAnswers.forEach((ans, index) => {
+          if (typeof ans === "string") {
+            const val = ans.trim().toUpperCase();
+            if (counts.hasOwnProperty(val)) {
+              counts[val]++;
+              console.log(`Answer ${index}: ${val} (running totals: A:${counts.A}, B:${counts.B}, C:${counts.C}, D:${counts.D})`);
+            }
+          }
+        });
+        
+        console.log("Final counts:", counts);
+        
+        // Find the highest score(s)
+        let max = Math.max(counts.A, counts.B, counts.C, counts.D);
+        console.log("Highest score:", max);
+        
+        if (max === 0) {const $ = (sel) => document.querySelector(sel);
 
 let app;
 function ensureApp() {
@@ -220,16 +241,47 @@ function renderLoadingScreen() {
   `;
 }
 
-// --- Geometry constants ---
-const BLOCK_W = 275;
-const BLOCK_X = 42;
-const BLOCK_DESC_Y = 283;
+// --- Page-specific positioning constants ---
+const PAGE_LAYOUTS = {
+  // Cover page (1.png) - just button positioning
+  cover: {},
+  
+  // Intro page (2.png) and Result pages (5a-5d.png)
+  intro_result: {
+    title: { x: 42, y: 212, width: 275, height: 28 },
+    description: { x: 42, y: 239, width: 275, height: 28 }
+  },
+  
+  // Question pages (3a-3h.png)
+  question: {
+    question: { x: 31, y: 109, width: 294, height: 60 },
+    answers: {
+      A: { x: 31, y: 189, width: 294, height: 35 },
+      B: { x: 31, y: 232, width: 294, height: 35 },
+      C: { x: 31, y: 275, width: 294, height: 35 },
+      D: { x: 31, y: 318, width: 294, height: 35 }
+    }
+  },
+  
+  // Pre-results page (4.png)
+  preResults: {
+    title: { x: 31, y: 114, width: 294, height: 272 }
+  },
+  
+  // Thank you page (6.png)
+  thankyou: {
+    title: { x: 42, y: 217, width: 275, height: 28 }
+  }
+};
 
-const QA_BUTTON_W = 294;
-const QA_BUTTON_X = 31;
-const QA_BUTTON_H = 60;
-const QA_BUTTON_Y_START = 180;
-const QA_BUTTON_GAP = 18; // vertical gap between buttons
+function getPageLayout(pageType, bg) {
+  if (pageType === "cover") return PAGE_LAYOUTS.cover;
+  if (pageType === "intro" || pageType.startsWith("result")) return PAGE_LAYOUTS.intro_result;
+  if (pageType === "question") return PAGE_LAYOUTS.question;
+  if (pageType === "pre-results") return PAGE_LAYOUTS.preResults;
+  if (pageType === "thankyou") return PAGE_LAYOUTS.thankyou;
+  return PAGE_LAYOUTS.intro_result; // fallback
+}
 
 function isQAPage(bg) {
   return /^static\/3[a-h]\.png$/.test(bg);
@@ -259,114 +311,86 @@ function getAnswerColor(letter) {
 function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
   if (!Array.isArray(blocks)) return "";
   let html = "";
-  const currentBg = pageSequence[state.page]?.bg || "";
-  const isQA = isQAPage(currentBg);
-  const isOtherBlock = isOtherBlockPage(currentBg);
+  const current = pageSequence[state.page];
+  const pageType = current?.type;
+  const currentBg = current?.bg || "";
+  const layout = getPageLayout(pageType, currentBg);
 
-  let isQuestion = pageSequence[state.page] && pageSequence[state.page].type === "question";
-  let questionIndex = null;
-  if (isQuestion && quizConfig && quizConfig.questionPages) {
-    const questionPages = quizConfig.questionPages;
-    questionIndex = questionPages.findIndex(q => q.idx === state.page);
-  }
+  console.log("Rendering blocks for page type:", pageType, "blocks:", blocks);
 
-  // For Q&A page, collect answer blocks sorted by answer letter
-  let answerBlocks = [];
-  if (isQA && isQuestion) {
-    answerBlocks = blocks
-      .filter(b => (b.type || "").trim().toLowerCase() === "answer")
-      .map(b => {
-        let letter = "";
-        if (typeof b.resultType === "string" && b.resultType.length === 1) letter = b.resultType.trim().toUpperCase();
-        else {
-          let match = /^([A-D])\./.exec(b.text.trim());
-          if (match) letter = match[1];
-          else {
-            let firstLetter = b.text.trim().charAt(0).toUpperCase();
-            if (['A', 'B', 'C', 'D'].includes(firstLetter)) letter = firstLetter;
-          }
-        }
-        return { block: b, letter };
-      })
-      .sort((a, b) => a.letter.localeCompare(b.letter));
-  }
-
-  // --- Render non-answer blocks (for Q&A and info/result pages) ---
+  // --- Render ALL non-answer blocks using page-specific positioning ---
   blocks.forEach((block, idx) => {
     let type = (block.type || "").trim().toLowerCase();
-    let style = "";
-
-    // Q&A PAGE: NON-ANSWER BLOCKS (left-aligned, Q&A geometry)
-    if (isQA && type !== "answer") {
-      let widthPx = QA_BUTTON_W * scaleX * shrinkFactor;
-      let leftPx = QA_BUTTON_X * scaleX * shrinkFactor;
-
-      style += `left: ${leftPx.toFixed(2)}px;`;
+    
+    // Skip answer blocks - they get special treatment
+    if (type === "answer") return;
+    
+    let style = "position:absolute;box-sizing:border-box;overflow:visible;";
+    
+    // Get positioning from page layout or use block's coordinates
+    let position = null;
+    
+    if (pageType === "question" && type === "question") {
+      position = layout.question;
+    } else if ((pageType === "intro" || pageType.startsWith("result")) && type === "title") {
+      position = layout.title;
+    } else if ((pageType === "intro" || pageType.startsWith("result")) && (type === "description" || type === "desc")) {
+      position = layout.description;
+    } else if (pageType === "pre-results" && type === "title") {
+      position = layout.title;
+    } else if (pageType === "thankyou" && type === "title") {
+      position = layout.title;
+    }
+    
+    // Apply positioning - prefer layout coordinates, fallback to block coordinates
+    if (position) {
+      style += `left: ${(position.x * scaleX * shrinkFactor).toFixed(2)}px;`;
+      style += `top: ${(position.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+      style += `width: ${(position.width * scaleX * shrinkFactor).toFixed(2)}px;`;
+      style += `height: ${(position.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+    } else {
+      // Fallback to block's own coordinates
+      if (block.x !== undefined) style += `left: ${(block.x * scaleX * shrinkFactor).toFixed(2)}px;`;
       if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      style += `width: ${widthPx.toFixed(2)}px;`;
+      if (block.width !== undefined) style += `width: ${(block.width * scaleX * shrinkFactor).toFixed(2)}px;`;
       if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-      style += "display:block;";
-      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      style += "text-align:left;";
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
-      if (block.color) style += `color:${block.color};`;
-      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.margin !== undefined) style += `margin:${block.margin};`;
-      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      let className = "";
-      if (type === "title") className = "block-title";
-      else if (type === "description" || type === "desc") className = "block-desc";
-      else if (type === "question") className = "block-question";
-      else if (type === "result") className = "block-result";
-
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-      return;
     }
 
-    // --- Render info/result blocks ---
-    if (isOtherBlock) {
-      let widthPx = BLOCK_W * scaleX * shrinkFactor;
-      let leftPx = BLOCK_X * scaleX * shrinkFactor;
-
-      if (type === "title") {
-        style += `left: ${leftPx.toFixed(2)}px;top: 0px;`;
-      }
-      else if (type === "description" || type === "desc") {
-        style += `left: ${leftPx.toFixed(2)}px;top: ${(BLOCK_DESC_Y * scaleY * shrinkFactor)}px;`;
-      }
-      else {
-        style += `left: ${leftPx.toFixed(2)}px;`;
-        if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-      }
-      style += `width: ${widthPx.toFixed(2)}px;`;
-      if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-
-      style += "position:absolute;box-sizing:border-box;overflow:hidden;";
-      style += "display:block;";
-      style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
-      style += "text-align:left;";
-      if (block.fontSize) style += `font-size: ${(typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize) * scaleY * shrinkFactor}px;`;
-      if (block.color) style += `color:${block.color};`;
-      if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
-      if (block.margin !== undefined) style += `margin:${block.margin};`;
-      if (block.lineHeight) style += `line-height:${block.lineHeight};`;
-
-      let className = "";
-      if (type === "title") className = "block-title";
-      else if (type === "description" || type === "desc") className = "block-desc";
-      else if (type === "question") className = "block-question";
-      else if (type === "result") className = "block-result";
-
-      html += `<div class="${className}" style="${style}">${block.text}</div>`;
-      return;
+    // Text styling based on page type
+    if (pageType === "pre-results" || pageType === "thankyou") {
+      style += "text-align:center;"; // Center text for pre-results and thankyou
+    } else {
+      style += "text-align:left;"; // Left align for other pages
     }
+    
+    style += "display:flex;align-items:flex-start;justify-content:flex-start;";
+    style += "white-space:pre-line;word-break:break-word;overflow-wrap:break-word;";
+    
+    // Apply block-specific styles
+    if (block.fontSize) {
+      const fontSize = typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize;
+      style += `font-size: ${(fontSize * scaleY * shrinkFactor).toFixed(2)}px;`;
+    }
+    if (block.color) style += `color:${block.color};`;
+    if (block.fontWeight) style += `font-weight:${block.fontWeight};`;
+    if (block.lineHeight) style += `line-height:${block.lineHeight};`;
+    if (block.margin !== undefined) style += `margin:${block.margin};`;
+    if (block.padding !== undefined) style += `padding:${block.padding};`;
+
+    // Add appropriate CSS class
+    let className = "";
+    if (type === "title") className = "block-title";
+    else if (type === "description" || type === "desc") className = "block-desc";
+    else if (type === "question") className = "block-question";
+    else if (type === "result") className = "block-result";
+    else className = "block-generic";
+
+    console.log(`Rendering ${type} block at:`, position || 'custom coords', "Style:", style);
+    html += `<div class="${className}" style="${style}">${block.text || ''}</div>`;
   });
 
   // --- Render answer buttons for Q&A page ---
-  if (isQA && isQuestion) {
-    // We'll render a placeholder for each button, and after DOM is built, we'll position them dynamically
+  if (pageType === "question") {
     html += `<div id="dynamic-answer-buttons"></div>`;
   }
 
@@ -411,13 +435,25 @@ function render() {
 
   let nextAction = () => {
     if (current.type === "pre-results") {
-      if (quizConfig) {
+      // Calculate the result when user clicks "Get Results"
+      if (quizConfig && quizConfig.calculateResultType) {
         SHOW_RESULT = quizConfig.calculateResultType();
+        console.log("Calculated result type:", SHOW_RESULT, "from answers:", quizConfig.userAnswers);
       }
-      if (SHOW_RESULT === "A") state.page = pageSequence.findIndex(p => p.type === "resultA");
-      else if (SHOW_RESULT === "B") state.page = pageSequence.findIndex(p => p.type === "resultB");
-      else if (SHOW_RESULT === "C") state.page = pageSequence.findIndex(p => p.type === "resultC");
-      else if (SHOW_RESULT === "D") state.page = pageSequence.findIndex(p => p.type === "resultD");
+      
+      // Navigate to the appropriate result page
+      let resultPageIndex = -1;
+      if (SHOW_RESULT === "A") resultPageIndex = pageSequence.findIndex(p => p.type === "resultA");
+      else if (SHOW_RESULT === "B") resultPageIndex = pageSequence.findIndex(p => p.type === "resultB");
+      else if (SHOW_RESULT === "C") resultPageIndex = pageSequence.findIndex(p => p.type === "resultC");
+      else if (SHOW_RESULT === "D") resultPageIndex = pageSequence.findIndex(p => p.type === "resultD");
+      
+      if (resultPageIndex !== -1) {
+        state.page = resultPageIndex;
+      } else {
+        // Fallback to first result page if specific result not found
+        state.page = pageSequence.findIndex(p => p.type.startsWith("result"));
+      }
       render();
       return;
     } else if (
@@ -441,7 +477,7 @@ function render() {
       <div class="cover-outer" style="width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;">
         <div class="cover-image-container" style="position:relative;max-width:96vw;max-height:90vh;">
           <img class="cover-img" src="${current.bg}" alt="cover" style="width:auto;height:auto;max-width:100%;max-height:100%;display:block;"/>
-          <button class="main-btn cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);background:#007bff;color:#fff;border:none;padding:16px 32px;border-radius:25px;font-size:18px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(0,123,255,0.3);transition:all 0.3s ease;">${nextLabel}</button>
+          <button class="main-btn cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);background:#007bff;color:#fff;border:none;padding:16px 32px;border-radius:25px;font-size:18px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(0,123,255,0.3);transition:all 0.3s ease;display:flex;align-items:center;justify-content:center;">${nextLabel}</button>
         </div>
       </div>
     `;
@@ -548,22 +584,29 @@ function render() {
       overlay.innerHTML = renderBlocks(current.blocks || [], displayW / DESIGN_WIDTH, displayH / DESIGN_HEIGHT, 0.97);
 
       // --- Dynamic Q&A answer button rendering ---
-      if (isQAPage(current.bg) && current.type === "question") {
-        let blocks = (current.blocks || []).filter(b => (b.type || "").trim().toLowerCase() === "answer")
+      if (current.type === "question") {
+        let answerBlocks = (current.blocks || []).filter(b => (b.type || "").trim().toLowerCase() === "answer")
           .map(b => {
             let letter = "";
-            if (typeof b.resultType === "string" && b.resultType.length === 1) letter = b.resultType.trim().toUpperCase();
-            else {
+            // First check resultType
+            if (typeof b.resultType === "string" && b.resultType.length === 1) {
+              letter = b.resultType.trim().toUpperCase();
+            } else {
+              // Check for pattern like "A. Answer text"
               let match = /^([A-D])\./.exec(b.text.trim());
-              if (match) letter = match[1];
-              else {
+              if (match) {
+                letter = match[1];
+              } else {
+                // Fallback to first character
                 let firstLetter = b.text.trim().charAt(0).toUpperCase();
-                if (['A', 'B', 'C', 'D'].includes(firstLetter)) letter = firstLetter;
+                if (['A', 'B', 'C', 'D'].includes(firstLetter)) {
+                  letter = firstLetter;
+                }
               }
             }
             return { block: b, letter };
           })
-          .sort((a, b) => a.letter.localeCompare(b.letter));
+          .sort((a, b) => a.letter.localeCompare(b.letter)); // Sort A, B, C, D
 
         let questionIndex = 0;
         if (quizConfig && quizConfig.questionPages) {
@@ -571,18 +614,23 @@ function render() {
           if (questionIndex === -1) questionIndex = 0;
         }
 
+        console.log("Answer blocks found:", answerBlocks);
+
         const answerLayer = overlay.querySelector("#dynamic-answer-buttons");
-        if (answerLayer) {
+        if (answerLayer && answerBlocks.length > 0) {
           answerLayer.innerHTML = "";
           answerLayer.style.pointerEvents = "auto";
 
-          // Place buttons dynamically
-          let yCurrent = QA_BUTTON_Y_START * (displayH / DESIGN_HEIGHT) * 0.97;
-          let btnGap = QA_BUTTON_GAP * (displayH / DESIGN_HEIGHT) * 0.97;
-          let btnW = QA_BUTTON_W * (displayW / DESIGN_WIDTH) * 0.97;
-          let btnX = QA_BUTTON_X * (displayW / DESIGN_WIDTH) * 0.97;
+          const layout = getPageLayout("question");
+          
+          answerBlocks.forEach((answer, idx) => {
+            // Get the fixed position for this answer
+            const answerPos = layout.answers[answer.letter];
+            if (!answerPos) {
+              console.warn(`No position defined for answer ${answer.letter}`);
+              return;
+            }
 
-          blocks.forEach((answer, idx) => {
             let isSelected = false;
             if (quizConfig && quizConfig.userAnswers) {
               isSelected = quizConfig.userAnswers[questionIndex] === answer.letter;
@@ -596,90 +644,107 @@ function render() {
             btn.setAttribute("data-answer", answer.letter);
             btn.setAttribute("data-question-index", questionIndex.toString());
 
+            // Position using fixed coordinates from layout
             btn.style.position = "absolute";
-            btn.style.left = btnX + "px";
-            btn.style.top = yCurrent + "px";
-            btn.style.width = btnW + "px";
-            btn.style.minHeight = (QA_BUTTON_H * (displayH / DESIGN_HEIGHT) * 0.97) + "px";
+            btn.style.left = (answerPos.x * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
+            btn.style.top = (answerPos.y * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            btn.style.width = (answerPos.width * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
+            btn.style.minHeight = (answerPos.height * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            
+            // Button styling
             btn.style.background = btnColor;
             btn.style.border = "none";
-            btn.style.borderRadius = "18px";
+            btn.style.borderRadius = Math.max(8, 12 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
             btn.style.color = "#fff";
-            btn.style.fontSize = (16 * (displayH / DESIGN_HEIGHT) * 0.97) + "px";
+            btn.style.fontSize = Math.max(11, 14 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
             btn.style.cursor = "pointer";
-            btn.style.fontWeight = "700";
-            btn.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)";
+            btn.style.fontWeight = "600";
+            btn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
             btn.style.outline = "none";
             btn.style.zIndex = "10";
+            
+            // Layout - center text in button
             btn.style.display = "flex";
             btn.style.alignItems = "center";
-            btn.style.justifyContent = "flex-start";
-            btn.style.opacity = "0.97";
-            btn.style.transition = "all 0.18s ease";
-            btn.style.paddingLeft = "18px";
-            btn.style.paddingRight = "10px";
-            btn.style.paddingTop = "10px";
-            btn.style.paddingBottom = "10px";
-            btn.style.textAlign = "left";
+            btn.style.justifyContent = "center";
+            btn.style.textAlign = "center";
+            
+            btn.style.opacity = isSelected ? "1.0" : "0.9";
+            btn.style.transition = "all 0.2s ease";
+            btn.style.padding = Math.max(6, 8 * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            
+            // Text handling for line wrapping
             btn.style.whiteSpace = "pre-line";
             btn.style.wordBreak = "break-word";
             btn.style.overflowWrap = "break-word";
+            btn.style.lineHeight = "1.2";
 
-            btn.innerHTML = answer.block.text;
+            // Set button text
+            btn.innerHTML = answer.block.text || '';
+
+            // Selection styling
+            if (isSelected) {
+              btn.style.boxShadow = "0 0 0 2px #fff, 0 2px 12px rgba(0,0,0,0.2)";
+              btn.style.transform = "translateY(-1px)";
+            }
 
             // Add hover effects
             btn.onmouseenter = () => {
               if (!btn.classList.contains('selected')) {
                 btn.style.opacity = "1";
-                btn.style.transform = "translateY(-2px)";
-                btn.style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)";
+                btn.style.transform = "translateY(-1px)";
+                btn.style.boxShadow = "0 2px 12px rgba(0,0,0,0.25)";
               }
             };
             btn.onmouseleave = () => {
               if (!btn.classList.contains('selected')) {
-                btn.style.opacity = "0.97";
+                btn.style.opacity = "0.9";
                 btn.style.transform = "translateY(0)";
-                btn.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)";
+                btn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+              } else {
+                btn.style.transform = "translateY(-1px)";
               }
             };
 
             answerLayer.appendChild(btn);
-
-            // Calculate next Y position based on actual button height
-            setTimeout(() => {
-              let actualHeight = btn.getBoundingClientRect().height;
-              yCurrent += actualHeight + btnGap;
-            }, 0);
+            
+            console.log(`Button ${answer.letter} positioned at X:${answerPos.x} Y:${answerPos.y} W:${answerPos.width} H:${answerPos.height}`);
           });
 
-          // Attach click listeners
+          // Attach click listeners after all buttons are created
           setTimeout(() => {
             const answerBtns = answerLayer.querySelectorAll(".block-answer-btn");
             answerBtns.forEach(btn => {
-              btn.onclick = () => {
+              btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 let answerLetter = btn.getAttribute("data-answer");
                 let questionIndex = parseInt(btn.getAttribute("data-question-index"));
+                
+                console.log(`Answer clicked: ${answerLetter} for question ${questionIndex}`);
                 
                 // Set answer in quiz config
                 if (quizConfig && quizConfig.setAnswer) {
                   quizConfig.setAnswer(questionIndex, answerLetter);
+                  console.log("Current answers:", quizConfig.userAnswers);
                 }
                 
                 // Update visual selection
                 answerBtns.forEach(b => {
                   b.classList.remove("selected");
-                  b.style.boxShadow = "0 2px 12px rgba(0,0,0,0.08)";
-                  b.style.opacity = "0.97";
+                  b.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+                  b.style.opacity = "0.9";
+                  b.style.transform = "translateY(0)";
                 });
                 
                 btn.classList.add("selected");
-                btn.style.boxShadow = "0 0 0 4px #fff";
+                btn.style.boxShadow = "0 0 0 2px #fff, 0 2px 12px rgba(0,0,0,0.2)";
                 btn.style.opacity = "1.0";
-                
-                console.log(`Selected answer ${answerLetter} for question ${questionIndex}`);
+                btn.style.transform = "translateY(-1px)";
               };
             });
-          }, 10);
+          }, 20);
         }
       }
     };
