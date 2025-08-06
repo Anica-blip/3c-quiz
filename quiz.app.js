@@ -252,26 +252,32 @@ const PAGE_LAYOUTS = {
   // Cover page (1.png) - just button positioning
   cover: {},
   
-  // Intro page (2.png) and Result pages (5a-5d.png)
-  intro_result: {
+  // Intro page (2.png) - special positioning for intro
+  intro: {
     title: { x: 42, y: 212, width: 275, height: 28 },
     description: { x: 42, y: 283, width: 275, height: 28 }
+  },
+  
+  // Result pages (5a-5d.png) - different positioning than intro
+  result: {
+    title: { x: 42, y: 212, width: 275, height: 28 },
+    description: { x: 42, y: 239, width: 275, height: 28 }
   },
   
   // Question pages (3a-3h.png)
   question: {
     question: { x: 31, y: 109, width: 294, height: 60 },
     answers: {
-      A: { x: 31, y: 189, width: 294, height: 40 },
-      B: { x: 31, y: 237, width: 294, height: 40 },
-      C: { x: 31, y: 285, width: 294, height: 40 },
-      D: { x: 31, y: 333, width: 294, height: 40 }
+      A: { x: 31, y: 189, width: 294, height: 45 },
+      B: { x: 31, y: 242, width: 294, height: 45 },
+      C: { x: 31, y: 295, width: 294, height: 45 },
+      D: { x: 31, y: 348, width: 294, height: 45 }
     }
   },
   
   // Pre-results page (4.png)
   preResults: {
-    title: { x: 31, y: 114, width: 294, height: 272 }
+    title: { x: 28, y: 114, width: 294, height: 272 }
   },
   
   // Thank you page (6.png)
@@ -282,11 +288,12 @@ const PAGE_LAYOUTS = {
 
 function getPageLayout(pageType, bg) {
   if (pageType === "cover") return PAGE_LAYOUTS.cover;
-  if (pageType === "intro" || pageType.startsWith("result")) return PAGE_LAYOUTS.intro_result;
+  if (pageType === "intro") return PAGE_LAYOUTS.intro;
+  if (pageType.startsWith("result")) return PAGE_LAYOUTS.result;
   if (pageType === "question") return PAGE_LAYOUTS.question;
   if (pageType === "pre-results") return PAGE_LAYOUTS.preResults;
   if (pageType === "thankyou") return PAGE_LAYOUTS.thankyou;
-  return PAGE_LAYOUTS.intro_result; // fallback
+  return PAGE_LAYOUTS.result; // fallback
 }
 
 function isQAPage(bg) {
@@ -338,9 +345,13 @@ function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
     
     if (pageType === "question" && type === "question") {
       position = layout.question;
-    } else if ((pageType === "intro" || pageType.startsWith("result")) && type === "title") {
+    } else if (pageType === "intro" && type === "title") {
       position = layout.title;
-    } else if ((pageType === "intro" || pageType.startsWith("result")) && (type === "description" || type === "desc")) {
+    } else if (pageType === "intro" && (type === "description" || type === "desc")) {
+      position = layout.description;
+    } else if (pageType.startsWith("result") && type === "title") {
+      position = layout.title;
+    } else if (pageType.startsWith("result") && (type === "description" || type === "desc")) {
       position = layout.description;
     } else if (pageType === "pre-results" && type === "title") {
       position = layout.title;
@@ -573,7 +584,7 @@ function render() {
       </div>
       <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
         ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;width:50px;height:50px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);">&#8592;</button>` : ""}
-        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius:25px;font-size:16px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(0,123,255,0.3);">${nextLabel}</button>` : ""}
+        ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="background:#007bff;color:#fff;border:none;padding:16px 32px;border-radius:25px;font-size:18px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(0,123,255,0.3);transition:all 0.3s ease;">${nextLabel}</button>` : ""}
       </div>
     `;
     
@@ -670,6 +681,7 @@ function render() {
             btn.style.top = (answerPos.y * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
             btn.style.width = (answerPos.width * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
             btn.style.minHeight = (answerPos.height * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
+            btn.style.height = "auto"; // Allow button to expand if text wraps
             
             // Button styling
             btn.style.background = btnColor;
