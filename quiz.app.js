@@ -1,4 +1,4 @@
-    const $ = (sel) => document.querySelector(sel);
+const $ = (sel) => document.querySelector(sel);
 
         let app;
         function ensureApp() {
@@ -296,20 +296,21 @@
           `;
         }
 
-        // FIX 2: Updated page layouts with fixed positioning for pre-results and results
+        // FIXED: Updated page layouts to use JSON coordinates properly
         const PAGE_LAYOUTS = {
           cover: {},
           
+          // Default fallback layout for sample pages
           intro_result: {
             title: { x: 42, y: 212, width: 275, height: 60 },
             description: { x: 42, y: 305, width: 275, height: 186 }
           },
             
-         // FIX 2: Fixed positioning for result pages (5a-5d.png) - these should not move
-         result: {
-           title: { x: 42, y: 212, width: 275, height: 28 },
-           description: { x: 42, y: 239, width: 274, height: 297 }
-         },
+          // Fixed positioning for result pages (5a-5d.png) - these should not move
+          result: {
+            title: { x: 42, y: 212, width: 275, height: 28 },
+            description: { x: 42, y: 239, width: 274, height: 297 }
+          },
 
           question: {
             question: { x: 31, y: 109, width: 294, height: 60 },
@@ -321,7 +322,7 @@
             }
           },
           
-          // FIX 2: Fixed positioning for pre-results page (4.png) - this should not move
+          // Fixed positioning for pre-results page (4.png) - this should not move
           preResults: {
             title: { x: 31, y: 109, width: 275, height: 280 }
           },
@@ -333,11 +334,11 @@
 
         function getPageLayout(pageType, bg) {
           if (pageType === "cover") return PAGE_LAYOUTS.cover;
-          if (pageType === "intro" || pageType.startsWith("result")) return PAGE_LAYOUTS.result; // FIX 2: Use result layout for result pages
+          if (pageType === "intro" || pageType.startsWith("result")) return PAGE_LAYOUTS.result;
           if (pageType === "question") return PAGE_LAYOUTS.question;
           if (pageType === "pre-results") return PAGE_LAYOUTS.preResults;
           if (pageType === "thankyou") return PAGE_LAYOUTS.thankyou;
-          return PAGE_LAYOUTS.intro_result;
+          return PAGE_LAYOUTS.intro_result; // fallback for sample pages
         }
 
         function isQAPage(bg) {
@@ -364,8 +365,8 @@
           }
         }
 
-        // FIX 2: Updated renderBlocks function with better positioning logic
-        function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 1.0) { // FIX 2: Removed shrinkFactor default to prevent scaling issues
+        // FIXED: Updated renderBlocks to use JSON coordinates when available, fallback to layouts
+        function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
           if (!Array.isArray(blocks)) return "";
           let html = "";
           const current = pageSequence[state.page];
@@ -384,44 +385,53 @@
             
             let position = null;
             
-            if (pageType === "question" && type === "question") {
-              position = layout.question;
-            } else if ((pageType === "intro" || pageType.startsWith("result")) && type === "title") {
-              position = layout.title;
-            } else if ((pageType === "intro" || pageType.startsWith("result")) && (type === "description" || type === "desc")) {
-              position = layout.description;
-            } else if (pageType === "pre-results" && type === "title") {
-              position = layout.title;
-            } else if (pageType === "thankyou" && type === "title") {
-              position = layout.title;
+            // FIXED: Check if block has its own coordinates first (from JSON)
+            if (block.x !== undefined && block.y !== undefined && block.width !== undefined && block.height !== undefined) {
+              // Use JSON coordinates directly
+              position = { x: block.x, y: block.y, width: block.width, height: block.height };
+              console.log(`Using JSON coordinates for ${type}: x:${position.x}, y:${position.y}, w:${position.width}, h:${position.height}`);
+            } else {
+              // Fallback to layout coordinates
+              if (pageType === "question" && type === "question") {
+                position = layout.question;
+              } else if ((pageType === "intro" || pageType.startsWith("result")) && type === "title") {
+                position = layout.title;
+              } else if ((pageType === "intro" || pageType.startsWith("result")) && (type === "description" || type === "desc")) {
+                position = layout.description;
+              } else if (pageType === "pre-results" && type === "title") {
+                position = layout.title;
+              } else if (pageType === "thankyou" && type === "title") {
+                position = layout.title;
+              }
+              console.log(`Using layout coordinates for ${type}:`, position);
             }
             
-            // FIX 2: Apply fixed positioning without shrinkFactor for pre-results and results
-            if (position && (pageType === "pre-results" || pageType.startsWith("result"))) {
-              // Fixed positioning - no scaling adjustments
-              style += `left: ${(position.x * scaleX).toFixed(2)}px;`;
-              style += `top: ${(position.y * scaleY).toFixed(2)}px;`;
-              style += `width: ${(position.width * scaleX).toFixed(2)}px;`;
-              style += `height: ${(position.height * scaleY).toFixed(2)}px;`;
-            } else if (position) {
-              // Regular positioning with shrinkFactor for other pages
-              style += `left: ${(position.x * scaleX * shrinkFactor).toFixed(2)}px;`;
-              style += `top: ${(position.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-              style += `width: ${(position.width * scaleX * shrinkFactor).toFixed(2)}px;`;
-              style += `height: ${(position.height * scaleY * shrinkFactor).toFixed(2)}px;`;
-            } else {
-              // Fallback to block's own coordinates
-              if (block.x !== undefined) style += `left: ${(block.x * scaleX * shrinkFactor).toFixed(2)}px;`;
-              if (block.y !== undefined) style += `top: ${(block.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-              if (block.width !== undefined) style += `width: ${(block.width * scaleX * shrinkFactor).toFixed(2)}px;`;
-              if (block.height !== undefined) style += `height: ${(block.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+            // Apply positioning
+            if (position) {
+              // FIXED: Use shrinkFactor for all positioning except when explicitly using JSON coordinates for 2.png and 4.png
+              let useDirectCoords = (currentBg === "static/2.png" || currentBg === "static/4.png") && 
+                                  (block.x !== undefined && block.y !== undefined);
+              
+              if (useDirectCoords) {
+                // For JSON coordinates on 2.png and 4.png, use them directly with minimal adjustment
+                style += `left: ${(position.x * scaleX).toFixed(2)}px;`;
+                style += `top: ${(position.y * scaleY).toFixed(2)}px;`;
+                style += `width: ${(position.width * scaleX).toFixed(2)}px;`;
+                style += `height: ${(position.height * scaleY).toFixed(2)}px;`;
+              } else {
+                // Use shrinkFactor for layout-based positioning
+                style += `left: ${(position.x * scaleX * shrinkFactor).toFixed(2)}px;`;
+                style += `top: ${(position.y * scaleY * shrinkFactor).toFixed(2)}px;`;
+                style += `width: ${(position.width * scaleX * shrinkFactor).toFixed(2)}px;`;
+                style += `height: ${(position.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+              }
             }
 
-            // FIX 2: Better text alignment based on page type
+            // Text alignment based on page type
             if (pageType === "pre-results" || pageType === "thankyou") {
               style += "text-align:center;justify-content:center;align-items:center;"; 
             } else if (pageType.startsWith("result")) {
-              style += "text-align:left;justify-content:left;align-items:flex-start;"; // Left align but start from top
+              style += "text-align:left;justify-content:left;align-items:flex-start;";
             } else {
               style += "text-align:left;justify-content:flex-start;align-items:flex-start;";
             }
@@ -432,8 +442,10 @@
             // Apply block-specific styles
             if (block.fontSize) {
               const fontSize = typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize;
-              // FIX 2: Don't scale font size for fixed position elements
-              if (pageType === "pre-results" || pageType.startsWith("result")) {
+              // FIXED: Use direct scaling for JSON coordinates
+              let useDirectCoords = (currentBg === "static/2.png" || currentBg === "static/4.png") && 
+                                  (block.x !== undefined && block.y !== undefined);
+              if (useDirectCoords) {
                 style += `font-size: ${(fontSize * scaleY).toFixed(2)}px;`;
               } else {
                 style += `font-size: ${(fontSize * scaleY * shrinkFactor).toFixed(2)}px;`;
@@ -452,7 +464,7 @@
             else if (type === "result") className = "block-result";
             else className = "block-generic";
 
-            console.log(`Rendering ${type} block at:`, position || 'custom coords', "Style:", style);
+            console.log(`Rendering ${type} block with final style:`, style);
             html += `<div class="${className}" style="${style}">${block.text || ''}</div>`;
           });
 
@@ -636,7 +648,7 @@
           if (
             ["intro", "question", "pre-results", "resultA", "resultB", "resultC", "resultD", "thankyou"].includes(current.type)
           ) {
-            // FIX 2: Add page-specific CSS class to container for better styling
+            // Add page-specific CSS class to container for better styling
             let pageClass = `page-${current.type}`;
             
             app.innerHTML = `
@@ -670,7 +682,7 @@
               overlay.style.left = "0px";
               overlay.style.top = "0px";
 
-              // FIX 2: Use different shrink factors for different page types
+              // Use different shrink factors for different page types
               let shrinkFactor = 0.97;
               if (current.type === "pre-results" || current.type.startsWith("result")) {
                 shrinkFactor = 1.0; // No shrinking for fixed position pages
@@ -968,3 +980,4 @@
         } else {
           initializeApp();
         }
+
