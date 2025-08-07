@@ -968,6 +968,3 @@
         } else {
           initializeApp();
         }
-    </script>
-</body>
-</html>
