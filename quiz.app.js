@@ -362,7 +362,7 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
 
         // Text styling based on page type
         if (pageType === "pre-results" || pageType === "thankyou") {
-          style += "text-align:center;"; // Center text for pre-results and thankyou
+          style += "text-align:center;justify-content:center;"; // Center text for pre-results and thankyou
         } else {
           style += "text-align:left;"; // Left align for other pages
         }
@@ -512,7 +512,7 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
           <div class="cover-outer" style="width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;">
             <div class="cover-image-container" style="position:relative;max-width:96vw;max-height:90vh;">
               <img class="cover-img" src="${current.bg}" alt="cover" style="width:auto;height:auto;max-width:100%;max-height:100%;display:block;"/>
-              <button class="main-btn cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);">${nextLabel}</button>
+              <button class="main-btn cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);text-align:center;">${nextLabel}</button>
             </div>
           </div>
         `;
@@ -591,8 +591,8 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
             </div>
           </div>
           <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
-            ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;width:50px;height:50px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);">&#8592;</button>` : ""}
-            ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
+            ${showBack ? `<button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">Back</button>` : ""}
+            ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="text-align:center;">${nextLabel}</button>` : ""}
           </div>
         `;
         
