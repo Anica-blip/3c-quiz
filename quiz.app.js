@@ -258,7 +258,7 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
      // Result pages (5a-5d.png) - different positioning than intro
      result: {
        title: { x: 42, y: 212, width: 275, height: 28 },
-       description: { x: 42, y: 239, width: 275, height: 28 }
+       description: { x: 42, y: 239, width: 275, height: 297 }
      },
 
       // Question pages (3a-3h.png) - UPDATED WITH YOUR NEW COORDINATES
