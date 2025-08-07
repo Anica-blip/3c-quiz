@@ -275,7 +275,7 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
       
       // Pre-results page (4.png) - UPDATED WITH YOUR NEW COORDINATES
       preResults: {
-        title: { x: 28, y: 109, width: 275, height: 280 }  // Your new coordinates
+        title: { x: 22, y: 109, width: 272, height: 280 }  // Your new coordinates
       },
       
       // Thank you page (6.png)
