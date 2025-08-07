@@ -254,7 +254,13 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
         title: { x: 42, y: 212, width: 275, height: 60 },
         description: { x: 42, y: 283, width: 275, height: 55 }
       },
-      
+        
+     // Result pages (5a-5d.png) - different positioning than intro
+     result: {
+       title: { x: 42, y: 212, width: 275, height: 28 },
+       description: { x: 42, y: 239, width: 275, height: 28 }
+     },
+
       // Question pages (3a-3h.png) - UPDATED WITH YOUR NEW COORDINATES
       question: {
         question: { x: 31, y: 109, width: 294, height: 60 },
@@ -269,7 +275,7 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
       
       // Pre-results page (4.png) - UPDATED WITH YOUR NEW COORDINATES
       preResults: {
-        title: { x: 31, y: 109, width: 294, height: 280 }  // Your new coordinates
+        title: { x: 31, y: 109, width: 275, height: 280 }  // Your new coordinates
       },
       
       // Thank you page (6.png)
