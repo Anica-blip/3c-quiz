@@ -199,26 +199,26 @@
             { type: "answer", text: "D. Art", resultType: "D" }
           ]},
           { type: "pre-results", bg: "static/4.png", blocks: [
-            { type: "title", text: "Click below to see your personalized result based on your answers!", fontSize: 16, color: "#fff", fontWeight: "bold" }
+            { type: "title", text: "Click below to see your personalized result- based on your answers!", fontSize: 15, color: "#fff", fontWeight: "bold" }
           ]},
           { type: "resultA", bg: "static/5a.png", blocks: [
-            { type: "title", text: "Result A", fontSize: 20, color: "#fff", fontWeight: "bold" },
-            { type: "description", text: "You are a passionate and energetic person! You love bold choices and aren't afraid to stand out.", fontSize: 14, color: "#fff" }
+            { type: "title", text: "Result A", fontSize: 16, color: "#fff", fontWeight: "bold" },
+            { type: "description", text: "You are a passionate and energetic person! You love bold choices and aren't afraid to stand out.", fontSize: 13, color: "#fff" }
           ]},
           { type: "resultB", bg: "static/5b.png", blocks: [
-            { type: "title", text: "Result B", fontSize: 20, color: "#fff", fontWeight: "bold" },
-            { type: "description", text: "You are calm and thoughtful! You prefer stability and enjoy peaceful environments.", fontSize: 14, color: "#fff" }
+            { type: "title", text: "Result B", fontSize: 16, color: "#fff", fontWeight: "bold" },
+            { type: "description", text: "You are calm and thoughtful! You prefer stability and enjoy peaceful environments.", fontSize: 13, color: "#fff" }
           ]},
           { type: "resultC", bg: "static/5c.png", blocks: [
-            { type: "title", text: "Result C", fontSize: 20, color: "#fff", fontWeight: "bold" },
-            { type: "description", text: "You are balanced and harmonious! You appreciate nature and seek equilibrium in life.", fontSize: 14, color: "#fff" }
+            { type: "title", text: "Result C", fontSize: 16, color: "#fff", fontWeight: "bold" },
+            { type: "description", text: "You are balanced and harmonious! You appreciate nature and seek equilibrium in life.", fontSize: 13, color: "#fff" }
           ]},
           { type: "resultD", bg: "static/5d.png", blocks: [
-            { type: "title", text: "Result D", fontSize: 20, color: "#fff", fontWeight: "bold" },
-            { type: "description", text: "You are optimistic and creative! You bring sunshine and positivity wherever you go.", fontSize: 14, color: "#fff" }
+            { type: "title", text: "Result D", fontSize: 16, color: "#fff", fontWeight: "bold" },
+            { type: "description", text: "You are optimistic and creative! You bring sunshine and positivity wherever you go.", fontSize: 13, color: "#fff" }
           ]},
           { type: "thankyou", bg: "static/6.png", blocks: [
-            { type: "title", text: "Thanks for taking our quiz! We hope you enjoyed discovering more about yourself.", fontSize: 16, color: "#fff", fontWeight: "bold" }
+            { type: "title", text: "Thanks for taking our quiz! We hope you enjoyed discovering more about yourself.", fontSize: 14, color: "#fff", fontWeight: "bold" }
           ]},
         ];
 
@@ -421,7 +421,7 @@
             if (pageType === "pre-results" || pageType === "thankyou") {
               style += "text-align:center;justify-content:center;align-items:center;"; 
             } else if (pageType.startsWith("result")) {
-              style += "text-align:center;justify-content:center;align-items:flex-start;"; // Center align but start from top
+              style += "text-align:left;justify-content:left;align-items:flex-start;"; // Left align but start from top
             } else {
               style += "text-align:left;justify-content:flex-start;align-items:flex-start;";
             }
