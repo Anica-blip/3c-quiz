@@ -1,73 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz Time - Aurion</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #000;
-      color: #fff;
-      overflow-x: hidden;
-      min-height: 100vh;
-    }
-    
-    #app {
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-    }
-    
-    /* Neon button styling - only applied to buttons with this class */
-    #app .neon-button {
-      background: #997a64;
-      color: #fff;
-      border: none;
-      border-radius: 25px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(153, 122, 100, 0.4);
-      transition: all 0.3s ease;
-      height: 35px;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    #app .neon-button:hover {
-      background: #8a6b56;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(153, 122, 100, 0.6);
-    }
-    
-    #app .neon-button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* Hide everything initially until app loads */
-    body:not(.app-loaded) #app {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz Time – Aurion</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app">
+    <!-- Optional: show a loading or fallback message -->
+    <div id="loading">Loading quiz...</div>
+  </div>
+
+  <!-- The logic happens in your JS -->
+  <script src="quiz.app.js"></script>
+</body>
+</html>
