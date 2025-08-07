@@ -810,8 +810,8 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
           }
         }, 0);
         return;
-      }
-    }
+       }
+     }
 
     // Initialize the app
     function initializeApp() {
