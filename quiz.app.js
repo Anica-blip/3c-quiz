@@ -302,13 +302,13 @@
           
           intro_result: {
             title: { x: 42, y: 212, width: 275, height: 60 },
-            description: { x: 42, y: 283, width: 275, height: 186 }
+            description: { x: 42, y: 289, width: 275, height: 186 }
           },
             
          // FIX 2: Fixed positioning for result pages (5a-5d.png) - these should not move
          result: {
            title: { x: 42, y: 212, width: 275, height: 28 },
-           description: { x: 42, y: 239, width: 275, height: 297 }
+           description: { x: 42, y: 239, width: 274, height: 297 }
          },
 
           question: {
@@ -323,11 +323,11 @@
           
           // FIX 2: Fixed positioning for pre-results page (4.png) - this should not move
           preResults: {
-            title: { x: 22, y: 109, width: 272, height: 280 }
+            title: { x: 22, y: 109, width: 266, height: 280 }
           },
           
           thankyou: {
-            title: { x: 42, y: 217, width: 275, height: 85 }
+            title: { x: 42, y: 212, width: 275, height: 85 }
           }
         };
 
