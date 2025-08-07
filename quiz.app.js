@@ -58,6 +58,7 @@
         function setAnswer(questionIndex, answerValue) {
           if (['A','B','C','D'].includes(answerValue)) {
             userAnswers[questionIndex] = answerValue;
+            console.log(`Answer set: Q${questionIndex} = ${answerValue}`, userAnswers);
           }
         }
 
@@ -104,7 +105,7 @@
             }
           }
           
-          console.log("Types with max score:", maxTypes);
+          console.log("Max types:", maxTypes);
           
           // Return first max type found
           for (let type of ["A", "B", "C", "D"]) {
@@ -148,14 +149,14 @@
       { type: "cover", bg: "static/1.png" },
       { type: "intro", bg: "static/2.png" },
       { type: "question", bg: "static/3a.png", blocks: [
-        { type: "question", text: "Sample Question 1", y: 120, height: 40, fontSize: 18, color: "#fff", fontWeight: "bold" },
+        { type: "question", text: "Sample Question 1", y: 109, height: 60, fontSize: 18, color: "#fff", fontWeight: "bold" },
         { type: "answer", text: "A. Sample Answer A", resultType: "A" },
         { type: "answer", text: "B. Sample Answer B", resultType: "B" },
         { type: "answer", text: "C. Sample Answer C", resultType: "C" },
         { type: "answer", text: "D. Sample Answer D", resultType: "D" }
       ]},
       { type: "question", bg: "static/3b.png", blocks: [
-        { type: "question", text: "Sample Question 2", y: 120, height: 40, fontSize: 18, color: "#fff", fontWeight: "bold" },
+        { type: "question", text: "Sample Question 2", y: 109, height: 60, fontSize: 18, color: "#fff", fontWeight: "bold" },
         { type: "answer", text: "A. Sample Answer A", resultType: "A" },
         { type: "answer", text: "B. Sample Answer B", resultType: "B" },
         { type: "answer", text: "C. Sample Answer C", resultType: "C" },
@@ -214,7 +215,8 @@
             <p>The quiz could not be loaded. Please check your quiz data or network connection.</p>
             ${extra}
             <div style="margin-top:2em;">
-              <button class="neon-button" onclick="window.location.reload()">Reload</button>
+              <button class="neon-button" onclick="window.location.reload()"
+style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;">Reload</button>
             </div>
           </div>
         </div>
@@ -228,10 +230,16 @@
           <div style="color:#fff;text-align:center;padding:20px;">
             <h2>Loading Quiz...</h2>
             <div style="margin-top:20px;">
-              <div style="width:50px;height:50px;border:5px solid #333;border-top:5px solid #997a64;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto;"></div>
+              <div style="width:50px;height:50px;border:5px solid #333;border-top:5px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto;"></div>
             </div>
           </div>
         </div>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
       `;
     }
 
@@ -242,8 +250,8 @@
       
       // Intro page (2.png) and Result pages (5a-5d.png)
       intro_result: {
-        title: { x: 42, y: 212, width: 275, height: 28 },
-        description: { x: 42, y: 239, width: 275, height: 28 }
+        title: { x: 42, y: 212, width: 275, height: 60 },
+        description: { x: 42, y: 283, width: 275, height: 55 }
       },
       
       // Question pages (3a-3h.png) - UPDATED WITH YOUR NEW COORDINATES
@@ -260,12 +268,12 @@
       
       // Pre-results page (4.png) - UPDATED WITH YOUR NEW COORDINATES
       preResults: {
-        title: { x: 31, y: 109, width: 294, height: 248 }  // Your new coordinates
+        title: { x: 31, y: 109, width: 294, height: 280 }  // Your new coordinates
       },
       
       // Thank you page (6.png)
       thankyou: {
-        title: { x: 42, y: 217, width: 275, height: 28 }
+        title: { x: 42, y: 217, width: 275, height: 85 }
       }
     };
 
@@ -472,7 +480,7 @@
           <div class="cover-outer" style="width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;">
             <div class="cover-image-container" style="position:relative;max-width:96vw;max-height:90vh;">
               <img class="cover-img" src="${current.bg}" alt="cover" style="width:auto;height:auto;max-width:100%;max-height:100%;display:block;"/>
-              <button class="neon-button cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);">${nextLabel}</button>
+              <button class="main-btn cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);">${nextLabel}</button>
             </div>
           </div>
         `;
@@ -485,6 +493,7 @@
               startBtn.textContent = "Loading...";
               
               const quizUrlParam = getQuizUrlParam();
+              console.log("Quiz URL parameter:", quizUrlParam);
               
               if (quizUrlParam) {
                 state.isLoading = true;
@@ -492,6 +501,7 @@
                 
                 try {
                   const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
+                  console.log("Config returned:", config);
 
                   if (config && config.error) {
                     state.isLoading = false;
@@ -550,7 +560,7 @@
           </div>
           <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
             ${showBack ? `<button class="back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;width:50px;height:50px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);">&#8592;</button>` : ""}
-            ${current.type !== "thankyou" ? `<button class="neon-button" id="nextBtn">${nextLabel}</button>` : ""}
+            ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn">${nextLabel}</button>` : ""}
           </div>
         `;
         
@@ -596,8 +606,18 @@
 
             let questionIndex = 0;
             if (quizConfig && quizConfig.questionPages) {
-              questionIndex = quizConfig.questionPages.findIndex(q => q.idx === state.page);
-              if (questionIndex === -1) questionIndex = 0;
+              let currentQuestionPageIndex = quizConfig.questionPages.findIndex(q => q.idx === state.page);
+              if (currentQuestionPageIndex === -1) questionIndex = currentQuestionPageIndex;
+              } else {
+                // Fallback: count question pages from beginning
+                let questionCount = 0;
+                for (let i = 0; i < state.page; i++) {
+                 if (pageSequence[i] && pageSequence[i].type === "question") {
+                   questionCount++;
+                 }
+               }
+               questionIndex = questionCount;
+              }
             }
 
             console.log("Answer blocks found:", answerBlocks);
@@ -608,7 +628,8 @@
               answerLayer.style.pointerEvents = "auto";
 
               const layout = getPageLayout("question");
-              
+              const shrinkFactor = 0.97;
+
               answerBlocks.forEach((answer, idx) => {
                 // Get the fixed position for this answer using updated coordinates
                 const answerPos = layout.answers[answer.letter];
@@ -618,7 +639,7 @@
                 }
 
                 let isSelected = false;
-                if (quizConfig && quizConfig.userAnswers) {
+                if (quizConfig && quizConfig.userAnswers && questionIndex >= 0) {
                   isSelected = quizConfig.userAnswers[questionIndex] === answer.letter;
                 }
                 let btnColor = getAnswerColor(answer.letter);
@@ -635,8 +656,8 @@
                 btn.style.left = (answerPos.x * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
                 btn.style.top = (answerPos.y * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
                 btn.style.width = (answerPos.width * (displayW / DESIGN_WIDTH) * shrinkFactor) + "px";
-                btn.style.minHeight = (answerPos.height * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";
-                
+                btn.style.minHeight = (answerPos.height * (displayH / DESIGN_HEIGHT) * shrinkFactor) + "px";          
+
                 // Button styling with improved spacing and appearance
                 btn.style.background = btnColor;
                 btn.style.border = "none";
@@ -649,11 +670,11 @@
                 btn.style.outline = "none";
                 btn.style.zIndex = "10";
                 
-                // Layout - center text in button with better spacing
+                // Layout - left align text in button with better spacing
                 btn.style.display = "flex";
                 btn.style.alignItems = "center";
-                btn.style.justifyContent = "center";
-                btn.style.textAlign = "center";
+                btn.style.justifyContent = "flex-start";
+                btn.style.textAlign = "left";
                 
                 btn.style.opacity = isSelected ? "1.0" : "0.9";
                 btn.style.transition = "all 0.2s ease";
