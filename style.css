@@ -59,7 +59,7 @@ html, body {
 }
 
 .main-btn {
-  background: #2196f3;
+  background: #997a64;
   color: #fff;
   border: none;
   border-radius: 1em;
@@ -76,7 +76,7 @@ html, body {
   cursor: not-allowed;
 }
 .main-btn:hover, .main-btn:focus {
-  background: #1976d2;
+  background: #997a64;
 }
 
 .fullscreen-bg {
