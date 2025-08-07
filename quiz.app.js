@@ -275,7 +275,7 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
       
       // Pre-results page (4.png) - UPDATED WITH YOUR NEW COORDINATES
       preResults: {
-        title: { x: 31, y: 109, width: 275, height: 280 }  // Your new coordinates
+        title: { x: 28, y: 109, width: 272, height: 280 }  // Your new coordinates
       },
       
       // Thank you page (6.png)
@@ -518,7 +518,8 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
           <div class="cover-outer" style="width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;">
             <div class="cover-image-container" style="position:relative;max-width:96vw;max-height:90vh;">
               <img class="cover-img" src="${current.bg}" alt="cover" style="width:auto;height:auto;max-width:100%;max-height:100%;display:block;"/>
-              <button class="main-btn cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);text-align:center;">${nextLabel}</button>
+              <button class="main-btn cover-btn-in-img" id="startBtn" style="position:absolute;bottom:50px;left:50%;transform:translateX(-50%);text-align:center;line-height:1;
+">${nextLabel}</button>
             </div>
           </div>
         `;
