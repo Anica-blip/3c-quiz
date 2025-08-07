@@ -617,16 +617,16 @@
       "bg": "static/4.png",
       "blocks": [
         {
-          "h": 280,
-          "w": 268,
-          "x": 22,
-          "y": 109,
-          "size": 15,
-          "text": "Well done —you didn’t just take a quiz... you took a moment to understand you.\n\nWhat you've just done shows courage, curiosity, and a deeper kind of intelligence that most overlook.\n\n🔎 Press the button below and step into the mirror —where you’ll meet the version of you that’s been waiting to be seen.",
           "type": "desc",
-          "align": "center",
-          "color": "#ffffff",
           "label": "Description",
+          "text": "Well done —you didn’t just take a quiz... you took a moment to understand you.\n\nWhat you've just done shows courage, curiosity, and a deeper kind of intelligence that most overlook.\n\n🔎 Press the button below and step into the mirror —where you’ll meet the version of you that’s been waiting to be seen.",
+          "x": 42,
+          "y": 109,
+          "w": 275,
+          "h": 280,
+          "size": 14,
+          "color": "#ffffff",
+          "align": "center",
           "maxlen": 1000
         }
       ]
@@ -649,7 +649,7 @@
         },
         {
           "h": 251,
-          "w": 274,
+          "w": 275,
           "x": 42,
           "y": 239,
           "size": 13,
@@ -680,7 +680,7 @@
         },
         {
           "h": 278,
-          "w": 274,
+          "w": 275,
           "x": 42,
           "y": 239,
           "size": 13,
@@ -711,7 +711,7 @@
         },
         {
           "h": 297,
-          "w": 274,
+          "w": 275,
           "x": 42,
           "y": 267,
           "size": 13,
@@ -742,7 +742,7 @@
         },
         {
           "h": 264,
-          "w": 274,
+          "w": 275,
           "x": 42,
           "y": 239,
           "size": 13,
