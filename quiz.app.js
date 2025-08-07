@@ -181,7 +181,7 @@
         const defaultPageSequence = [
           { type: "cover", bg: "static/1.png" },
           { type: "intro", bg: "static/2.png", blocks: [
-            { type: "title", text: "Welcome to the Quiz", fontSize: 20, color: "#fff", fontWeight: "bold" },
+            { type: "title", text: "Welcome to the Quiz", fontSize: 18, color: "#fff", fontWeight: "bold" },
             { type: "description", text: "This is a sample quiz to test the positioning and functionality.", fontSize: 14, color: "#fff" }
           ]},
           { type: "question", bg: "static/3a.png", blocks: [
@@ -302,7 +302,7 @@
           
           intro_result: {
             title: { x: 42, y: 212, width: 275, height: 60 },
-            description: { x: 42, y: 283, width: 275, height: 55 }
+            description: { x: 42, y: 283, width: 275, height: 186 }
           },
             
          // FIX 2: Fixed positioning for result pages (5a-5d.png) - these should not move
