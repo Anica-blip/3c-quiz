@@ -1,4 +1,4 @@
-    const $ = (sel) => document.querySelector(sel);
+const $ = (sel) => document.querySelector(sel);
 
     let app;
     function ensureApp() {
@@ -187,6 +187,7 @@
     }
 
     function autoFixPages(pages) {
+      if (!Array.isArray(pages)) return [];
       return pages.map((p, idx) => {
         if (typeof p.type === "string" && p.type.length > 0) return p;
         if (
@@ -400,6 +401,37 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
       return html;
     }
 
+    // FIXED: Calculate question index more reliably
+    function getCurrentQuestionIndex() {
+      if (!quizConfig || !quizConfig.questionPages) {
+        // Fallback: count question pages from beginning
+        let questionCount = 0;
+        for (let i = 0; i < state.page; i++) {
+          if (pageSequence[i] && pageSequence[i].type === "question") {
+            questionCount++;
+          }
+        }
+        return questionCount;
+      }
+
+      // Find the question index based on current page
+      const currentPageIndex = state.page;
+      const questionPageIndex = quizConfig.questionPages.findIndex(q => q.idx === currentPageIndex);
+      
+      if (questionPageIndex !== -1) {
+        return questionPageIndex;
+      }
+      
+      // Fallback calculation
+      let questionCount = 0;
+      for (let i = 0; i < state.page; i++) {
+        if (pageSequence[i] && pageSequence[i].type === "question") {
+          questionCount++;
+        }
+      }
+      return questionCount;
+    }
+
     function render() {
       if (!ensureApp()) return;
       
@@ -571,6 +603,11 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
           const displayH = rect.height;
 
           const overlay = $("#block-overlay-layer");
+          if (!overlay) {
+            console.error("Block overlay layer not found");
+            return;
+          }
+          
           overlay.style.width = displayW + "px";
           overlay.style.height = displayH + "px";
           overlay.style.left = "0px";
@@ -604,23 +641,11 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
               })
               .sort((a, b) => a.letter.localeCompare(b.letter)); // Sort A, B, C, D
 
-            let questionIndex = 0;
-            if (quizConfig && quizConfig.questionPages) {
-              let currentQuestionPageIndex = quizConfig.questionPages.findIndex(q => q.idx === state.page);
-              if (currentQuestionPageIndex === -1) questionIndex = currentQuestionPageIndex;
-              } else {
-                // Fallback: count question pages from beginning
-                let questionCount = 0;
-                for (let i = 0; i < state.page; i++) {
-                 if (pageSequence[i] && pageSequence[i].type === "question") {
-                   questionCount++;
-                 }
-               }
-               questionIndex = questionCount;
-              }
-            }
+            // FIXED: Use the reliable question index calculation
+            let questionIndex = getCurrentQuestionIndex();
 
             console.log("Answer blocks found:", answerBlocks);
+            console.log("Current question index:", questionIndex);
 
             const answerLayer = overlay.querySelector("#dynamic-answer-buttons");
             if (answerLayer && answerBlocks.length > 0) {
@@ -732,8 +757,8 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
                     
                     console.log(`Answer clicked: ${answerLetter} for question ${questionIndex}`);
                     
-                    // Set answer in quiz config
-                    if (quizConfig && quizConfig.setAnswer) {
+                    // FIXED: Validate question index before setting answer
+                    if (questionIndex >= 0 && quizConfig && quizConfig.setAnswer) {
                       quizConfig.setAnswer(questionIndex, answerLetter);
                       console.log("Current answers:", quizConfig.userAnswers);
                     }
@@ -818,7 +843,9 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
       console.log("Initializing quiz app...");
       
       // Mark body as app loaded for styling
-      document.body.classList.add('app-loaded');
+      if (document.body) {
+        document.body.classList.add('app-loaded');
+      }
       
       // Create default quiz config for fallback
       if (!quizConfig) {
@@ -890,12 +917,20 @@ style="background:#007bff;color:#fff;border:none;padding:12px 24px;border-radius
       render();
     }
 
-// Handle window resize
-window.addEventListener("resize", () => {
-  if (!state.isLoading && !state.quizError) {
-    render();
-  }
-});
+    // Handle window resize with debouncing
+    let resizeTimeout;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (!state.isLoading && !state.quizError) {
+          render();
+        }
+      }, 100);
+    });
 
-// Start the app
-initializeApp();
+    // Start the app
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
