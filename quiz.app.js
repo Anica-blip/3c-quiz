@@ -181,8 +181,8 @@ const $ = (sel) => document.querySelector(sel);
         const defaultPageSequence = [
           { type: "cover", bg: "static/1.png" },
           { type: "intro", bg: "static/2.png", blocks: [
-            { type: "title", text: "Welcome to the Quiz", fontSize: 18, color: "#fff", fontWeight: "bold" },
-            { type: "description", text: "This is a sample quiz to test the positioning and functionality.", fontSize: 14, color: "#fff" }
+            { type: "title", text: "Welcome to the Quiz", fontSize: 18, color: "#fff", fontWeight: "bold", x: 42, y: 212, width: 275, height: 60 },
+            { type: "description", text: "This is a sample quiz to test the positioning and functionality.", fontSize: 14, color: "#fff", x: 42, y: 283, width: 275, height: 186 }
           ]},
           { type: "question", bg: "static/3a.png", blocks: [
             { type: "question", text: "What is your favorite color?", fontSize: 18, color: "#fff", fontWeight: "bold" },
@@ -199,7 +199,7 @@ const $ = (sel) => document.querySelector(sel);
             { type: "answer", text: "D. Art", resultType: "D" }
           ]},
           { type: "pre-results", bg: "static/4.png", blocks: [
-            { type: "title", text: "Click below to see your personalized result- based on your answers!", fontSize: 15, color: "#fff", fontWeight: "bold" }
+            { type: "title", text: "Click below to see your personalized result- based on your answers!", fontSize: 15, color: "#fff", fontWeight: "bold", x: 31, y: 109, width: 275, height: 280 }
           ]},
           { type: "resultA", bg: "static/5a.png", blocks: [
             { type: "title", text: "Result A", fontSize: 16, color: "#fff", fontWeight: "bold" },
@@ -324,7 +324,7 @@ const $ = (sel) => document.querySelector(sel);
           
           // Fixed positioning for pre-results page (4.png) - this should not move
           preResults: {
-            title: { x: 31, y: 180, width: 275, height: 280 }
+            title: { x: 31, y: 109, width: 275, height: 280 }
           },
           
           thankyou: {
@@ -365,7 +365,29 @@ const $ = (sel) => document.querySelector(sel);
           }
         }
 
-        // FIXED: Updated renderBlocks to use JSON coordinates when available, fallback to layouts
+        // Helper function to calculate actual text height
+        function calculateTextHeight(text, fontSize, fontFamily, width, lineHeight = 1.2) {
+          // Create temporary element to measure text
+          const tempDiv = document.createElement('div');
+          tempDiv.style.position = 'absolute';
+          tempDiv.style.visibility = 'hidden';
+          tempDiv.style.whiteSpace = 'pre-line';
+          tempDiv.style.wordBreak = 'break-word';
+          tempDiv.style.overflowWrap = 'break-word';
+          tempDiv.style.width = width + 'px';
+          tempDiv.style.fontSize = fontSize + 'px';
+          tempDiv.style.fontFamily = fontFamily || 'Arial, sans-serif';
+          tempDiv.style.lineHeight = lineHeight;
+          tempDiv.innerHTML = text || '';
+          
+          document.body.appendChild(tempDiv);
+          const height = tempDiv.offsetHeight;
+          document.body.removeChild(tempDiv);
+          
+          return height;
+        }
+
+        // UPDATED: Enhanced renderBlocks with dynamic text positioning
         function renderBlocks(blocks, scaleX, scaleY, shrinkFactor = 0.97) {
           if (!Array.isArray(blocks)) return "";
           let html = "";
@@ -376,16 +398,22 @@ const $ = (sel) => document.querySelector(sel);
 
           console.log("Rendering blocks for page type:", pageType, "blocks:", blocks);
 
-          blocks.forEach((block, idx) => {
+          // Filter out answer blocks first
+          const nonAnswerBlocks = blocks.filter(block => (block.type || "").trim().toLowerCase() !== "answer");
+          
+          // For pages that need dynamic positioning (2.png and 4.png)
+          const needsDynamicPositioning = (currentBg === "static/2.png" || currentBg === "static/4.png");
+          
+          let cumulativeYOffset = 0; // Track how much content above has grown
+
+          nonAnswerBlocks.forEach((block, idx) => {
             let type = (block.type || "").trim().toLowerCase();
-            
-            if (type === "answer") return;
             
             let style = "position:absolute;box-sizing:border-box;overflow:visible;";
             
             let position = null;
             
-            // FIXED: Check if block has its own coordinates first (from JSON)
+            // Check if block has its own coordinates first (from JSON)
             if (block.x !== undefined && block.y !== undefined && block.width !== undefined && block.height !== undefined) {
               // Use JSON coordinates directly
               position = { x: block.x, y: block.y, width: block.width, height: block.height };
@@ -398,7 +426,7 @@ const $ = (sel) => document.querySelector(sel);
                 position = layout.title;
               } else if ((pageType === "intro" || pageType.startsWith("result")) && (type === "description" || type === "desc")) {
                 position = layout.description;
-              } else if (pageType === "pre-results" && type === "title") {
+              } else if (pageType === "pre-results" && (type === "title" || type === "description" || type === "desc")) {
                 position = layout.title;
               } else if (pageType === "thankyou" && type === "title") {
                 position = layout.title;
@@ -406,24 +434,70 @@ const $ = (sel) => document.querySelector(sel);
               console.log(`Using layout coordinates for ${type}:`, position);
             }
             
-            // Apply positioning
+            // Apply positioning with dynamic adjustment for specific pages
             if (position) {
-              // FIXED: Use shrinkFactor for all positioning except when explicitly using JSON coordinates for 2.png and 4.png
-              let useDirectCoords = (currentBg === "static/2.png" || currentBg === "static/4.png") && 
-                                  (block.x !== undefined && block.y !== undefined);
+              let finalX = position.x;
+              let finalY = position.y;
+              let finalWidth = position.width;
+              let finalHeight = position.height;
               
-              if (useDirectCoords) {
-                // For JSON coordinates on 2.png and 4.png, use them directly with minimal adjustment
-                style += `left: ${(position.x * scaleX).toFixed(2)}px;`;
-                style += `top: ${(position.y * scaleY).toFixed(2)}px;`;
-                style += `width: ${(position.width * scaleX).toFixed(2)}px;`;
-                style += `height: ${(position.height * scaleY).toFixed(2)}px;`;
+              // For dynamic positioning pages, adjust Y coordinates based on previous content
+              if (needsDynamicPositioning && idx > 0) {
+                // Calculate actual height needed for previous blocks
+                const prevBlock = nonAnswerBlocks[idx - 1];
+                if (prevBlock && prevBlock.text) {
+                  const fontSize = prevBlock.fontSize ? (typeof prevBlock.fontSize === "string" ? parseFloat(prevBlock.fontSize) : prevBlock.fontSize) : 14;
+                  const scaledFontSize = fontSize * scaleY;
+                  const scaledWidth = position.width * scaleX;
+                  
+                  const actualHeight = calculateTextHeight(prevBlock.text, scaledFontSize, 'Arial, sans-serif', scaledWidth);
+                  const originalHeight = (prevBlock.height || 60) * scaleY;
+                  
+                  // If text is taller than original height, add the difference to cumulative offset
+                  if (actualHeight > originalHeight) {
+                    cumulativeYOffset += (actualHeight - originalHeight);
+                  }
+                }
+                
+                // Adjust Y position for current block
+                finalY += cumulativeYOffset / scaleY;
+                
+                // Special case for static/2.png - description should be at Y283 for single line title, Y289 for multi-line
+                if (currentBg === "static/2.png" && type === "description") {
+                  const titleBlock = nonAnswerBlocks.find(b => (b.type || "").trim().toLowerCase() === "title");
+                  if (titleBlock && titleBlock.text) {
+                    const titleFontSize = titleBlock.fontSize ? (typeof titleBlock.fontSize === "string" ? parseFloat(titleBlock.fontSize) : titleBlock.fontSize) : 18;
+                    const scaledTitleFontSize = titleFontSize * scaleY;
+                    const scaledTitleWidth = 275 * scaleX;
+                    
+                    const titleActualHeight = calculateTextHeight(titleBlock.text, scaledTitleFontSize, 'Arial, sans-serif', scaledTitleWidth);
+                    const titleLineHeight = scaledTitleFontSize * 1.2;
+                    const numLines = Math.ceil(titleActualHeight / titleLineHeight);
+                    
+                    if (numLines > 1) {
+                      finalY = 289; // Multi-line title
+                    } else {
+                      finalY = 283; // Single line title
+                    }
+                  }
+                }
+              }
+              
+              // Apply scaling
+              const useDirectCoords = needsDynamicPositioning && (block.x !== undefined && block.y !== undefined);
+              
+              if (useDirectCoords || needsDynamicPositioning) {
+                // For dynamic positioning, use coordinates with minimal adjustment
+                style += `left: ${(finalX * scaleX).toFixed(2)}px;`;
+                style += `top: ${(finalY * scaleY).toFixed(2)}px;`;
+                style += `width: ${(finalWidth * scaleX).toFixed(2)}px;`;
+                style += `min-height: ${(finalHeight * scaleY).toFixed(2)}px;`;
               } else {
                 // Use shrinkFactor for layout-based positioning
-                style += `left: ${(position.x * scaleX * shrinkFactor).toFixed(2)}px;`;
-                style += `top: ${(position.y * scaleY * shrinkFactor).toFixed(2)}px;`;
-                style += `width: ${(position.width * scaleX * shrinkFactor).toFixed(2)}px;`;
-                style += `height: ${(position.height * scaleY * shrinkFactor).toFixed(2)}px;`;
+                style += `left: ${(finalX * scaleX * shrinkFactor).toFixed(2)}px;`;
+                style += `top: ${(finalY * scaleY * shrinkFactor).toFixed(2)}px;`;
+                style += `width: ${(finalWidth * scaleX * shrinkFactor).toFixed(2)}px;`;
+                style += `min-height: ${(finalHeight * scaleY * shrinkFactor).toFixed(2)}px;`;
               }
             }
 
@@ -442,10 +516,8 @@ const $ = (sel) => document.querySelector(sel);
             // Apply block-specific styles
             if (block.fontSize) {
               const fontSize = typeof block.fontSize === "string" ? parseFloat(block.fontSize) : block.fontSize;
-              // FIXED: Use direct scaling for JSON coordinates
-              let useDirectCoords = (currentBg === "static/2.png" || currentBg === "static/4.png") && 
-                                  (block.x !== undefined && block.y !== undefined);
-              if (useDirectCoords) {
+              // Use direct scaling for dynamic positioning
+              if (needsDynamicPositioning) {
                 style += `font-size: ${(fontSize * scaleY).toFixed(2)}px;`;
               } else {
                 style += `font-size: ${(fontSize * scaleY * shrinkFactor).toFixed(2)}px;`;
@@ -980,4 +1052,3 @@ const $ = (sel) => document.querySelector(sel);
         } else {
           initializeApp();
         }
-
