@@ -300,7 +300,7 @@ const $ = (sel) => document.querySelector(sel);
         const PAGE_LAYOUTS = {
           cover: {},
           
-          // Default fallback layout for sample pages
+          // Fixed positioning for intro result page (2.png) - these should not move
           intro_result: {
             title: { x: 42, y: 212, width: 275, height: 60 },
             description: { x: 42, y: 289, width: 275, height: 186 }
