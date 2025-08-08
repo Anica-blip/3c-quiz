@@ -300,7 +300,7 @@ const $ = (sel) => document.querySelector(sel);
         const PAGE_LAYOUTS = {
           cover: {},
           
-          // Fixed positioning for intro result page (2.png) - these should not move
+          // Default fallback layout for sample pages
           intro_result: {
             title: { x: 42, y: 212, width: 275, height: 60 },
             description: { x: 42, y: 289, width: 275, height: 186 }
@@ -404,7 +404,26 @@ const $ = (sel) => document.querySelector(sel);
           // For pages that need dynamic positioning (2.png and 4.png)
           const needsDynamicPositioning = (currentBg === "static/2.png" || currentBg === "static/4.png");
           
-          let cumulativeYOffset = 0; // Track how much content above has grown
+          // Pre-calculate title block height for dynamic positioning
+          let titleBlock = null;
+          let titleActualHeight = 0;
+          let titleOriginalHeight = 0;
+          let titleExceedsHeight = false;
+          
+          if (needsDynamicPositioning) {
+            titleBlock = nonAnswerBlocks.find(b => (b.type || "").trim().toLowerCase() === "title");
+            if (titleBlock && titleBlock.text) {
+              const titleFontSize = titleBlock.fontSize ? (typeof titleBlock.fontSize === "string" ? parseFloat(titleBlock.fontSize) : titleBlock.fontSize) : 18;
+              const scaledTitleFontSize = titleFontSize * scaleY;
+              const scaledTitleWidth = (titleBlock.width || 275) * scaleX;
+              
+              titleActualHeight = calculateTextHeight(titleBlock.text, scaledTitleFontSize, 'Arial, sans-serif', scaledTitleWidth);
+              titleOriginalHeight = (titleBlock.height || 60) * scaleY;
+              titleExceedsHeight = titleActualHeight > titleOriginalHeight;
+              
+              console.log(`Title height analysis: actual=${titleActualHeight}, original=${titleOriginalHeight}, exceeds=${titleExceedsHeight}`);
+            }
+          }
 
           nonAnswerBlocks.forEach((block, idx) => {
             let type = (block.type || "").trim().toLowerCase();
@@ -426,8 +445,11 @@ const $ = (sel) => document.querySelector(sel);
                 position = layout.title;
               } else if ((pageType === "intro" || pageType.startsWith("result")) && (type === "description" || type === "desc")) {
                 position = layout.description;
-              } else if (pageType === "pre-results" && (type === "title" || type === "description" || type === "desc")) {
+              } else if (pageType === "pre-results" && type === "title") {
                 position = layout.title;
+              } else if (pageType === "pre-results" && (type === "description" || type === "desc")) {
+                // For 4.png, description should use title coordinates but adjust Y dynamically
+                position = { ...layout.title };
               } else if (pageType === "thankyou" && type === "title") {
                 position = layout.title;
               }
@@ -441,43 +463,31 @@ const $ = (sel) => document.querySelector(sel);
               let finalWidth = position.width;
               let finalHeight = position.height;
               
-              // For dynamic positioning pages, adjust Y coordinates based on previous content
-              if (needsDynamicPositioning && idx > 0) {
-                // Calculate actual height needed for previous blocks
-                const prevBlock = nonAnswerBlocks[idx - 1];
-                if (prevBlock && prevBlock.text) {
-                  const fontSize = prevBlock.fontSize ? (typeof prevBlock.fontSize === "string" ? parseFloat(prevBlock.fontSize) : prevBlock.fontSize) : 14;
-                  const scaledFontSize = fontSize * scaleY;
-                  const scaledWidth = position.width * scaleX;
-                  
-                  const actualHeight = calculateTextHeight(prevBlock.text, scaledFontSize, 'Arial, sans-serif', scaledWidth);
-                  const originalHeight = (prevBlock.height || 60) * scaleY;
-                  
-                  // If text is taller than original height, add the difference to cumulative offset
-                  if (actualHeight > originalHeight) {
-                    cumulativeYOffset += (actualHeight - originalHeight);
-                  }
-                }
-                
-                // Adjust Y position for current block
-                finalY += cumulativeYOffset / scaleY;
-                
-                // Special case for static/2.png - description should be at Y283 for single line title, Y289 for multi-line
-                if (currentBg === "static/2.png" && type === "description") {
-                  const titleBlock = nonAnswerBlocks.find(b => (b.type || "").trim().toLowerCase() === "title");
-                  if (titleBlock && titleBlock.text) {
-                    const titleFontSize = titleBlock.fontSize ? (typeof titleBlock.fontSize === "string" ? parseFloat(titleBlock.fontSize) : titleBlock.fontSize) : 18;
-                    const scaledTitleFontSize = titleFontSize * scaleY;
-                    const scaledTitleWidth = 275 * scaleX;
-                    
-                    const titleActualHeight = calculateTextHeight(titleBlock.text, scaledTitleFontSize, 'Arial, sans-serif', scaledTitleWidth);
-                    const titleLineHeight = scaledTitleFontSize * 1.2;
-                    const numLines = Math.ceil(titleActualHeight / titleLineHeight);
-                    
-                    if (numLines > 1) {
-                      finalY = 289; // Multi-line title
+              // Dynamic positioning logic
+              if (needsDynamicPositioning) {
+                if (type === "description" || type === "desc") {
+                  // Special logic for description blocks
+                  if (currentBg === "static/2.png") {
+                    // For 2.png: Y283 for single line title, Y289 for multi-line title
+                    if (titleBlock && titleBlock.text) {
+                      const titleLineHeight = (titleBlock.fontSize || 18) * scaleY * 1.2;
+                      const numLines = Math.ceil(titleActualHeight / titleLineHeight);
+                      
+                      if (numLines > 1) {
+                        finalY = 289; // Multi-line title
+                      } else {
+                        finalY = 283; // Single line title
+                      }
+                      console.log(`2.png description positioned at Y=${finalY} (${numLines} title lines)`);
+                    }
+                  } else if (currentBg === "static/4.png") {
+                    // For 4.png: Start at Y289 if title exceeds height, otherwise keep original position
+                    if (titleExceedsHeight) {
+                      finalY = 289; // Move down if title is too tall
+                      console.log(`4.png description moved to Y=${finalY} due to title height`);
                     } else {
-                      finalY = 283; // Single line title
+                      // Keep original Y position from JSON or layout
+                      console.log(`4.png description keeping original Y=${finalY}`);
                     }
                   }
                 }
