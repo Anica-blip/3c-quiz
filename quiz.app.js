@@ -199,7 +199,8 @@ const $ = (sel) => document.querySelector(sel);
             { type: "answer", text: "D. Art", resultType: "D" }
           ]},
           { type: "pre-results", bg: "static/4.png", blocks: [
-            { type: "title", text: "Click below to see your personalized result- based on your answers!", fontSize: 15, color: "#fff", fontWeight: "bold", x: 31, y: 109, width: 275, height: 280 }
+            { type: "title", text: "Click below to see your personalized result- based on your answers!", fontSize: 15, color: "#fff", fontWeight: "bold", x: 31, y: 109, width: 275, height: 60 },
+            { type: "description", text: "", fontSize: 15, color: "#fff", fontWeight: "bold", x: 31, y: 109, width: 275, height: 280 }
           ]},
           { type: "resultA", bg: "static/5a.png", blocks: [
             { type: "title", text: "Result A", fontSize: 16, color: "#fff", fontWeight: "bold" },
@@ -410,18 +411,18 @@ const $ = (sel) => document.querySelector(sel);
           let titleOriginalHeight = 0;
           let titleExceedsHeight = false;
           
-          if (needsDynamicPositioning) {
+          if (needsDynamicPositioning || pageType.startsWith("result") || pageType === "intro") {
             titleBlock = nonAnswerBlocks.find(b => (b.type || "").trim().toLowerCase() === "title");
             if (titleBlock && titleBlock.text) {
-              const titleFontSize = titleBlock.fontSize ? (typeof titleBlock.fontSize === "string" ? parseFloat(titleBlock.fontSize) : titleBlock.fontSize) : 18;
+              const titleFontSize = titleBlock.fontSize ? (typeof titleBlock.fontSize === "string" ? parseFloat(titleBlock.fontSize) : titleBlock.fontSize) : 16;
               const scaledTitleFontSize = titleFontSize * scaleY;
               const scaledTitleWidth = (titleBlock.width || 275) * scaleX;
               
               titleActualHeight = calculateTextHeight(titleBlock.text, scaledTitleFontSize, 'Arial, sans-serif', scaledTitleWidth);
-              titleOriginalHeight = (titleBlock.height || 60) * scaleY;
+              titleOriginalHeight = (titleBlock.height || 28) * scaleY; // Result pages typically have H28 for title
               titleExceedsHeight = titleActualHeight > titleOriginalHeight;
               
-              console.log(`Title height analysis: actual=${titleActualHeight}, original=${titleOriginalHeight}, exceeds=${titleExceedsHeight}`);
+              console.log(`${currentBg} - Title height analysis: actual=${titleActualHeight}, original=${titleOriginalHeight}, exceeds=${titleExceedsHeight}`);
             }
           }
 
@@ -463,8 +464,8 @@ const $ = (sel) => document.querySelector(sel);
               let finalWidth = position.width;
               let finalHeight = position.height;
               
-              // Dynamic positioning logic
-              if (needsDynamicPositioning) {
+              // Dynamic positioning logic for all pages with title/description
+              if (needsDynamicPositioning || pageType.startsWith("result") || pageType === "intro") {
                 if (type === "description" || type === "desc") {
                   // Special logic for description blocks
                   if (currentBg === "static/2.png") {
@@ -488,6 +489,24 @@ const $ = (sel) => document.querySelector(sel);
                     } else {
                       // Keep original Y position from JSON or layout
                       console.log(`4.png description keeping original Y=${finalY}`);
+                    }
+                  } else if (currentBg.includes("static/5") && currentBg.includes(".png")) {
+                    // For result pages (5a.png, 5b.png, 5c.png, 5d.png): Move description down if title exceeds height
+                    if (titleExceedsHeight) {
+                      // Calculate how much to move down based on actual title height
+                      const heightDifference = titleActualHeight - titleOriginalHeight;
+                      finalY = position.y + (heightDifference / scaleY);
+                      console.log(`${currentBg} description moved to Y=${finalY} due to title overflow (diff: ${heightDifference}px)`);
+                    } else {
+                      // Keep original Y position from JSON or layout
+                      console.log(`${currentBg} description keeping original Y=${finalY}`);
+                    }
+                  } else {
+                    // For other pages: Apply general rule - move description down if title exceeds height
+                    if (titleExceedsHeight) {
+                      const heightDifference = titleActualHeight - titleOriginalHeight;
+                      finalY = position.y + (heightDifference / scaleY);
+                      console.log(`${currentBg} description moved to Y=${finalY} due to title overflow`);
                     }
                   }
                 }
