@@ -324,7 +324,7 @@ const $ = (sel) => document.querySelector(sel);
           
           // Fixed positioning for pre-results page (4.png) - this should not move
           preResults: {
-            title: { x: 31, y: 109, width: 275, height: 280 }
+            title: { x: 31, y: 180, width: 275, height: 280 }
           },
           
           thankyou: {
