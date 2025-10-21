@@ -1,6 +1,6 @@
 # 3c-quiz
 
-A customizable quiz application with dynamic backgrounds and navigation, structured for easy integration with a future admin/editor app for quiz text management.
+A customizable quiz application with dynamic backgrounds and navigation, structured for easy integration with an admin/editor app for quiz text management.
 
 ## File Structure
 
