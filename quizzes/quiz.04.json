@@ -1,0 +1,691 @@
+{
+  "id": "quiz.04",
+  "title": "New Quiz",
+  "pages": [
+    {
+      "bg": "static/2.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "What Kind of Goal-Getter Are You?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 60,
+          "x": 42,
+          "y": 214
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "Every goal-getter has a secret formula —a rhythm that fuels how they chase, conquer, and celebrate success. This quiz helps you decode your personal “achievement DNA” so you can understand how you move, think, and stay on track when the climb gets steep.\n\nGet ready to discover your Goal-Getter Mode —are you the Visionary, Strategist, Trailblazer, or Steady Champ? Let’s find out!",
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 228,
+          "x": 42,
+          "y": 283
+        }
+      ]
+    },
+    {
+      "bg": "static/3a.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When you set a new goal, what’s your first move?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Visualize it in detail —I need to see it before I start.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Make a plan —structure is key.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Just start —I learn as I go.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Break it into small wins —I love momentum.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3a.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When progress slows down, what keeps you pushing forward?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. The bigger picture —I remind myself why I started.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. My schedule —I trust the plan.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Competition —I thrive under challenge.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. My routine —slow steps still move me ahead.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3c.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "How do you handle distractions or unexpected setbacks?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 30,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. I re-align mentally and refocus on purpose.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. I adjust timelines and move the pieces.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. I improvise —flexibility is my strength.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. I pause, recharge, then restart.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3d.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When celebrating success, what’s your vibe?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Quiet reflection —I like to feel gratitude.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Analyze what worked so I can repeat it.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Share the win —I love spreading the energy!",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Treat myself —I earned that moment!",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3e.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "What drives you to keep setting new goals?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Growth —I’m built to evolve.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Mastery —I love refining my craft.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Challenge —I need something exciting to chase.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Balance —I like feeling steady and strong.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3f.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When teamwork is involved, how do you fit in?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Visionary —I inspire and lead with ideas.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Organizer —I keep everyone on track.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Motivator —I energize the group.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Supporter —I help maintain harmony.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/4.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "You’ve completed the 3C Goal-Getter Challenge! ✨\n\nNow it’s time to uncover your Goal-Getter Mode —the power that defines your journey toward success.\n\nPress “Get My Results” and meet your inner hero! ",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 272,
+          "x": 31,
+          "y": 114
+        }
+      ]
+    },
+    {
+      "bg": "static/5a.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🦸‍♀️ A — The Visionary Goal-Getter",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You’re driven by imagination, clarity, and purpose. You see the finish line before you even start running. Your ideas light the path for others, and your belief system turns dreams into reality.\n\nYour Super Traits:\n\nInspires others with strong purpose and optimism\nSees opportunities where others see limits\nThrives when building meaningful, long-term goals\nTurns vision into fuel for consistent action",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/5b.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🦸‍♂️ B — The Strategic Goal-Getter",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You are the planner, the thinker, the chess master of achievement. Every step has intention, and your organized mind turns complexity into flow.\n\nYour Super Traits:\n\nTurns big goals into clear, structured plans\nRarely loses focus under pressure\nBalances logic with persistence\nBuilds success one precise move at a time",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/5c.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "⚡ C — The Trailblazer Goal-Getter",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You’re pure momentum —bold, fearless, and always ready to take action. You don’t wait for the perfect moment; you create it. Your courage inspires others to start moving.\n\nYour Super Traits:\n\nMoves fast and adapts even faster\nEmbraces failure as feedback\nNaturally motivates those around you\nThrives in dynamic, high-energy environments",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/5d.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "💎 D — The Steady Champ Goal-Getter",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You’re the heart of endurance —reliable, patient, and consistent. You believe progress is built one step at a time, and your strength lies in showing up, even when it’s hard.\n\nYour Super Traits:\n\nMaster of discipline and commitment\nLeads with calm, grounded confidence\nBuilds stability that others can rely on\nKnows slow progress still leads to victory",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/6.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "“Every Goal-Getter walks their own path —some run, some plan, some glide —but all rise when purpose meets action.”\n— 3C Thread to Success",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "center",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 119,
+          "x": 42,
+          "y": 214
+        }
+      ]
+    },
+    {
+      "bg": "",
+      "blocks": []
+    },
+    {
+      "bg": "",
+      "blocks": []
+    }
+  ]
+}
