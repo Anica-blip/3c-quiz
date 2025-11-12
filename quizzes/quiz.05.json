@@ -1,0 +1,845 @@
+{
+  "id": "quiz.05",
+  "title": "New Quiz",
+  "pages": [
+    {
+      "bg": "static/1.png",
+      "blocks": []
+    },
+    {
+      "bg": "static/2.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🧠 QUIZ: What Type of Thinker Are You?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 60,
+          "x": 42,
+          "y": 214
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "This quiz uncovers how your mind naturally processes ideas, decisions, and possibilities. Whether you lead with logic, intuition, creativity, or structure —your thinking style holds the key to your next big breakthrough. Discover your inner thinker and learn how to use your mental edge to move further, faster.",
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 186,
+          "x": 42,
+          "y": 283
+        }
+      ]
+    },
+    {
+      "bg": "static/3a.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When you’re faced with a tough decision, you usually:",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. List the pros and cons logically.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Go with your gut feeling.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Imagine possible outcomes creatively.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Ask others for input before deciding.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3b.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "Your workspace tends to look like:",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Neat, everything has a place.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Organized chaos — I know where everything is.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. A vision board of ideas and notes.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Constantly changing — I like to rearrange things often.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3c.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When solving a problem, you prefer to:",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Research deeply and find proven methods.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Step back, breathe, and see what feels right.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Brainstorm until a new idea pops up.",
+          "x": 33,
+          "y": 317,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Collaborate and talk through the options.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3d.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "What excites you most about learning?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Understanding how things work.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Exploring how people think and behave.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Finding creative solutions.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Discovering systems that improve teamwork.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3e.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "Your biggest strength is:",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Analytical precision.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Intuitive awareness.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Visionary thinking.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Harmonizing different perspectives.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3f.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When someone gives you feedback, you usually:",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Analyze it to see if it’s valid.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Reflect on how it feels before responding.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Turn it into motivation to improve.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Appreciate it as part of growing together.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3g.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "How do you usually plan your week?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Structured schedule — I like things mapped out.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Flexible — I flow with inspiration.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Dynamic — I mix creativity and action.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Balanced — I organize tasks around energy levels.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3h.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When facing uncertainty, your instinct says:",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Think through the facts.",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Trust your inner compass.",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Dream up new possibilities.",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Talk it out with others for clarity.",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/4.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "✨ “Your mind holds a pattern that leads you to success — let’s see which one it is.”\n\nClick below to discover your thinker type and unlock your unique advantage.",
+          "size": 17,
+          "color": "#ffffff",
+          "align": "center",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 272,
+          "x": 31,
+          "y": 114
+        }
+      ]
+    },
+    {
+      "bg": "static/5a.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🧩 A. The Analytical Strategist",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You thrive on logic, structure, and systems that make sense. You see patterns others miss and build solutions that stand the test of time.\n\nStrengths:\n\nBreaks down complexity with clarity.\nTrustworthy planner who sees every angle.\nValues precision and long-term growth.\nInspires others through reliability and insight.",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/5b.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "💫 B. The Intuitive Visionary",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You lead with instinct and deep understanding. You see beyond the surface and pick up what others don’t say. Your inner compass rarely steers you wrong.\n\nStrengths:\n\nNatural empath and guide.\nReads energy and direction easily.\nMakes bold moves that feel right.\nTurns chaos into flow.",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/5c.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🔥 C. The Creative Innovator",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "Your superpower is imagination — you create what doesn’t exist yet. When others see limits, you see opportunities.\n\nStrengths:\n\nThinks outside every box (and sometimes burns the box for fun).\nInspires through originality.\nTurns ideas into experiences.\nLives with curiosity and courage.",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/5d.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🌍 D. The Collaborative Synthesizer",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You unite minds, hearts, and ideas. You’re the bridge that brings balance — making sure everyone and everything connects in harmony.\n\nStrengths:\n\nSees the bigger picture.\nPromotes unity and understanding.\nTurns groups into winning teams.\nBalances logic and empathy effortlessly.",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/6.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "“The way you think is the way you build your world —sharpen it, and everything changes.” 💭✨",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "center",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 84,
+          "x": 42,
+          "y": 214
+        }
+      ]
+    }
+  ]
+}
