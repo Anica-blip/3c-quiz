@@ -1,0 +1,687 @@
+{
+  "id": "quiz.07",
+  "title": "What’s Your Problem-Solving Pattern?",
+  "pages": [
+    {
+      "bg": "static/1.png",
+      "blocks": []
+    },
+    {
+      "bg": "static/2.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "What’s Your Problem-Solving Pattern?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 60,
+          "x": 42,
+          "y": 214
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "Every challenge you face triggers a pattern —not just a reaction. Your mind has a preferred way of processing problems, finding solutions, and deciding what to do next. Some people analyze. Some act fast. Some zoom out. Some feel their way through.\n\nThis quiz helps you uncover how your brain naturally approaches problems, so you can stop fighting your instincts and start using them intentionally.",
+          "size": 14,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 186,
+          "x": 42,
+          "y": 283
+        }
+      ]
+    },
+    {
+      "bg": "static/3a.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When faced with a sudden problem, your first instinct is to..",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Break it down and understand all parts before acting",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Take action quickly and adjust as you go",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Step back and look at the bigger picture",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Tune into how the situation feels before deciding",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3b.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When a solution doesn’t work, you usually..",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Re-evaluate the logic and look for missing details",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Try something else immediately",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Rethink the strategy or direction entirely",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Reflect on what felt off and why",
+          "x": 30,
+          "y": 386,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3c.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "Under pressure, you’re most likely to..",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Focus intensely on finding the correct answer",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Push forward with whatever option moves things ahead",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Detach emotionally and reassess the situation",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Feel the pressure deeply but stay intuitive",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3d.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "People often describe your thinking style as..",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Methodical and precise",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Decisive and proactive",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Strategic and visionary",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Empathetic and perceptive",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3e.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When helping someone else solve a problem, you..",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Ask detailed questions to fully understand it",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Encourage action over overthinking",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Help them see the situation differently",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. Listen closely and validate their feelings",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3f.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "You feel most confident solving problems when..",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. You have enough information",
+          "x": 32,
+          "y": 179,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. You’re moving and experimenting",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. You understand the bigger context",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer D",
+          "resultType": "D",
+          "text": "D. You trust your inner sense",
+          "x": 31,
+          "y": 387,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/4.png",
+      "blocks": [
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "Your answers reveal a consistent pattern —one that shapes your decisions, reactions, and confidence under pressure.\n\n👉 Tap below to discover your Problem-Solving Pattern and learn how to use it to your advantage.",
+          "size": 14,
+          "color": "#ffffff",
+          "align": "center",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 294,
+          "h": 272,
+          "x": 31,
+          "y": 114
+        }
+      ]
+    },
+    {
+      "bg": "static/5a.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🔵 RESULT A — The Analytical Solver",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You solve problems by understanding them deeply. You prefer clarity, logic, and structure before taking action. Your strength lies in precision — you don’t rush, and you don’t guess. When you act, it’s because you’ve thought it through.\n\nKey Traits:\n🔹Strong logical reasoning\n🔹Detail-oriented thinking\n🔹Calm under complexity",
+          "size": 13,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 262
+        }
+      ]
+    },
+    {
+      "bg": "static/5b.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🔴 RESULT B — The Action-Oriented Solver",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You solve problems by moving. You believe progress creates answers, not the other way around. While others pause, you test, adjust, and learn through action. Momentum is your greatest asset.\n\nKey Traits:\n🔹Fast decision-making\n🔹Comfortable with uncertainty\n🔹Learns through experience\n🔹Thrives in dynamic situations",
+          "size": 13,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 264
+        }
+      ]
+    },
+    {
+      "bg": "static/5c.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🟢 RESULT C — The Strategic Solver",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You solve problems by zooming out. You naturally look for patterns, connections, and long-term impact. Instead of reacting, you reposition the situation itself. Your strength is perspective.\n\nKey Traits:\n🔹Big-picture thinking\n🔹Strong planning skills\n🔹Sees hidden connections\n🔹Focuses on long-term outcomes",
+          "size": 13,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/5d.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "🟡 RESULT D — The Intuitive Solver",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You solve problems by sensing what’s right. You read between the lines, pick up on emotional cues, and trust your inner compass. Your intuition allows you to navigate situations others struggle to understand.\n\nKey Traits:\n🔹High emotional awareness\n🔹Strong instincts\n🔹Deep empathy\n🔹Comfortable with nuance",
+          "size": 13,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 259
+        }
+      ]
+    },
+    {
+      "bg": "static/6.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "“Understanding your mind is the first step to mastering your outcomes.”",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "center",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 68,
+          "x": 42,
+          "y": 214
+        }
+      ]
+    }
+  ]
+}

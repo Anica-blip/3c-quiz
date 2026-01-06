@@ -1,0 +1,608 @@
+{
+  "id": "quiz.06",
+  "title": "What’s Your Productivity Rhythm?",
+  "pages": [
+    {
+      "bg": "static/1.png",
+      "blocks": []
+    },
+    {
+      "bg": "static/2.png",
+      "blocks": [
+        {
+          "h": 60,
+          "w": 275,
+          "x": 42,
+          "y": 214,
+          "bold": true,
+          "size": 18,
+          "text": "What’s Your Productivity Rhythm?",
+          "type": "title",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Title",
+          "maxlen": 200
+        },
+        {
+          "h": 186,
+          "w": 275,
+          "x": 42,
+          "y": 283,
+          "bold": true,
+          "size": 16,
+          "text": "Discover the rhythm that powers your best work.\n\nFind out when and how you perform at your peak —and how to use your natural flow to get more done with less effort.",
+          "type": "desc",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Description",
+          "maxlen": 1000
+        }
+      ]
+    },
+    {
+      "bg": "static/3a.png",
+      "blocks": [
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 109,
+          "bold": true,
+          "size": 18,
+          "text": "When do you naturally feel most switched on?",
+          "type": "question",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Question",
+          "maxlen": 200
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 180,
+          "bold": true,
+          "size": 16,
+          "text": "A Early morning — I wake up ready to go",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer A",
+          "maxlen": 200,
+          "resultType": "A"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 248,
+          "bold": true,
+          "size": 16,
+          "text": "B Afternoon — I warm up slowly then hit my stride",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer B",
+          "maxlen": 200,
+          "resultType": "B"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 318,
+          "bold": true,
+          "size": 16,
+          "text": "C Late evening — that’s when the ideas explode",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer C",
+          "maxlen": 200,
+          "resultType": "C"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 387,
+          "bold": true,
+          "size": 16,
+          "text": "D It depends — I’m adaptable and responsive",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer D",
+          "maxlen": 200,
+          "resultType": "D"
+        }
+      ]
+    },
+    {
+      "bg": "static/3b.png",
+      "blocks": [
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 109,
+          "bold": true,
+          "size": 18,
+          "text": "How do you start tasks best?",
+          "type": "question",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Question",
+          "maxlen": 200
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 180,
+          "bold": true,
+          "size": 16,
+          "text": "A I jump straight in",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer A",
+          "maxlen": 200,
+          "resultType": "A"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 248,
+          "bold": true,
+          "size": 16,
+          "text": "B I need a short warm-up",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer B",
+          "maxlen": 200,
+          "resultType": "B"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 318,
+          "bold": true,
+          "size": 16,
+          "text": "C I think first, act second",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer C",
+          "maxlen": 200,
+          "resultType": "C"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 387,
+          "bold": true,
+          "size": 16,
+          "text": "D It varies by task",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer D",
+          "maxlen": 200,
+          "resultType": "D"
+        }
+      ]
+    },
+    {
+      "bg": "static/3c.png",
+      "blocks": [
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 109,
+          "bold": true,
+          "size": 18,
+          "text": "What keeps your momentum going?",
+          "type": "question",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Question",
+          "maxlen": 200
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 180,
+          "bold": true,
+          "size": 16,
+          "text": "A A clear plan",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer A",
+          "maxlen": 200,
+          "resultType": "A"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 248,
+          "bold": true,
+          "size": 16,
+          "text": "B A little pressure",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer B",
+          "maxlen": 200,
+          "resultType": "B"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 318,
+          "bold": true,
+          "size": 16,
+          "text": "C Creative freedom",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer C",
+          "maxlen": 200,
+          "resultType": "C"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 387,
+          "bold": true,
+          "size": 16,
+          "text": "D Energy from others or environment",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer D",
+          "maxlen": 200,
+          "resultType": "D"
+        }
+      ]
+    },
+    {
+      "bg": "static/3d.png",
+      "blocks": [
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 109,
+          "bold": true,
+          "size": 18,
+          "text": "How do you react when interrupted?",
+          "type": "question",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Question",
+          "maxlen": 200
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 180,
+          "bold": true,
+          "size": 16,
+          "text": "A I restart easily",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer A",
+          "maxlen": 200,
+          "resultType": "A"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 248,
+          "bold": true,
+          "size": 16,
+          "text": "B I get thrown off but recover",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer B",
+          "maxlen": 200,
+          "resultType": "B"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 318,
+          "bold": true,
+          "size": 16,
+          "text": "C It kills the mood — I need to reset",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer C",
+          "maxlen": 200,
+          "resultType": "C"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 387,
+          "bold": true,
+          "size": 16,
+          "text": "D I adjust and continue differently",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer D",
+          "maxlen": 200,
+          "resultType": "D"
+        }
+      ]
+    },
+    {
+      "bg": "static/3e.png",
+      "blocks": [
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 109,
+          "bold": true,
+          "size": 18,
+          "text": "What makes you feel productive?",
+          "type": "question",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Question",
+          "maxlen": 200
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 180,
+          "bold": true,
+          "size": 16,
+          "text": "A Checking things off",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer A",
+          "maxlen": 200,
+          "resultType": "A"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 248,
+          "bold": true,
+          "size": 16,
+          "text": "B Completing meaningful tasks",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer B",
+          "maxlen": 200,
+          "resultType": "B"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 318,
+          "bold": true,
+          "size": 16,
+          "text": "C Creative breakthroughs",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer C",
+          "maxlen": 200,
+          "resultType": "C"
+        },
+        {
+          "h": 60,
+          "w": 294,
+          "x": 31,
+          "y": 387,
+          "bold": true,
+          "size": 16,
+          "text": "D A mix — structure + freedom",
+          "type": "answer",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Answer D",
+          "maxlen": 200,
+          "resultType": "D"
+        }
+      ]
+    },
+    {
+      "bg": "static/4.png",
+      "blocks": [
+        {
+          "h": 272,
+          "w": 294,
+          "x": 31,
+          "y": 114,
+          "bold": true,
+          "size": 16,
+          "text": "You’ve just unlocked a powerful insight into how you naturally get things done.\n\nRead your full result to understand your personal rhythm",
+          "type": "title",
+          "align": "center",
+          "color": "#ffffff",
+          "label": "Title",
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/5a.png",
+      "blocks": [
+        {
+          "h": 54,
+          "w": 275,
+          "x": 42,
+          "y": 212,
+          "bold": true,
+          "size": 18,
+          "text": "🌅 A. Morning Charger",
+          "type": "title",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Title",
+          "maxlen": 200
+        },
+        {
+          "h": 264,
+          "w": 275,
+          "x": 42,
+          "y": 240,
+          "bold": true,
+          "size": 13,
+          "text": "You operate best when the world is still quiet. Your mind wakes up with clarity, structure, and a clean focus that many people don’t have until much later. When the sun rises, so does your sense of direction — it’s your natural ignition moment.\nYour Rhythm Highlights:\n🔹You gain confidence by starting strong and seeing progress early\n🔹Your mental clarity is sharpest before distractions begin\n🔹Fast decisions come easily in the morning hours\n🔹You perform best when high-value tasks happen early, not late",
+          "type": "desc",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Description",
+          "maxlen": 1000
+        }
+      ]
+    },
+    {
+      "bg": "static/5b.png",
+      "blocks": [
+        {
+          "h": 54,
+          "w": 275,
+          "x": 42,
+          "y": 212,
+          "bold": true,
+          "size": 18,
+          "text": "🌤 B. Midday Builder",
+          "type": "title",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Title",
+          "maxlen": 200
+        },
+        {
+          "h": 264,
+          "w": 275,
+          "x": 42,
+          "y": 242,
+          "bold": true,
+          "size": 13,
+          "text": "You don’t rush. You warm up, find your flow, then deliver consistently. Your productivity rhythm peaks once the day has already started — when the pressure eases, the noise settles, and your thoughts straighten out.\nYour Rhythm Highlights:\n🔹You excel at steady workflows that require endurance\n🔹You gain power from clarity, not speed\n🔹Your energy stabilizes in the afternoon, making you reliable and focused\n🔹You’re great at building systems, routines, and processes",
+          "type": "desc",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Description",
+          "maxlen": 1000
+        }
+      ]
+    },
+    {
+      "bg": "static/5c.png",
+      "blocks": [
+        {
+          "h": 54,
+          "w": 275,
+          "x": 42,
+          "y": 212,
+          "bold": true,
+          "size": 18,
+          "text": "🌙 C. Night Flow Creator",
+          "type": "title",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Title",
+          "maxlen": 200
+        },
+        {
+          "h": 264,
+          "w": 275,
+          "x": 42,
+          "y": 240,
+          "bold": true,
+          "size": 13,
+          "text": "Your creativity lights up when the world slows down. Evenings give you the mental space, calm, and emotional depth to access your best ideas.\nYour Rhythm Highlights:\n🔹You enter deep-focus states naturally at night\n🔹You’re great at problem-solving, planning, and imagination-heavy tasks\n🔹You work best when the environment is quiet and pressure-free\n🔹You can produce high-quality results in fewer hours when inspiration hits",
+          "type": "desc",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Description",
+          "maxlen": 1000
+        }
+      ]
+    },
+    {
+      "bg": "static/5d.png",
+      "blocks": [
+        {
+          "h": 54,
+          "w": 275,
+          "x": 42,
+          "y": 212,
+          "bold": true,
+          "size": 18,
+          "text": "🔄 D. Adaptive Rhythmist",
+          "type": "title",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Title",
+          "maxlen": 200
+        },
+        {
+          "h": 264,
+          "w": 275,
+          "x": 42,
+          "y": 242,
+          "bold": true,
+          "size": 13,
+          "text": "You’re a hybrid — flexible, intuitive, and responsive. Your productivity isn’t tied to a clock; it’s tied to your environment, emotional state, and the task in front of you.\nYour Rhythm Highlights:\n🔹You adjust your pace based on what’s needed — not what’s expected\n🔹You handle interruptions better than most\n🔹You’re excellent in roles requiring quick shifts and adaptability\n🔹You perform best when allowed to design your own rhythm",
+          "type": "desc",
+          "align": "left",
+          "color": "#ffffff",
+          "label": "Description",
+          "maxlen": 1000
+        }
+      ]
+    },
+    {
+      "bg": "static/6.png",
+      "blocks": [
+        {
+          "h": 68,
+          "w": 275,
+          "x": 42,
+          "y": 214,
+          "bold": true,
+          "size": 18,
+          "text": "\"Lean into your strengths instead of fighting your energy cycles.\"",
+          "type": "title",
+          "align": "center",
+          "color": "#ffffff",
+          "label": "Title",
+          "maxlen": 200
+        }
+      ]
+    }
+  ]
+}
