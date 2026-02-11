@@ -1,0 +1,628 @@
+{
+  "id": "quiz.08",
+  "title": "What’s Your Inner Warrior Strength?",
+  "pages": [
+    {
+      "bg": "static/1.png",
+      "blocks": []
+    },
+    {
+      "bg": "static/2.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "What’s Your Inner Warrior Strength?",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 60,
+          "x": 42,
+          "y": 214
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You’ve defined your Core Values —your compass is set. Now it’s time to discover how you naturally move when life tests you.\n\nThis isn’t about labels. It’s about patterns.\n\nAnswer honestly. Don’t overthink it.\nYour first instinct is usually your truth.\n\nLet’s reveal your Inner Warrior Strength.",
+          "size": 15,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 186,
+          "x": 42,
+          "y": 260
+        }
+      ]
+    },
+    {
+      "bg": "static/3a.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When your values are challenged, you…",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Step back and evaluate before responding",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Stand firm immediately and defend your ground",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Stay calm and hold your position over time",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3b.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When you feel uncertain about your next move, you…",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Reflect until clarity forms",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Take action to break the hesitation",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Stick to your routine until direction sharpens",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3c.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "Growth, to you, feels strongest when…",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. You understand the “why” behind it",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. You push past something that scares you",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. You see steady progress over time",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3d.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "When others doubt you, your instinct is to…",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Prove them wrong through strategy",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Prove them wrong through action",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Ignore the noise and stay consistent",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3e.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "After a setback, you naturally…",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Analyze what went wrong",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Try again with more intensity",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Regroup and continue steadily",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3f.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "Your Core Values guide you mostly through…",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 60,
+          "x": 31,
+          "y": 109
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Thoughtful decisions",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Bold actions",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Daily discipline",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/3g.png",
+      "blocks": [
+        {
+          "type": "question",
+          "label": "Question",
+          "text": "If you had to choose your strongest trait, it would be…",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "x": 31,
+          "y": 109,
+          "w": 294,
+          "h": 60
+        },
+        {
+          "type": "answer",
+          "label": "Answer A",
+          "resultType": "A",
+          "text": "A. Clarity",
+          "x": 31,
+          "y": 180,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer B",
+          "resultType": "B",
+          "text": "B. Courage",
+          "x": 31,
+          "y": 248,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        },
+        {
+          "type": "answer",
+          "label": "Answer C",
+          "resultType": "C",
+          "text": "C. Consistency",
+          "x": 31,
+          "y": 318,
+          "w": 294,
+          "h": 60,
+          "size": 16,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200
+        }
+      ]
+    },
+    {
+      "bg": "static/4.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "You’ve answered honestly. Now let’s uncover which Inner Warrior leads your foundation.\n",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "center",
+          "bold": true,
+          "maxlen": 200,
+          "w": 294,
+          "h": 272,
+          "x": 31,
+          "y": 114
+        }
+      ]
+    },
+    {
+      "bg": "static/5a.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "A – The Strategic Warrior (Clarity)",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You move with awareness.\nYou don’t rush —you calculate.\n\nYour strength is mental structure.\nYou build before you battle.\n\n⚔️ Superpower: Vision + Precision\n⚠️ Growth Edge: Don’t overthink yourself into delay\n\n“Clarity is your weapon. Wield it boldly.”",
+          "size": 14,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 272
+        }
+      ]
+    },
+    {
+      "bg": "static/5b.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "B – The Fearless Warrior (Courage)",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You move when others hesitate.\nYou act before doubt grows roots.\n\nYour strength is boldness.\nYou gain momentum through motion.\n\n⚔️ Superpower: Action under pressure\n⚠️ Growth Edge: Strategy strengthens courage\n\n“Courage is not the absence of fear — it’s your decision to move anyway.”",
+          "size": 14,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 43,
+          "y": 272
+        }
+      ]
+    },
+    {
+      "bg": "static/5c.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "C – The Disciplined Warrior (Consistency)",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 54,
+          "x": 42,
+          "y": 212
+        },
+        {
+          "type": "desc",
+          "label": "Description",
+          "text": "You don’t need noise.\nYou don’t need applause.\n\nYour strength is steadiness.\nYou win through repetition.\n\n⚔️ Superpower: Reliability + Endurance\n⚠️ Growth Edge: Sometimes bold action accelerates results\n\n“Consistency turns effort into identity.”",
+          "size": 14,
+          "color": "#ffffff",
+          "align": "left",
+          "bold": true,
+          "maxlen": 1000,
+          "w": 275,
+          "h": 264,
+          "x": 42,
+          "y": 272
+        }
+      ]
+    },
+    {
+      "bg": "static/6.png",
+      "blocks": [
+        {
+          "type": "title",
+          "label": "Title",
+          "text": "“Strength isn’t loud. It’s proven in the choices you repeat.”",
+          "size": 18,
+          "color": "#ffffff",
+          "align": "center",
+          "bold": true,
+          "maxlen": 200,
+          "w": 275,
+          "h": 68,
+          "x": 42,
+          "y": 214
+        }
+      ]
+    }
+  ]
+}
