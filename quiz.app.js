@@ -18,13 +18,14 @@ const $ = (sel) => document.querySelector(sel);
 
         let quizConfig = null;
 
+        const WORKER_URL = 'https://3c-quiz.3c-innertherapy.workers.dev';
+
         async function fetchQuizFromRepoByQuizUrl(quizUrl) {
-          const repoBase = window.location.origin + "/3c-quiz/quizzes/";
-          const url = `${repoBase}${quizUrl}.json`;
+          const url = `${WORKER_URL}/quiz/${quizUrl}`;
 
           try {
             const response = await fetch(url);
-            if (!response.ok) throw new Error(`Quiz file not found at: ${url}`);
+            if (!response.ok) throw new Error(`Quiz not found in R2: ${quizUrl} (${response.status})`);
             const data = await response.json();
 
             let pages = data.pages;
