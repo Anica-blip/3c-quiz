@@ -58,7 +58,7 @@ All navigation buttons are stored in `/static`.
 
 ## 🎨 Credits
 
-*GitHub - Copilot*
+*Designed and Built by GitHub Copilot × Chef Anica · 3C Thread To Success™ Cooking Lab*
 
 ---
 
