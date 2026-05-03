@@ -1,5 +1,13 @@
 # 3c-quiz
 
+This project is part of the 3C Thread To Success™ ecosystem — a growing digital platform that combines creativity, structure, and real-world application.
+
+The 3C Thread To Success™ brand, including its name, structure, characters (Aurion 3C Mascot), and overall system design, remains the intellectual property of the creator and is not included in this license.
+
+Commercial use of the brand or replication of the ecosystem identity is not permitted without permission.
+
+---
+
 A customizable quiz application with dynamic backgrounds and navigation, structured for easy integration with an admin/editor app for quiz text management.
 
 ## File Structure
@@ -45,3 +53,25 @@ All navigation buttons are stored in `/static`.
 ---
 
 *This project is the template/operational version of the quiz app. All quiz content will eventually be managed via a separate admin/editor app for easy editing and updating.*
+
+---
+
+## 🎨 Credits
+
+*GitHub - Copilot*
+
+---
+
+## 👤 Creator
+
+Anica-blip (“Chef”)
+Founder of 3C Thread To Success™ ("Cooking Lab")
+Independent Creator | Community Builder
+
+---
+
+🧠 Philosophy
+
+“Think it. Do it. Own it.”
+
+This project was built from vision, persistence, and a commitment to creating meaningful and structured experiences — even with minimal resources.
