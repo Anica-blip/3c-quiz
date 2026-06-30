@@ -767,7 +767,7 @@ const $ = (sel) => document.querySelector(sel);
                 </div>
               </div>
               <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
-                ${showBack && current.type !== "thankyou" ? `<button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="position:static;background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">Back</button>` : ""}
+                ${showBack && current.type !== "thankyou" ? `<button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">Back</button>` : ""}
                 ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="text-align:center;display:flex;align-items:center;justify-content:center;">${nextLabel}</button>` : ""}
               </div>
             `;
