@@ -310,7 +310,7 @@ const $ = (sel) => document.querySelector(sel);
             
           // Fixed positioning for result pages (5a-5d.png) - these should not move
           result: {
-            title: { x: 42, y: 212, width: 275, height: 54 },
+            title: { x: 42, y: 212, width: 275, height: 34 },
             description: { x: 42, y: 259, width: 275, height: 297 }
           },
 
@@ -492,16 +492,13 @@ const $ = (sel) => document.querySelector(sel);
                       console.log(`4.png description keeping original Y=${finalY}`);
                     }
                   } else if (currentBg.includes("static/5") && currentBg.includes(".png")) {
-                    // For result pages (5a.png, 5b.png, 5c.png, 5d.png): Move description down if title exceeds height
-                    if (titleExceedsHeight) {
-                      // Calculate how much to move down based on actual title height
-                      const heightDifference = titleActualHeight - titleOriginalHeight;
-                      finalY = position.y + (heightDifference / scaleY);
-                      console.log(`${currentBg} description moved to Y=${finalY} due to title overflow (diff: ${heightDifference}px)`);
-                    } else {
-                      // Keep original Y position from JSON or layout
-                      console.log(`${currentBg} description keeping original Y=${finalY}`);
-                    }
+                    // For result pages (5a.png, 5b.png, 5c.png, 5d.png): always sit the description
+                    // directly below the title's real rendered height, not just on overflow —
+                    // this closes the gap whether the title is one line or wraps to two.
+                    const titleStartY = (titleBlock && titleBlock.y !== undefined) ? titleBlock.y : position.y;
+                    const titleGapPx = 8; // small breathing room between title and description
+                    finalY = titleStartY + (titleActualHeight / scaleY) + titleGapPx;
+                    console.log(`${currentBg} description positioned snugly at Y=${finalY} below title (actual title height: ${titleActualHeight}px)`);
                   } else {
                     // For other pages: Apply general rule - move description down if title exceeds height
                     if (titleExceedsHeight) {
