@@ -772,6 +772,25 @@ const $ = (sel) => document.querySelector(sel);
             `;
             
             const img = $("#quiz-bg-img");
+
+            // Block navigation until this page's actual content (title,
+            // description, question text, answer buttons) has rendered.
+            // Without this, a fast click could advance past a page whose
+            // overlay never got the chance to appear — see handleImageLoad
+            // below, which is what actually builds that content.
+            const nextBtnEl = $("#nextBtn");
+            const backBtnEl = $("#backBtn");
+            if (nextBtnEl) {
+              nextBtnEl.disabled = true;
+              nextBtnEl.style.opacity = "0.4";
+              nextBtnEl.style.cursor = "default";
+            }
+            if (backBtnEl) {
+              backBtnEl.disabled = true;
+              backBtnEl.style.opacity = "0.4";
+              backBtnEl.style.cursor = "default";
+            }
+
             const handleImageLoad = () => {
               const rect = img.getBoundingClientRect();
               const displayW = rect.width;
@@ -940,6 +959,18 @@ const $ = (sel) => document.querySelector(sel);
                     });
                   }, 20);
                 }
+              }
+
+              // Content is now actually visible — safe to allow navigation.
+              if (nextBtnEl) {
+                nextBtnEl.disabled = false;
+                nextBtnEl.style.opacity = "";
+                nextBtnEl.style.cursor = "pointer";
+              }
+              if (backBtnEl) {
+                backBtnEl.disabled = false;
+                backBtnEl.style.opacity = "";
+                backBtnEl.style.cursor = "pointer";
               }
             };
 
