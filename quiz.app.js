@@ -378,7 +378,7 @@ const $ = (sel) => document.querySelector(sel);
           tempDiv.style.overflowWrap = 'break-word';
           tempDiv.style.width = width + 'px';
           tempDiv.style.fontSize = fontSize + 'px';
-          tempDiv.style.fontFamily = fontFamily || 'Arial, sans-serif';
+          tempDiv.style.fontFamily = fontFamily || "'Montserrat', Arial, sans-serif";
           tempDiv.style.lineHeight = lineHeight;
           tempDiv.innerHTML = text || '';
           
@@ -419,7 +419,7 @@ const $ = (sel) => document.querySelector(sel);
               const scaledTitleFontSize = titleFontSize * scaleY;
               const scaledTitleWidth = (titleBlock.width || 275) * scaleX;
               
-              titleActualHeight = calculateTextHeight(titleBlock.text, scaledTitleFontSize, 'Arial, sans-serif', scaledTitleWidth);
+              titleActualHeight = calculateTextHeight(titleBlock.text, scaledTitleFontSize, "'Montserrat', Arial, sans-serif", scaledTitleWidth);
               titleOriginalHeight = (titleBlock.height || 28) * scaleY; // Result pages typically have H28 for title
               titleExceedsHeight = titleActualHeight > titleOriginalHeight;
               
@@ -764,6 +764,7 @@ const $ = (sel) => document.querySelector(sel);
               <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
                 ${showBack ? `<button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">Back</button>` : ""}
                 ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="text-align:center;display:flex;align-items:center;justify-content:center;">${nextLabel}</button>` : ""}
+                ${current.type === "thankyou" ? `<button class="main-btn" id="exitBtn" title="Exit" style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">&times;</button>` : ""}
               </div>
             `;
             
@@ -960,8 +961,10 @@ const $ = (sel) => document.querySelector(sel);
                     backBtn.style.background = "rgba(255,255,255,0.1)";
                   };
                   backBtn.onclick = () => {
-                    if (
-                      current.type === "thankyou" ||
+                    if (current.type === "thankyou") {
+                      let firstQuestionIdx = pageSequence.findIndex(p => p.type === "question");
+                      state.page = firstQuestionIdx !== -1 ? firstQuestionIdx : Math.max(state.page - 1, 0);
+                    } else if (
                       current.type === "resultA" ||
                       current.type === "resultB" ||
                       current.type === "resultC" ||
@@ -985,6 +988,28 @@ const $ = (sel) => document.querySelector(sel);
                       state.page = Math.max(state.page - 1, 0);
                     }
                     render();
+                  };
+                }
+              }
+
+              if (current.type === "thankyou") {
+                const exitBtn = $("#exitBtn");
+                if (exitBtn) {
+                  exitBtn.onmouseenter = () => {
+                    exitBtn.style.background = "rgba(255,255,255,0.2)";
+                  };
+                  exitBtn.onmouseleave = () => {
+                    exitBtn.style.background = "rgba(255,255,255,0.1)";
+                  };
+                  exitBtn.onclick = () => {
+                    // Return the user to wherever they entered from (Public Library, Telegram, etc.)
+                    if (document.referrer && document.referrer !== window.location.href) {
+                      window.location.href = document.referrer;
+                    } else if (window.history.length > 1) {
+                      window.history.back();
+                    } else {
+                      window.close();
+                    }
                   };
                 }
               }
