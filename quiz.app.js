@@ -304,7 +304,7 @@ const $ = (sel) => document.querySelector(sel);
           
           // Default fallback layout for sample pages
           intro_result: {
-            title: { x: 42, y: 212, width: 275, height: 60 },
+            title: { x: 42, y: 212, width: 275, height: 54 },
             description: { x: 42, y: 283, width: 275, height: 186 }
           },
             
