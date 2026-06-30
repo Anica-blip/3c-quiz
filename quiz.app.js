@@ -759,15 +759,17 @@ const $ = (sel) => document.querySelector(sel);
                   <img id="quiz-bg-img" src="${current.bg}" alt="quiz background" style="display:block;width:auto;height:auto;max-width:96vw;max-height:90vh;" 
                        onerror="this.src='${getPlaceholderForPage(current.type)}'; console.log('Background image failed to load for ${current.type}, using placeholder');" />
                   <div id="block-overlay-layer" style="position:absolute;left:0;top:0;pointer-events:none;"></div>
+                  ${current.type === "thankyou" ? `
+                  <button class="main-btn" id="backBtn" title="Go Back" style="position:absolute;left:16px;bottom:16px;background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;z-index:1000;">Back</button>
+                  <button id="exitBtn" title="Exit" style="position:absolute;right:16px;bottom:16px;width:44px;height:44px;background:rgba(255,255,255,0.1);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);z-index:1000;padding:0;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e7d3bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                  </button>` : ""}
                 </div>
               </div>
               <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
-                ${showBack ? `<button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">Back</button>` : ""}
+                ${showBack && current.type !== "thankyou" ? `<button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="position:static;background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">Back</button>` : ""}
                 ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="text-align:center;display:flex;align-items:center;justify-content:center;">${nextLabel}</button>` : ""}
               </div>
-              ${current.type === "thankyou" ? `<button id="exitBtn" title="Exit" style="position:fixed;right:20px;bottom:20px;width:44px;height:44px;background:rgba(20,10,35,0.55);border:1px solid rgba(231,211,191,0.35);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);z-index:1000;padding:0;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e7d3bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                </button>` : ""}
             `;
             
             const img = $("#quiz-bg-img");
@@ -998,10 +1000,10 @@ const $ = (sel) => document.querySelector(sel);
                 const exitBtn = $("#exitBtn");
                 if (exitBtn) {
                   exitBtn.onmouseenter = () => {
-                    exitBtn.style.background = "rgba(20,10,35,0.8)";
+                    exitBtn.style.background = "rgba(255,255,255,0.2)";
                   };
                   exitBtn.onmouseleave = () => {
-                    exitBtn.style.background = "rgba(20,10,35,0.55)";
+                    exitBtn.style.background = "rgba(255,255,255,0.1)";
                   };
                   exitBtn.onclick = () => {
                     // Close the browser tab/window completely — same as the native mobile browser close.
