@@ -768,7 +768,7 @@ const $ = (sel) => document.querySelector(sel);
                   </button>` : ""}
                   ${useCardAnchoredNav ? `
                   <button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="position:absolute;left:16px;bottom:16px;background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;z-index:1000;">Back</button>
-                  <button class="main-btn" id="nextBtn" style="position:absolute;right:16px;bottom:16px;text-align:center;display:flex;align-items:center;justify-content:center;z-index:1000;">${nextLabel}</button>` : ""}
+                  <button class="main-btn" id="nextBtn" style="position:absolute;right:16px;bottom:16px;background:rgba(255,255,255,0.1);color:#997a64;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;z-index:1000;">${nextLabel}</button>` : ""}
                 </div>
               </div>
               <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
