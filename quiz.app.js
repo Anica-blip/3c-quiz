@@ -182,8 +182,8 @@ const $ = (sel) => document.querySelector(sel);
         const defaultPageSequence = [
           { type: "cover", bg: "static/1.png" },
           { type: "intro", bg: "static/2.png", blocks: [
-            { type: "title", text: "Welcome to the Quiz", fontSize: 18, color: "#fff", fontWeight: "bold", x: 42, y: 212, width: 275, height: 60 },
-            { type: "description", text: "This is a sample quiz to test the positioning and functionality.", fontSize: 14, color: "#fff", x: 42, y: 283, width: 275, height: 186 }
+            { type: "title", text: "Welcome to the Quiz", fontSize: 18, color: "#fff", fontWeight: "bold", x: 42, y: 212, width: 275, height: 54 },
+            { type: "description", text: "This is a sample quiz to test the positioning and functionality.", fontSize: 14, color: "#fff", x: 42, y: 259, width: 275, height: 186 }
           ]},
           { type: "question", bg: "static/3a.png", blocks: [
             { type: "question", text: "What is your favorite color?", fontSize: 18, color: "#fff", fontWeight: "bold" },
@@ -305,7 +305,7 @@ const $ = (sel) => document.querySelector(sel);
           // Default fallback layout for sample pages
           intro_result: {
             title: { x: 42, y: 212, width: 275, height: 54 },
-            description: { x: 42, y: 283, width: 275, height: 186 }
+            description: { x: 42, y: 259, width: 275, height: 186 }
           },
             
           // Fixed positioning for result pages (5a-5d.png) - these should not move
@@ -470,22 +470,22 @@ const $ = (sel) => document.querySelector(sel);
                 if (type === "description" || type === "desc") {
                   // Special logic for description blocks
                   if (currentBg === "static/2.png") {
-                    // For 2.png: Y283 for single line title, Y289 for multi-line title
+                    // For 2.png: Y259 for single line title, Y283 for multi-line title
                     if (titleBlock && titleBlock.text) {
                       const titleLineHeight = (titleBlock.fontSize || 18) * scaleY * 1.2;
                       const numLines = Math.ceil(titleActualHeight / titleLineHeight);
                       
                       if (numLines > 1) {
-                        finalY = 289; // Multi-line title
+                        finalY = 283; // Multi-line title
                       } else {
-                        finalY = 283; // Single line title
+                        finalY = 259; // Single line title
                       }
                       console.log(`2.png description positioned at Y=${finalY} (${numLines} title lines)`);
                     }
                   } else if (currentBg === "static/4.png") {
                     // For 4.png: Start at Y289 if title exceeds height, otherwise keep original position
                     if (titleExceedsHeight) {
-                      finalY = 289; // Move down if title is too tall
+                      finalY = 283; // Move down if title is too tall
                       console.log(`4.png description moved to Y=${finalY} due to title height`);
                     } else {
                       // Keep original Y position from JSON or layout
