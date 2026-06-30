@@ -764,8 +764,10 @@ const $ = (sel) => document.querySelector(sel);
               <div class="fullscreen-bottom" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;z-index:1000;">
                 ${showBack ? `<button class="main-btn back-arrow-btn" id="backBtn" title="Go Back" style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">Back</button>` : ""}
                 ${current.type !== "thankyou" ? `<button class="main-btn" id="nextBtn" style="text-align:center;display:flex;align-items:center;justify-content:center;">${nextLabel}</button>` : ""}
-                ${current.type === "thankyou" ? `<button class="main-btn" id="exitBtn" title="Exit" style="background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 18px;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;">&times;</button>` : ""}
               </div>
+              ${current.type === "thankyou" ? `<button id="exitBtn" title="Exit" style="position:fixed;right:20px;bottom:20px;width:44px;height:44px;background:rgba(20,10,35,0.55);border:1px solid rgba(231,211,191,0.35);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);z-index:1000;padding:0;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e7d3bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>` : ""}
             `;
             
             const img = $("#quiz-bg-img");
@@ -996,20 +998,15 @@ const $ = (sel) => document.querySelector(sel);
                 const exitBtn = $("#exitBtn");
                 if (exitBtn) {
                   exitBtn.onmouseenter = () => {
-                    exitBtn.style.background = "rgba(255,255,255,0.2)";
+                    exitBtn.style.background = "rgba(20,10,35,0.8)";
                   };
                   exitBtn.onmouseleave = () => {
-                    exitBtn.style.background = "rgba(255,255,255,0.1)";
+                    exitBtn.style.background = "rgba(20,10,35,0.55)";
                   };
                   exitBtn.onclick = () => {
-                    // Return the user to wherever they entered from (Public Library, Telegram, etc.)
-                    if (document.referrer && document.referrer !== window.location.href) {
-                      window.location.href = document.referrer;
-                    } else if (window.history.length > 1) {
-                      window.history.back();
-                    } else {
-                      window.close();
-                    }
+                    // Close the browser tab/window completely — same as the native mobile browser close.
+                    window.close();
+                    self.close();
                   };
                 }
               }
