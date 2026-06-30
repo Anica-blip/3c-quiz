@@ -762,7 +762,7 @@ const $ = (sel) => document.querySelector(sel);
                   ${current.type === "thankyou" ? `
                   <button class="main-btn" id="backBtn" title="Go Back" style="position:absolute;left:16px;bottom:16px;background:rgba(255,255,255,0.1);color:#fff;border:none;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);text-align:center;z-index:1000;">Back</button>
                   <button id="exitBtn" title="Exit" style="position:absolute;right:16px;bottom:16px;width:44px;height:44px;background:rgba(255,255,255,0.1);border:none;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);z-index:1000;padding:0;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e7d3bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#997a64" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                   </button>` : ""}
                 </div>
               </div>
