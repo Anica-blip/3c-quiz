@@ -485,7 +485,7 @@ const $ = (sel) => document.querySelector(sel);
                   } else if (currentBg === "static/4.png") {
                     // For 4.png: Start at Y289 if title exceeds height, otherwise keep original position
                     if (titleExceedsHeight) {
-                      finalY = 283; // Move down if title is too tall
+                      finalY = 259; // Move down if title is too tall
                       console.log(`4.png description moved to Y=${finalY} due to title height`);
                     } else {
                       // Keep original Y position from JSON or layout
