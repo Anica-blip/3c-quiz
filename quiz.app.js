@@ -470,17 +470,14 @@ const $ = (sel) => document.querySelector(sel);
                 if (type === "description" || type === "desc") {
                   // Special logic for description blocks
                   if (currentBg === "static/2.png") {
-                    // For 2.png: Y259 for single line title, Y283 for multi-line title
+                    // Always sit the description directly below the title's real rendered
+                    // height, not a hardcoded single/multi-line guess — same approach as the
+                    // result pages, so admin and loader stay in sync on the same JSON values.
                     if (titleBlock && titleBlock.text) {
-                      const titleLineHeight = (titleBlock.fontSize || 18) * scaleY * 1.2;
-                      const numLines = Math.ceil(titleActualHeight / titleLineHeight);
-                      
-                      if (numLines > 1) {
-                        finalY = 283; // Multi-line title
-                      } else {
-                        finalY = 259; // Single line title
-                      }
-                      console.log(`2.png description positioned at Y=${finalY} (${numLines} title lines)`);
+                      const titleStartY = (titleBlock.y !== undefined) ? titleBlock.y : position.y;
+                      const titleGapPx = 8; // small breathing room between title and description
+                      finalY = titleStartY + (titleActualHeight / scaleY) + titleGapPx;
+                      console.log(`2.png description positioned snugly at Y=${finalY} below title (actual title height: ${titleActualHeight}px)`);
                     }
                   } else if (currentBg === "static/4.png") {
                     // For 4.png: Start at Y289 if title exceeds height, otherwise keep original position
