@@ -261,6 +261,21 @@ const $ = (sel) => document.querySelector(sel);
           });
         }
 
+        // Preloads every unique background image across the whole quiz in
+        // parallel, during the Start/consent step — this is what makes the
+        // rest of the quiz feel instant with no per-page loading gap. Each
+        // image resolves on load OR error (never rejects), so one missing
+        // asset can't hang the whole quiz open on the loading screen.
+        function preloadPageImages(pages) {
+          const uniqueBgs = [...new Set(pages.map(p => p.bg).filter(Boolean))];
+          return Promise.all(uniqueBgs.map(bg => new Promise(resolve => {
+            const img = new Image();
+            img.onload = resolve;
+            img.onerror = resolve;
+            img.src = bg;
+          })));
+        }
+
         function renderErrorScreen(extra = "") {
           if (!ensureApp()) return;
           app.innerHTML = `
@@ -706,6 +721,20 @@ const $ = (sel) => document.querySelector(sel);
                       
                       if (config && Array.isArray(config.pages) && config.pages.length > 0) {
                         config.pages = autoFixPages(config.pages);
+                        // Preload the whole quiz's images now, in one go,
+                        // while "Loading..." is still showing — matches
+                        // the intended architecture: one loading step at
+                        // the gateway, then no gaps for the rest of the quiz.
+                        // Capped at 2.5s so a slow connection can't turn
+                        // this into a long stall — on a fast connection
+                        // this resolves almost immediately; on a slow one,
+                        // the quiz proceeds anyway rather than making the
+                        // user wait, and any images still in flight just
+                        // finish loading lazily per-page as before.
+                        await Promise.race([
+                          preloadPageImages(config.pages),
+                          new Promise(resolve => setTimeout(resolve, 2500))
+                        ]);
                         pageSequence = config.pages;
                         NUM_QUESTIONS = config.numQuestions;
                         SHOW_RESULT = config.showResult || SHOW_RESULT;
