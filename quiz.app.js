@@ -721,20 +721,21 @@ const $ = (sel) => document.querySelector(sel);
                       
                       if (config && Array.isArray(config.pages) && config.pages.length > 0) {
                         config.pages = autoFixPages(config.pages);
-                        // Preload the whole quiz's images now, in one go,
-                        // while "Loading..." is still showing — matches
-                        // the intended architecture: one loading step at
-                        // the gateway, then no gaps for the rest of the quiz.
-                        // Capped at 2.5s so a slow connection can't turn
-                        // this into a long stall — on a fast connection
-                        // this resolves almost immediately; on a slow one,
-                        // the quiz proceeds anyway rather than making the
-                        // user wait, and any images still in flight just
-                        // finish loading lazily per-page as before.
-                        await Promise.race([
-                          preloadPageImages(config.pages),
-                          new Promise(resolve => setTimeout(resolve, 2500))
-                        ]);
+                        // Load fast: only wait for the very next page's
+                        // image before starting the quiz, so the Start-to-
+                        // first-page gap stays as short as possible — one
+                        // image, not the whole quiz. Everything else
+                        // preloads quietly in the background from here on
+                        // (no await — fire and forget), so by the time the
+                        // user reaches those pages they're already cached.
+                        const firstContentPage = config.pages[1];
+                        if (firstContentPage?.bg) {
+                          await Promise.race([
+                            preloadPageImages([firstContentPage]),
+                            new Promise(resolve => setTimeout(resolve, 1500))
+                          ]);
+                        }
+                        preloadPageImages(config.pages.slice(2));
                         pageSequence = config.pages;
                         NUM_QUESTIONS = config.numQuestions;
                         SHOW_RESULT = config.showResult || SHOW_RESULT;
