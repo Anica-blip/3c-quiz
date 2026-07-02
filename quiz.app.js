@@ -705,9 +705,10 @@ const $ = (sel) => document.querySelector(sel);
                   console.log("Quiz URL parameter:", quizUrlParam);
                   
                   if (quizUrlParam) {
-                    state.isLoading = true;
-                    render();
-                    
+                    // No full-screen loading page — the cover stays exactly
+                    // as-is while this runs in the background. The button's
+                    // own disabled/"Loading..." state above is the only
+                    // visible cue, not a page swap.
                     try {
                       const config = await fetchQuizFromRepoByQuizUrl(quizUrlParam);
                       console.log("Config returned:", config);
@@ -728,11 +729,12 @@ const $ = (sel) => document.querySelector(sel);
                         // preloads quietly in the background from here on
                         // (no await — fire and forget), so by the time the
                         // user reaches those pages they're already cached.
+                        // Capped at 900ms (was 1500ms) per spec: within 1s.
                         const firstContentPage = config.pages[1];
                         if (firstContentPage?.bg) {
                           await Promise.race([
                             preloadPageImages([firstContentPage]),
-                            new Promise(resolve => setTimeout(resolve, 1500))
+                            new Promise(resolve => setTimeout(resolve, 900))
                           ]);
                         }
                         preloadPageImages(config.pages.slice(2));
