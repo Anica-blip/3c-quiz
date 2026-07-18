@@ -1068,9 +1068,18 @@ const $ = (sel) => document.querySelector(sel);
                     exitBtn.style.background = "rgba(255,255,255,0.1)";
                   };
                   exitBtn.onclick = () => {
-                    // Close the browser tab/window completely — same as the native mobile browser close.
-                    window.close();
-                    self.close();
+                    // Return to wherever this quiz was opened from (the
+                    // Vault content page). window.close()/self.close()
+                    // only work on a tab opened via script — since this
+                    // quiz is reached by normal same-tab navigation, not
+                    // a popup, there's no window for those to close, so
+                    // they silently do nothing. Same referrer-based
+                    // pattern used by the Vault's other viewers.
+                    if (document.referrer) {
+                      window.location.href = document.referrer;
+                    } else {
+                      window.history.back();
+                    }
                   };
                 }
               }
